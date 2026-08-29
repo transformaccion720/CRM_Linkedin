@@ -31,7 +31,7 @@ export default function Home() {
   // Responsive mobile sidebar state
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
-  // Commercial Message Templates
+  // Commercial Message Templates in Neon DB
   const [templates, setTemplates] = useState<MessageTemplate[]>(DEFAULT_TEMPLATES);
   const [activeTemplateId, setActiveTemplateId] = useState<string>(DEFAULT_TEMPLATES[0].id);
 
@@ -62,40 +62,69 @@ export default function Home() {
     }
   }, []);
 
-  // Load custom templates from localStorage
-  useEffect(() => {
+  // Fetch templates from Neon DB
+  const fetchTemplates = useCallback(async () => {
     try {
-      const saved = localStorage.getItem('crm-templates');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setTemplates(parsed);
+      const res = await fetch('/api/templates');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.templates) && data.templates.length > 0) {
+          setTemplates(data.templates);
+          const active = data.templates.find((t: any) => t.isActive);
+          if (active) {
+            setActiveTemplateId(active.id);
+          } else {
+            setActiveTemplateId(data.templates[0].id);
+          }
         }
       }
-      const savedActive = localStorage.getItem('crm-active-template-id');
-      if (savedActive) {
-        setActiveTemplateId(savedActive);
-      }
     } catch (e) {
-      console.error('Error loading saved templates:', e);
+      console.error('Error fetching templates from Neon DB:', e);
     }
   }, []);
 
-  const handleSaveTemplates = (newTemplates: MessageTemplate[]) => {
+  useEffect(() => {
+    fetchTemplates();
+  }, [fetchTemplates]);
+
+  const handleSaveTemplates = async (newTemplates: MessageTemplate[]) => {
     setTemplates(newTemplates);
-    localStorage.setItem('crm-templates', JSON.stringify(newTemplates));
+    try {
+      await fetch('/api/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ templates: newTemplates, activeTemplateId }),
+      });
+    } catch (e) {
+      console.error('Error saving templates to Neon DB:', e);
+    }
   };
 
-  const handleSelectActiveTemplate = (id: string) => {
+  const handleSelectActiveTemplate = async (id: string) => {
     setActiveTemplateId(id);
-    localStorage.setItem('crm-active-template-id', id);
+    try {
+      await fetch('/api/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ templates, activeTemplateId: id }),
+      });
+    } catch (e) {
+      console.error('Error syncing active template to Neon DB:', e);
+    }
   };
 
-  const handleResetTemplates = () => {
+  const handleResetTemplates = async () => {
     setTemplates(DEFAULT_TEMPLATES);
     setActiveTemplateId(DEFAULT_TEMPLATES[0].id);
-    localStorage.setItem('crm-templates', JSON.stringify(DEFAULT_TEMPLATES));
-    localStorage.setItem('crm-active-template-id', DEFAULT_TEMPLATES[0].id);
+    try {
+      await fetch('/api/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ templates: DEFAULT_TEMPLATES, activeTemplateId: DEFAULT_TEMPLATES[0].id }),
+      });
+    } catch (e) {
+      console.error('Error resetting templates in Neon DB:', e);
+    }
   };
 
   const activeTemplate = templates.find((t) => t.id === activeTemplateId) || templates[0];
@@ -229,6 +258,7 @@ export default function Home() {
         onRefresh={() => {
           fetchContacts();
           fetchStats();
+          fetchTemplates();
         }}
         onExport={handleExportCSV}
         totalContacts={stats?.total || 0}
@@ -282,14 +312,14 @@ export default function Home() {
                   />
                 </div>
 
-                {/* Campaign Template Quick Selector */}
+                {/* Campaign Template Quick Selector (Synced to DB) */}
                 <div className="flex items-center gap-1 bg-theme-sur2 border border-theme-bor rounded-lg px-2 py-1 text-xs">
                   <MessageSquare className="w-3 h-3 text-[#00e5a0]" />
                   <select
                     value={activeTemplateId}
                     onChange={(e) => handleSelectActiveTemplate(e.target.value)}
                     className="bg-transparent border-none text-xs text-[#00e5a0] font-semibold outline-hidden cursor-pointer max-w-[140px] truncate"
-                    title="Plantilla activa para copia rápida"
+                    title="Plantilla activa en la nube para copia rápida"
                   >
                     {templates.map((t) => (
                       <option key={t.id} value={t.id} className="bg-theme-sur text-theme-txt">
@@ -303,7 +333,7 @@ export default function Home() {
                 <select
                   value={yearFilter}
                   onChange={(e) => setYearFilter(e.target.value)}
-                  className="bg-theme-sur2 border border-theme-bor rounded-lg px-2 py-1 text-xs text-theme-txt outline-hidden cursor-pointer"
+                  className="bg-theme-sur2 border border-theme-bor rounded-lg px-2.5 py-1.5 text-xs text-theme-txt outline-hidden cursor-pointer"
                 >
                   <option value="">Años</option>
                   {filterOptions.years.map((y) => (
@@ -317,7 +347,7 @@ export default function Home() {
                 <select
                   value={companyFilter}
                   onChange={(e) => setCompanyFilter(e.target.value)}
-                  className="bg-theme-sur2 border border-theme-bor rounded-lg px-2 py-1 text-xs text-theme-txt outline-hidden max-w-[130px] cursor-pointer"
+                  className="bg-theme-sur2 border border-theme-bor rounded-lg px-2.5 py-1.5 text-xs text-theme-txt outline-hidden max-w-[130px] cursor-pointer"
                 >
                   <option value="">Empresas</option>
                   {filterOptions.companies.map((c) => (
@@ -331,7 +361,7 @@ export default function Home() {
                 <select
                   value={positionFilter}
                   onChange={(e) => setPositionFilter(e.target.value)}
-                  className="bg-theme-sur2 border border-theme-bor rounded-lg px-2 py-1 text-xs text-theme-txt outline-hidden max-w-[130px] cursor-pointer"
+                  className="bg-theme-sur2 border border-theme-bor rounded-lg px-2.5 py-1.5 text-xs text-theme-txt outline-hidden max-w-[130px] cursor-pointer"
                 >
                   <option value="">Cargos</option>
                   {filterOptions.positions.map((p) => (
@@ -346,7 +376,7 @@ export default function Home() {
                   <select
                     value={tagFilter}
                     onChange={(e) => setTagFilter(e.target.value)}
-                    className="bg-theme-sur2 border border-theme-bor rounded-lg px-2 py-1 text-xs text-theme-txt outline-hidden max-w-[110px] cursor-pointer"
+                    className="bg-theme-sur2 border border-theme-bor rounded-lg px-2.5 py-1.5 text-xs text-theme-txt outline-hidden max-w-[110px] cursor-pointer"
                   >
                     <option value="">Tags</option>
                     {filterOptions.tags.map((t) => (
@@ -361,7 +391,7 @@ export default function Home() {
                 <select
                   value={priorityFilter}
                   onChange={(e) => setPriorityFilter(e.target.value)}
-                  className="bg-theme-sur2 border border-theme-bor rounded-lg px-2 py-1 text-xs text-theme-txt outline-hidden cursor-pointer"
+                  className="bg-theme-sur2 border border-theme-bor rounded-lg px-2.5 py-1.5 text-xs text-theme-txt outline-hidden cursor-pointer"
                 >
                   <option value="">Prioridad</option>
                   <option value="3">⭐⭐⭐ Alta</option>
