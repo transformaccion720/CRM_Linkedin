@@ -27,8 +27,13 @@ export interface Contact {
 export interface ContactStats {
   total: number;
   withEmail: number;
+  noEmail?: number;
   companiesCount: number;
   recentCount: number;
   pendingFollowUps?: number;
   byStatus: Record<string, number>;
+  topCompanies?: { company: string; count: string }[];
+  byYear?: { yr: string; count: string }[];
+  topPositions?: { position: string; count: string }[];
+  recentContacts?: { id: string; first_name: string; last_name: string; connected_on: string }[];
 }

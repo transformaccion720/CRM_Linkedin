@@ -16,7 +16,7 @@ export default function StatsCards({ stats, showingCount }: StatsCardsProps) {
   const emailPct = total > 0 ? ((withEmail / total) * 100).toFixed(1) : '0';
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 p-4 border-b border-theme-bor bg-theme-sur/60 shrink-0">
+    <div className="hidden md:grid md:grid-cols-5 gap-3 p-4 border-b border-theme-bor bg-theme-sur/60 shrink-0">
       <div className="bg-theme-sur border border-theme-bor rounded-xl p-3 shadow-xs hover:border-theme-bor2 transition-all">
         <div className="flex items-center justify-between text-theme-txt2 text-xs font-mono mb-1 uppercase tracking-wider">
           <span>Total Red</span>
@@ -53,7 +53,7 @@ export default function StatsCards({ stats, showingCount }: StatsCardsProps) {
         <div className="text-[11px] text-theme-txt2 mt-0.5">2025–2026</div>
       </div>
 
-      <div className="bg-theme-sur border border-theme-bor rounded-xl p-3 shadow-xs col-span-2 md:col-span-1">
+      <div className="bg-theme-sur border border-theme-bor rounded-xl p-3 shadow-xs">
         <div className="flex items-center justify-between text-theme-txt2 text-xs font-mono mb-1 uppercase tracking-wider">
           <span>Mostrando</span>
           <Filter className="w-3.5 h-3.5 text-theme-txt" />

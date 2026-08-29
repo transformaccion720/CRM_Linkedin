@@ -1,17 +1,15 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import { ContactStats } from '@/lib/types';
+import { Users, Mail, Building2, Calendar, Filter, TrendingUp, CheckCircle, Clock, Star } from 'lucide-react';
 
 interface ExecutiveDashboardProps {
-  stats: {
-    total: number;
-    withEmail: number;
-    companiesCount: number;
-    recentCount: number;
-    byStatus: Record<string, number>;
-    topCompanies?: { company: string; count: string }[];
+  stats: (ContactStats & {
+    pendingFollowUps?: number;
+    topPositions?: { position: string; count: string }[];
     recentContacts?: { id: string; first_name: string; last_name: string; connected_on: string }[];
-  } | null;
+  }) | null;
 }
 
 export default function ExecutiveDashboard({ stats }: ExecutiveDashboardProps) {
@@ -19,6 +17,7 @@ export default function ExecutiveDashboard({ stats }: ExecutiveDashboardProps) {
   const withEmail = stats?.withEmail || 0;
   const companies = stats?.companiesCount || 0;
   const recent = stats?.recentCount || 0;
+  const pendingFollowUps = stats?.pendingFollowUps || 0;
   const byStatus = stats?.byStatus || { new: 0, contacted: 0, qualified: 0, lost: 0, unassigned: 0 };
 
   const managed = (byStatus.new || 0) + (byStatus.contacted || 0) + (byStatus.qualified || 0) + (byStatus.lost || 0);
@@ -36,63 +35,88 @@ export default function ExecutiveDashboard({ stats }: ExecutiveDashboardProps) {
   const top1Company = stats?.topCompanies?.[0];
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 bg-theme-bg space-y-6">
+    <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-theme-bg space-y-5 sm:space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-theme-txt">Dashboard Ejecutivo</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-theme-txt">Dashboard Ejecutivo y Métricas</h2>
           <p className="text-xs text-theme-txt2 mt-0.5">
-            Estado general del pipeline y salud de tu red de contactos en Neon DB
+            Consolidado general de tu red, pipeline y salud de prospección
           </p>
         </div>
-        <span className="font-mono text-[10px] text-theme-txt2 bg-theme-sur border border-theme-bor px-3 py-1 rounded-full">
-          Red completa · Sin filtros
+        <span className="font-mono text-[10px] text-theme-txt2 bg-theme-sur border border-theme-bor px-3 py-1 rounded-full shrink-0">
+          Red completa · Sincronizada
         </span>
       </div>
 
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-        <div className="bg-theme-sur border-l-4 border-l-[#dde3ef] border border-theme-bor rounded-xl p-3.5 shadow-xs">
-          <div className="font-mono text-[9px] uppercase tracking-wider text-theme-txt2 mb-1">Red Total</div>
-          <div className="text-2xl font-bold text-theme-txt">{total.toLocaleString()}</div>
-          <div className="text-[10px] text-theme-txt2 mt-1">Contactos LinkedIn</div>
+      {/* Main Consolidated KPI Cards Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
+        {/* Total Red */}
+        <div className="bg-theme-sur border-l-4 border-l-[#00e5a0] border border-theme-bor rounded-xl p-3 sm:p-3.5 shadow-xs">
+          <div className="flex items-center justify-between text-theme-txt2 text-[10px] font-mono mb-1 uppercase tracking-wider">
+            <span>Total Red</span>
+            <Users className="w-3.5 h-3.5 text-[#00e5a0]" />
+          </div>
+          <div className="text-xl sm:text-2xl font-bold text-theme-txt">{total.toLocaleString()}</div>
+          <div className="text-[10px] text-theme-txt2 mt-0.5">Contactos LinkedIn</div>
         </div>
 
-        <div className="bg-theme-sur border-l-4 border-l-[#00e5a0] border border-theme-bor rounded-xl p-3.5 shadow-xs">
-          <div className="font-mono text-[9px] uppercase tracking-wider text-theme-txt2 mb-1">Con Email</div>
-          <div className="text-2xl font-bold text-[#00e5a0]">{withEmail.toLocaleString()}</div>
-          <div className="text-[10px] text-theme-txt2 mt-1">{emailPct}% accionables</div>
+        {/* Con Email */}
+        <div className="bg-theme-sur border-l-4 border-l-[#00e5a0] border border-theme-bor rounded-xl p-3 sm:p-3.5 shadow-xs">
+          <div className="flex items-center justify-between text-theme-txt2 text-[10px] font-mono mb-1 uppercase tracking-wider">
+            <span>Con Email</span>
+            <Mail className="w-3.5 h-3.5 text-[#00e5a0]" />
+          </div>
+          <div className="text-xl sm:text-2xl font-bold text-[#00e5a0]">{withEmail.toLocaleString()}</div>
+          <div className="text-[10px] text-theme-txt2 mt-0.5">{emailPct}% del total</div>
         </div>
 
-        <div className="bg-theme-sur border-l-4 border-l-[#2979ff] border border-theme-bor rounded-xl p-3.5 shadow-xs">
-          <div className="font-mono text-[9px] uppercase tracking-wider text-theme-txt2 mb-1">Empresas</div>
-          <div className="text-2xl font-bold text-[#2979ff]">{companies.toLocaleString()}</div>
-          <div className="text-[10px] text-theme-txt2 mt-1">Organizaciones</div>
+        {/* Empresas */}
+        <div className="bg-theme-sur border-l-4 border-l-[#2979ff] border border-theme-bor rounded-xl p-3 sm:p-3.5 shadow-xs">
+          <div className="flex items-center justify-between text-theme-txt2 text-[10px] font-mono mb-1 uppercase tracking-wider">
+            <span>Empresas</span>
+            <Building2 className="w-3.5 h-3.5 text-[#2979ff]" />
+          </div>
+          <div className="text-xl sm:text-2xl font-bold text-[#2979ff]">{companies.toLocaleString()}</div>
+          <div className="text-[10px] text-theme-txt2 mt-0.5">Compañías únicas</div>
         </div>
 
-        <div className="bg-theme-sur border-l-4 border-l-[#ff6d3b] border border-theme-bor rounded-xl p-3.5 shadow-xs">
-          <div className="font-mono text-[9px] uppercase tracking-wider text-theme-txt2 mb-1">Pipeline</div>
-          <div className="text-2xl font-bold text-[#ff6d3b]">{managed.toLocaleString()}</div>
-          <div className="text-[10px] text-theme-txt2 mt-1">{managedPct}% con estado</div>
+        {/* Recientes */}
+        <div className="bg-theme-sur border-l-4 border-l-[#ff6d3b] border border-theme-bor rounded-xl p-3 sm:p-3.5 shadow-xs">
+          <div className="flex items-center justify-between text-theme-txt2 text-[10px] font-mono mb-1 uppercase tracking-wider">
+            <span>Recientes</span>
+            <Calendar className="w-3.5 h-3.5 text-[#ff6d3b]" />
+          </div>
+          <div className="text-xl sm:text-2xl font-bold text-[#ff6d3b]">{recent.toLocaleString()}</div>
+          <div className="text-[10px] text-theme-txt2 mt-0.5">2025–2026</div>
         </div>
 
-        <div className="bg-theme-sur border-l-4 border-l-[#00e5a0] border border-theme-bor rounded-xl p-3.5 shadow-xs">
-          <div className="font-mono text-[9px] uppercase tracking-wider text-theme-txt2 mb-1">Tasa Calificación</div>
-          <div className="text-2xl font-bold text-[#00e5a0]">{qualRate}%</div>
-          <div className="text-[10px] text-theme-txt2 mt-1">Calificados / gestión</div>
+        {/* Seguimientos Pendientes */}
+        <div className="bg-theme-sur border-l-4 border-l-[#ff6d3b] border border-theme-bor rounded-xl p-3 sm:p-3.5 shadow-xs">
+          <div className="flex items-center justify-between text-theme-txt2 text-[10px] font-mono mb-1 uppercase tracking-wider">
+            <span>Seguimientos</span>
+            <Clock className="w-3.5 h-3.5 text-[#ff6d3b]" />
+          </div>
+          <div className="text-xl sm:text-2xl font-bold text-[#ff6d3b]">{pendingFollowUps.toLocaleString()}</div>
+          <div className="text-[10px] text-theme-txt2 mt-0.5">Hoy y próximos 7 días</div>
         </div>
 
-        <div className="bg-theme-sur border-l-4 border-l-[#2979ff] border border-theme-bor rounded-xl p-3.5 shadow-xs">
-          <div className="font-mono text-[9px] uppercase tracking-wider text-theme-txt2 mb-1">Recientes</div>
-          <div className="text-2xl font-bold text-[#2979ff]">{recent.toLocaleString()}</div>
-          <div className="text-[10px] text-theme-txt2 mt-1">2025–2026</div>
+        {/* Tasa Calificación */}
+        <div className="bg-theme-sur border-l-4 border-l-[#00e5a0] border border-theme-bor rounded-xl p-3 sm:p-3.5 shadow-xs">
+          <div className="flex items-center justify-between text-theme-txt2 text-[10px] font-mono mb-1 uppercase tracking-wider">
+            <span>Conversión</span>
+            <TrendingUp className="w-3.5 h-3.5 text-[#00e5a0]" />
+          </div>
+          <div className="text-xl sm:text-2xl font-bold text-[#00e5a0]">{qualRate}%</div>
+          <div className="text-[10px] text-theme-txt2 mt-0.5">Calificados / gestión</div>
         </div>
       </div>
 
       {/* Grid with Funnel & Insights */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
         {/* Funnel */}
-        <div className="bg-theme-sur border border-theme-bor rounded-xl p-5 shadow-xs">
-          <div className="font-mono text-[10px] tracking-wider uppercase text-theme-txt2 mb-4">
+        <div className="bg-theme-sur border border-theme-bor rounded-xl p-4 sm:p-5 shadow-xs">
+          <div className="font-mono text-[10px] tracking-wider uppercase text-theme-txt2 mb-3">
             Pipeline · Nuevo → Contactado → Calificado
           </div>
           <div className="space-y-3">
@@ -102,7 +126,7 @@ export default function ExecutiveDashboard({ stats }: ExecutiveDashboardProps) {
 
               return (
                 <div key={step.label} className="flex items-center gap-3 text-xs">
-                  <div className="w-24 text-theme-txt">{step.label}</div>
+                  <div className="w-24 text-theme-txt font-medium">{step.label}</div>
                   <div className="flex-1 h-6 bg-theme-sur2 rounded-lg overflow-hidden relative">
                     <div
                       style={{ width: `${Math.max(pct, 6)}%`, backgroundColor: step.color }}
@@ -116,15 +140,16 @@ export default function ExecutiveDashboard({ stats }: ExecutiveDashboardProps) {
               );
             })}
           </div>
-          <div className="mt-4 pt-3 border-t border-theme-bor text-[11px] text-theme-txt2">
-            Descartados: <span className="text-theme-txt font-bold">{(byStatus.lost || 0).toLocaleString()}</span> · Sin asignar: <span className="text-theme-txt font-bold">{(byStatus.unassigned || 0).toLocaleString()}</span>
+          <div className="mt-4 pt-3 border-t border-theme-bor text-[11px] text-theme-txt2 flex justify-between flex-wrap gap-2">
+            <span>Descartados: <b className="text-theme-txt">{(byStatus.lost || 0).toLocaleString()}</b></span>
+            <span>Sin asignar: <b className="text-theme-txt">{(byStatus.unassigned || 0).toLocaleString()}</b></span>
           </div>
         </div>
 
         {/* Insights Automáticos */}
-        <div className="bg-theme-sur border border-theme-bor rounded-xl p-5 shadow-xs">
-          <div className="font-mono text-[10px] tracking-wider uppercase text-theme-txt2 mb-4">
-            Insights Automáticos
+        <div className="bg-theme-sur border border-theme-bor rounded-xl p-4 sm:p-5 shadow-xs">
+          <div className="font-mono text-[10px] tracking-wider uppercase text-theme-txt2 mb-3">
+            Insights y Oportunidades Clave
           </div>
           <div className="space-y-2.5">
             <div className="p-3 bg-theme-sur2/50 border border-theme-bor rounded-lg flex items-start gap-2.5 text-xs">
@@ -142,7 +167,7 @@ export default function ExecutiveDashboard({ stats }: ExecutiveDashboardProps) {
                   ○
                 </div>
                 <p className="text-theme-txt2">
-                  <b className="text-theme-txt">{byStatus.unassigned.toLocaleString()} contactos</b> están sin gestionar en el pipeline de seguimiento.
+                  <b className="text-theme-txt">{byStatus.unassigned.toLocaleString()} contactos</b> listos para ser prospectados en tus campañas de Gestión Ágil o Consultoría.
                 </p>
               </div>
             )}
@@ -153,7 +178,7 @@ export default function ExecutiveDashboard({ stats }: ExecutiveDashboardProps) {
                   ★
                 </div>
                 <p className="text-theme-txt2">
-                  Tu empresa con mayor presencia es <b className="text-theme-txt">{top1Company.company}</b> con {top1Company.count} conexiones.
+                  Empresa con mayor presencia: <b className="text-theme-txt">{top1Company.company}</b> ({top1Company.count} conexiones).
                 </p>
               </div>
             )}
