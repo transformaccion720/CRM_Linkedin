@@ -1,1 +1,56 @@
 @import "tailwindcss";
+
+@layer base {
+  :root,
+  html[data-theme="dark"] {
+    --bg: #07090d;
+    --sur: #0f1117;
+    --sur2: #161b24;
+    --sur3: #1b2130;
+    --bor: #1c2232;
+    --bor2: #242d3f;
+    --acc: #00e5a0;
+    --acc2: #2979ff;
+    --acc3: #ff6d3b;
+    --txt: #dde3ef;
+    --txt2: #7d8fa8;
+    --txt3: #3e4c63;
+  }
+
+  html[data-theme="light"] {
+    --bg: #f4f6f9;
+    --sur: #ffffff;
+    --sur2: #f0f2f6;
+    --sur3: #e8ebf1;
+    --bor: #e2e6ee;
+    --bor2: #d3d9e3;
+    --acc: #00a37a;
+    --acc2: #2458d6;
+    --acc3: #d1540e;
+    --txt: #1a2233;
+    --txt2: #5b6779;
+    --txt3: #98a2b3;
+  }
+}
+
+html, body {
+  background-color: var(--bg) !important;
+  color: var(--txt) !important;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Dynamic theme helpers */
+.bg-theme-bg { background-color: var(--bg) !important; }
+.bg-theme-sur { background-color: var(--sur) !important; }
+.bg-theme-sur2 { background-color: var(--sur2) !important; }
+.bg-theme-sur3 { background-color: var(--sur3) !important; }
+
+.border-theme-bor { border-color: var(--bor) !important; }
+.border-theme-bor2 { border-color: var(--bor2) !important; }
+
+.text-theme-txt { color: var(--txt) !important; }
+.text-theme-txt2 { color: var(--txt2) !important; }
+.text-theme-txt3 { color: var(--txt3) !important; }
+.text-theme-acc { color: var(--acc) !important; }
+.text-theme-acc2 { color: var(--acc2) !important; }
+.text-theme-acc3 { color: var(--acc3) !important; }
