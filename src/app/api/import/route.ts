@@ -60,7 +60,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No se enviaron filas válidas' }, { status: 400 });
     }
 
-    let inserted = 0;
+    let newlyInserted = 0;
+    let existingUpdated = 0;
     let skipped = 0;
 
     for (const raw of rows) {
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
       let lastName = '';
       let url = '';
       let email = '';
+      let phone = '';
       let company = '';
       let position = '';
       let dateRaw = '';
@@ -80,6 +82,7 @@ export async function POST(req: NextRequest) {
         company = String(raw[4] || '').trim();
         position = String(raw[5] || '').trim();
         dateRaw = String(raw[6] || '').trim();
+        phone = String(raw[7] || '').trim();
       } else if (typeof raw === 'object' && raw !== null) {
         const rowNorm: Record<string, string> = {};
         for (const [k, v] of Object.entries(raw)) {
@@ -91,6 +94,7 @@ export async function POST(req: NextRequest) {
         lastName = rowNorm['lastname'] || rowNorm['apellido'] || rowNorm['last'] || '';
         url = rowNorm['url'] || rowNorm['linkedinurl'] || rowNorm['perfil'] || rowNorm['link'] || '';
         email = rowNorm['emailaddress'] || rowNorm['email'] || rowNorm['correo'] || rowNorm['correoelectronico'] || '';
+        phone = rowNorm['phone'] || rowNorm['telefono'] || rowNorm['celular'] || rowNorm['whatsapp'] || rowNorm['numero'] || '';
         company = rowNorm['company'] || rowNorm['empresa'] || rowNorm['compania'] || '';
         position = rowNorm['position'] || rowNorm['cargo'] || rowNorm['puesto'] || rowNorm['headline'] || '';
         dateRaw = rowNorm['connectedon'] || rowNorm['fechadeconexion'] || rowNorm['fecha'] || rowNorm['connected'] || '';
@@ -100,6 +104,7 @@ export async function POST(req: NextRequest) {
       lastName = lastName.replace(/;+$/, '').trim();
       url = url.replace(/;+$/, '').trim();
       email = email.replace(/;+$/, '').trim();
+      phone = phone.replace(/;+$/, '').trim();
       company = company.replace(/;+$/, '').trim();
       position = position.replace(/;+$/, '').trim();
       dateRaw = dateRaw.replace(/;+$/, '').trim();
@@ -113,26 +118,49 @@ export async function POST(req: NextRequest) {
 
       try {
         if (url) {
-          await sql`
-            INSERT INTO contacts (first_name, last_name, linkedin_url, email, company, position, connected_on, status)
-            VALUES (${firstName}, ${lastName || null}, ${url}, ${email || null}, ${company || null}, ${position || null}, ${connectedOn || null}, 'Sin contactar')
-            ON CONFLICT (linkedin_url) 
-            DO UPDATE SET
-              first_name = EXCLUDED.first_name,
-              last_name = EXCLUDED.last_name,
-              email = COALESCE(NULLIF(EXCLUDED.email, ''), contacts.email),
-              company = COALESCE(NULLIF(EXCLUDED.company, ''), contacts.company),
-              position = COALESCE(NULLIF(EXCLUDED.position, ''), contacts.position),
-              connected_on = COALESCE(EXCLUDED.connected_on, contacts.connected_on),
-              updated_at = NOW();
-          `;
+          // Check if contact already exists by linkedin_url
+          const existing = await sql`SELECT id, status, notes FROM contacts WHERE linkedin_url = ${url} LIMIT 1`;
+
+          if (existing.length > 0) {
+            // Already exists -> update only missing fields, NEVER overwrite status or notes
+            await sql`
+              UPDATE contacts
+              SET
+                first_name = COALESCE(NULLIF(${firstName}, ''), first_name),
+                last_name = COALESCE(NULLIF(${lastName}, ''), last_name),
+                email = COALESCE(NULLIF(${email}, ''), email),
+                phone = COALESCE(NULLIF(${phone}, ''), phone),
+                company = COALESCE(NULLIF(${company}, ''), company),
+                position = COALESCE(NULLIF(${position}, ''), position),
+                connected_on = COALESCE(${connectedOn}, connected_on),
+                updated_at = NOW()
+              WHERE linkedin_url = ${url}
+            `;
+            existingUpdated++;
+          } else {
+            // New record
+            await sql`
+              INSERT INTO contacts (first_name, last_name, linkedin_url, email, phone, company, position, connected_on, status, assigned_to)
+              VALUES (${firstName}, ${lastName || null}, ${url}, ${email || null}, ${phone || null}, ${company || null}, ${position || null}, ${connectedOn || null}, 'Sin contactar', 'Gabino')
+            `;
+            newlyInserted++;
+          }
         } else {
+          // No URL -> Insert if email not exists
+          if (email) {
+            const existingEmail = await sql`SELECT id FROM contacts WHERE email = ${email} LIMIT 1`;
+            if (existingEmail.length > 0) {
+              existingUpdated++;
+              continue;
+            }
+          }
+
           await sql`
-            INSERT INTO contacts (first_name, last_name, linkedin_url, email, company, position, connected_on, status)
-            VALUES (${firstName}, ${lastName || null}, null, ${email || null}, ${company || null}, ${position || null}, ${connectedOn || null}, 'Sin contactar')
+            INSERT INTO contacts (first_name, last_name, linkedin_url, email, phone, company, position, connected_on, status, assigned_to)
+            VALUES (${firstName}, ${lastName || null}, null, ${email || null}, ${phone || null}, ${company || null}, ${position || null}, ${connectedOn || null}, 'Sin contactar', 'Gabino')
           `;
+          newlyInserted++;
         }
-        inserted++;
       } catch (err: unknown) {
         skipped++;
       }
@@ -140,9 +168,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      inserted,
+      newlyInserted,
+      existingUpdated,
       skipped,
-      message: `Importación completada: ${inserted} procesados con éxito (${skipped} omitidos).`,
+      message: `Procesamiento completado: ${newlyInserted} nuevos prospectos agregados, ${existingUpdated} ya existentes omitidos/actualizados sin alterar sus estados.`,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);

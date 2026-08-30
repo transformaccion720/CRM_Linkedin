@@ -12,6 +12,7 @@ export async function GET() {
         last_name VARCHAR(120),
         linkedin_url TEXT UNIQUE,
         email VARCHAR(255),
+        phone VARCHAR(50),
         company VARCHAR(255),
         position VARCHAR(255),
         connected_on DATE,
@@ -20,10 +21,15 @@ export async function GET() {
         priority INTEGER DEFAULT 1,
         follow_up_date DATE,
         tags TEXT[] DEFAULT '{}',
+        assigned_to VARCHAR(120) DEFAULT 'Gabino',
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       );
     `;
+
+    // Add phone and assigned_to if table already existed
+    await sql`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS phone VARCHAR(50);`;
+    await sql`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS assigned_to VARCHAR(120) DEFAULT 'Gabino';`;
 
     // 2. Table message templates in database
     await sql`
@@ -69,12 +75,13 @@ export async function GET() {
     await sql`CREATE INDEX IF NOT EXISTS idx_contacts_email ON contacts(email);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_contacts_priority ON contacts(priority);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_contacts_follow_up ON contacts(follow_up_date);`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_contacts_assigned_to ON contacts(assigned_to);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_contacts_connected_on ON contacts(connected_on DESC NULLS LAST);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_contacts_created_at ON contacts(created_at DESC);`;
 
     return NextResponse.json({
       success: true,
-      message: 'Base de datos Neon inicializada con tablas contacts, templates y settings.',
+      message: 'Base de datos Neon inicializada y migrada con phone y assigned_to.',
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);

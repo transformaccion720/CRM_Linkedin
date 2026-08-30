@@ -8,22 +8,25 @@ import Sidebar from '@/components/Sidebar';
 import StatsCards from '@/components/StatsCards';
 import ContactTable from '@/components/ContactTable';
 import PipelineView from '@/components/PipelineView';
+import FunnelView from '@/components/FunnelView';
 import AnalyticsView from '@/components/AnalyticsView';
 import ExecutiveDashboard from '@/components/ExecutiveDashboard';
 import ContactDrawer from '@/components/ContactDrawer';
 import CsvUploader from '@/components/CsvUploader';
+import NewContactModal from '@/components/NewContactModal';
 import MessageTemplatesModal from '@/components/MessageTemplatesModal';
 import TemplateManagerModal from '@/components/TemplateManagerModal';
-import { Search, ShieldAlert, LayoutGrid, LayoutList, MessageSquare } from 'lucide-react';
+import { Search, ShieldAlert, LayoutGrid, LayoutList, MessageSquare, UserPlus } from 'lucide-react';
 
 export default function Home() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [stats, setStats] = useState<any>(null);
-  const [filterOptions, setFilterOptions] = useState<{ years: string[]; companies: string[]; positions: string[]; tags: string[] }>({
+  const [filterOptions, setFilterOptions] = useState<{ years: string[]; companies: string[]; positions: string[]; tags: string[]; users: string[] }>({
     years: [],
     companies: [],
     positions: [],
     tags: [],
+    users: [],
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,8 +38,8 @@ export default function Home() {
   const [templates, setTemplates] = useState<MessageTemplate[]>(DEFAULT_TEMPLATES);
   const [activeTemplateId, setActiveTemplateId] = useState<string>(DEFAULT_TEMPLATES[0].id);
 
-  // Tabs & Views
-  const [activeTab, setActiveTab] = useState<'contactos' | 'segmentos' | 'analytics' | 'ejecutivo'>('contactos');
+  // Tabs & Views (includes funnel)
+  const [activeTab, setActiveTab] = useState<'contactos' | 'segmentos' | 'funnel' | 'analytics' | 'ejecutivo'>('contactos');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
 
   // Filters
@@ -48,11 +51,13 @@ export default function Home() {
   const [positionFilter, setPositionFilter] = useState('');
   const [tagFilter, setTagFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
+  const [assignedToFilter, setAssignedToFilter] = useState('');
 
   // Modals
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [templateContact, setTemplateContact] = useState<Contact | null>(null);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isNewContactOpen, setIsNewContactOpen] = useState(false);
   const [isTemplateManagerOpen, setIsTemplateManagerOpen] = useState(false);
 
   // Auto detect mobile device to switch default viewMode to 'grid'
@@ -154,6 +159,7 @@ export default function Home() {
       if (positionFilter) params.set('position', positionFilter);
       if (tagFilter) params.set('tag', tagFilter);
       if (priorityFilter) params.set('priority', priorityFilter);
+      if (assignedToFilter) params.set('assignedTo', assignedToFilter);
 
       const res = await fetch(`/api/contacts?${params.toString()}`);
       const data = await res.json();
@@ -169,6 +175,7 @@ export default function Home() {
           companies: data.filterOptions.companies || [],
           positions: data.filterOptions.positions || [],
           tags: data.filterOptions.tags || [],
+          users: data.filterOptions.users || [],
         });
       }
     } catch (err: unknown) {
@@ -177,7 +184,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [search, statusFilter, viewFilter, yearFilter, companyFilter, positionFilter, tagFilter, priorityFilter]);
+  }, [search, statusFilter, viewFilter, yearFilter, companyFilter, positionFilter, tagFilter, priorityFilter, assignedToFilter]);
 
   useEffect(() => {
     fetchContacts();
@@ -213,22 +220,25 @@ export default function Home() {
     setPositionFilter('');
     setTagFilter('');
     setPriorityFilter('');
+    setAssignedToFilter('');
   };
 
   const handleExportCSV = () => {
     if (!contacts.length) return;
-    const header = ['Nombre', 'Apellido', 'URL', 'Email', 'Empresa', 'Cargo', 'Fecha Conexión', 'Estado', 'Prioridad', 'Próximo Seguimiento', 'Etiquetas', 'Notas'];
+    const header = ['Nombre', 'Apellido', 'URL', 'Email', 'Teléfono', 'Empresa', 'Cargo', 'Fecha Conexión', 'Estado', 'Prioridad', 'Próximo Seguimiento', 'Responsable', 'Etiquetas', 'Notas'];
     const rows = contacts.map((c) => [
       c.first_name,
       c.last_name || '',
       c.linkedin_url || '',
       c.email || '',
+      c.phone || '',
       c.company || '',
       c.position || '',
       c.connected_on || '',
       c.status || '',
       c.priority || 1,
       c.follow_up_date || '',
+      c.assigned_to || '',
       (c.tags || []).join('; '),
       (c.notes || '').replace(/,/g, ';'),
     ]);
@@ -248,11 +258,12 @@ export default function Home() {
 
   return (
     <div className="flex flex-col h-screen bg-theme-bg text-theme-txt overflow-hidden">
-      {/* Responsive Header */}
+      {/* Responsive Header with New Contact Modal Trigger */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenImport={() => setIsImportOpen(true)}
+        onOpenNewContact={() => setIsNewContactOpen(true)}
         onOpenTemplateManager={() => setIsTemplateManagerOpen(true)}
         onToggleMobileSidebar={() => setIsMobileSidebarOpen(true)}
         onRefresh={() => {
@@ -266,12 +277,15 @@ export default function Home() {
 
       {/* Main workspace layout */}
       <div className="flex flex-1 overflow-hidden min-h-0">
-        {/* Responsive Sidebar (Desktop & Mobile Drawer) */}
+        {/* Responsive Sidebar */}
         <Sidebar
           viewFilter={viewFilter}
           setViewFilter={setViewFilter}
           statusFilter={statusFilter}
           setStatusFilter={setStatusFilter}
+          assignedToFilter={assignedToFilter}
+          setAssignedToFilter={setAssignedToFilter}
+          usersList={filterOptions.users}
           onClearFilters={handleClearFilters}
           onSwitchTab={setActiveTab}
           isMobileOpen={isMobileSidebarOpen}
@@ -299,7 +313,7 @@ export default function Home() {
               {/* Stat Strip */}
               <StatsCards stats={stats} showingCount={contacts.length} />
 
-              {/* Toolbar with responsive wraps */}
+              {/* Toolbar with clean responsive layout */}
               <div className="px-3 sm:px-5 py-2.5 border-b border-theme-bor bg-theme-sur flex items-center gap-2 flex-wrap shrink-0">
                 <div className="relative flex-1 min-w-[140px] max-w-xs">
                   <Search className="w-3.5 h-3.5 text-theme-txt2 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -307,26 +321,9 @@ export default function Home() {
                     type="text"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Buscar contacto, cargo..."
-                    className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00e5a0] rounded-lg pl-8 pr-3 py-1.5 text-xs text-theme-txt placeholder-theme-txt3 outline-hidden transition-all"
+                    placeholder="Buscar contacto, cargo, tel..."
+                    className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-lg pl-8 pr-3 py-1.5 text-xs text-theme-txt placeholder-theme-txt3 outline-hidden transition-all"
                   />
-                </div>
-
-                {/* Campaign Template Quick Selector (Synced to DB) */}
-                <div className="flex items-center gap-1 bg-theme-sur2 border border-theme-bor rounded-lg px-2 py-1 text-xs">
-                  <MessageSquare className="w-3 h-3 text-[#00e5a0]" />
-                  <select
-                    value={activeTemplateId}
-                    onChange={(e) => handleSelectActiveTemplate(e.target.value)}
-                    className="bg-transparent border-none text-xs text-[#00e5a0] font-semibold outline-hidden cursor-pointer max-w-[140px] truncate"
-                    title="Plantilla activa en la nube para copia rápida"
-                  >
-                    {templates.map((t) => (
-                      <option key={t.id} value={t.id} className="bg-theme-sur text-theme-txt">
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
                 </div>
 
                 {/* Filter by Year */}
@@ -402,14 +399,14 @@ export default function Home() {
                 <div className="ml-auto flex items-center gap-1 bg-theme-sur2 p-1 rounded-lg border border-theme-bor">
                   <button
                     onClick={() => setViewMode('table')}
-                    className={`p-1 rounded cursor-pointer ${viewMode === 'table' ? 'bg-theme-sur text-[#00e5a0] shadow-xs' : 'text-theme-txt2'}`}
+                    className={`p-1 rounded cursor-pointer ${viewMode === 'table' ? 'bg-theme-sur text-[#00a870] shadow-xs' : 'text-theme-txt2'}`}
                     title="Vista Tabla"
                   >
                     <LayoutList className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => setViewMode('grid')}
-                    className={`p-1 rounded cursor-pointer ${viewMode === 'grid' ? 'bg-theme-sur text-[#00e5a0] shadow-xs' : 'text-theme-txt2'}`}
+                    className={`p-1 rounded cursor-pointer ${viewMode === 'grid' ? 'bg-theme-sur text-[#00a870] shadow-xs' : 'text-theme-txt2'}`}
                     title="Vista Cuadrícula"
                   >
                     <LayoutGrid className="w-3.5 h-3.5" />
@@ -422,7 +419,7 @@ export default function Home() {
                 {loading ? (
                   <div className="flex-1 flex items-center justify-center text-xs text-theme-txt2">
                     <div className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#00e5a0] animate-ping" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-[#00a870] animate-ping" />
                       <span>Cargando contactos desde Neon DB...</span>
                     </div>
                   </div>
@@ -430,7 +427,6 @@ export default function Home() {
                   <ContactTable
                     contacts={contacts}
                     viewMode={viewMode}
-                    activeTemplate={activeTemplate}
                     onSelectContact={setSelectedContact}
                     onOpenTemplates={setTemplateContact}
                     onQuickStatusChange={handleQuickStatusChange}
@@ -443,10 +439,18 @@ export default function Home() {
           {activeTab === 'segmentos' && (
             <PipelineView
               contacts={contacts}
-              activeTemplate={activeTemplate}
               onSelectContact={setSelectedContact}
               onOpenTemplates={setTemplateContact}
               onQuickStatusChange={handleQuickStatusChange}
+            />
+          )}
+
+          {activeTab === 'funnel' && (
+            <FunnelView
+              stats={stats}
+              contacts={contacts}
+              onSelectContact={setSelectedContact}
+              onOpenTemplates={setTemplateContact}
             />
           )}
 
@@ -498,6 +502,16 @@ export default function Home() {
         onSaveTemplates={handleSaveTemplates}
         onResetTemplates={handleResetTemplates}
         onClose={() => setIsTemplateManagerOpen(false)}
+      />
+
+      {/* New Contact Manual Modal */}
+      <NewContactModal
+        isOpen={isNewContactOpen}
+        onClose={() => setIsNewContactOpen(false)}
+        onSuccess={(newContact) => {
+          setContacts((prev) => [newContact, ...prev]);
+          fetchStats();
+        }}
       />
 
       {/* CSV Uploader */}

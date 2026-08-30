@@ -8,7 +8,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await req.json();
-    const { status, notes, priority, follow_up_date, tags } = body;
+    const { status, notes, priority, follow_up_date, tags, phone, assigned_to } = body;
 
     const result = await sql`
       UPDATE contacts
@@ -18,6 +18,8 @@ export async function PATCH(
         priority = CASE WHEN ${priority !== undefined} THEN ${priority} ELSE priority END,
         follow_up_date = CASE WHEN ${follow_up_date !== undefined} THEN ${follow_up_date} ELSE follow_up_date END,
         tags = CASE WHEN ${tags !== undefined} THEN ${tags} ELSE tags END,
+        phone = CASE WHEN ${phone !== undefined} THEN ${phone} ELSE phone END,
+        assigned_to = CASE WHEN ${assigned_to !== undefined} THEN ${assigned_to} ELSE assigned_to END,
         updated_at = NOW()
       WHERE id = ${id}
       RETURNING *;

@@ -1,15 +1,18 @@
 'use client';
 
 import React from 'react';
-import { Users, Mail, MailX, Calendar, BarChart2, PieChart, Filter, Clock, Star, X } from 'lucide-react';
+import { Users, Mail, MailX, Calendar, BarChart2, PieChart, Filter, Clock, Star, X, UserCheck } from 'lucide-react';
 
 interface SidebarProps {
   viewFilter: 'all' | 'email' | 'noemail' | 'recent' | 'follow_up' | 'star3';
   setViewFilter: (f: 'all' | 'email' | 'noemail' | 'recent' | 'follow_up' | 'star3') => void;
   statusFilter: string;
   setStatusFilter: (s: string) => void;
+  assignedToFilter?: string;
+  setAssignedToFilter?: (u: string) => void;
+  usersList?: string[];
   onClearFilters: () => void;
-  onSwitchTab: (tab: 'contactos' | 'segmentos' | 'analytics' | 'ejecutivo') => void;
+  onSwitchTab: (tab: 'contactos' | 'segmentos' | 'funnel' | 'analytics' | 'ejecutivo') => void;
   isMobileOpen?: boolean;
   onCloseMobile?: () => void;
   counts: {
@@ -26,6 +29,9 @@ export default function Sidebar({
   setViewFilter,
   statusFilter,
   setStatusFilter,
+  assignedToFilter,
+  setAssignedToFilter,
+  usersList = [],
   onClearFilters,
   onSwitchTab,
   isMobileOpen,
@@ -52,12 +58,13 @@ export default function Sidebar({
         onClick={() => {
           setViewFilter('all');
           setStatusFilter('');
+          if (setAssignedToFilter) setAssignedToFilter('');
           onSwitchTab('contactos');
           if (onCloseMobile) onCloseMobile();
         }}
         className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all mb-1 ${
-          viewFilter === 'all' && !statusFilter
-            ? 'bg-[#00e5a0]/15 text-[#00e5a0] border border-[#00e5a0]/30 font-medium'
+          viewFilter === 'all' && !statusFilter && !assignedToFilter
+            ? 'bg-[#00a870]/15 text-[#00a870] border border-[#00a870]/30 font-medium'
             : 'text-theme-txt2 hover:bg-theme-sur2 hover:text-theme-txt'
         }`}
       >
@@ -116,7 +123,7 @@ export default function Sidebar({
         }}
         className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all mb-1 ${
           viewFilter === 'email'
-            ? 'bg-[#00e5a0]/15 text-[#00e5a0] border border-[#00e5a0]/30 font-medium'
+            ? 'bg-[#00a870]/15 text-[#00a870] border border-[#00a870]/30 font-medium'
             : 'text-theme-txt2 hover:bg-theme-sur2 hover:text-theme-txt'
         }`}
       >
@@ -136,7 +143,7 @@ export default function Sidebar({
         }}
         className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all mb-1 ${
           viewFilter === 'noemail'
-            ? 'bg-[#00e5a0]/15 text-[#00e5a0] border border-[#00e5a0]/30 font-medium'
+            ? 'bg-[#00a870]/15 text-[#00a870] border border-[#00a870]/30 font-medium'
             : 'text-theme-txt2 hover:bg-theme-sur2 hover:text-theme-txt'
         }`}
       >
@@ -156,7 +163,7 @@ export default function Sidebar({
         }}
         className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all mb-1 ${
           viewFilter === 'recent'
-            ? 'bg-[#00e5a0]/15 text-[#00e5a0] border border-[#00e5a0]/30 font-medium'
+            ? 'bg-[#00a870]/15 text-[#00a870] border border-[#00a870]/30 font-medium'
             : 'text-theme-txt2 hover:bg-theme-sur2 hover:text-theme-txt'
         }`}
       >
@@ -166,6 +173,50 @@ export default function Sidebar({
           {counts.recent.toLocaleString()}
         </span>
       </div>
+
+      {/* Multi-user Assignment Filter */}
+      {usersList.length > 0 && setAssignedToFilter && (
+        <>
+          <div className="font-mono text-[9.5px] tracking-wider uppercase text-theme-txt3 px-2 py-3 mt-2">
+            Equipo Comercial
+          </div>
+
+          <div
+            onClick={() => {
+              setAssignedToFilter('Gabino');
+              onSwitchTab('contactos');
+              if (onCloseMobile) onCloseMobile();
+            }}
+            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer transition-all mb-1 ${
+              assignedToFilter === 'Gabino'
+                ? 'bg-[#00a870]/15 text-[#00a870] border border-[#00a870]/30 font-medium'
+                : 'text-theme-txt2 hover:bg-theme-sur2 hover:text-theme-txt'
+            }`}
+          >
+            <UserCheck className="w-3.5 h-3.5" />
+            <span>Mis Prospectos (Gabino)</span>
+          </div>
+
+          {usersList.filter((u) => u !== 'Gabino').map((u) => (
+            <div
+              key={u}
+              onClick={() => {
+                setAssignedToFilter(u);
+                onSwitchTab('contactos');
+                if (onCloseMobile) onCloseMobile();
+              }}
+              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer transition-all mb-1 ${
+                assignedToFilter === u
+                  ? 'bg-[#2979ff]/15 text-[#2979ff] border border-[#2979ff]/30 font-medium'
+                  : 'text-theme-txt2 hover:bg-theme-sur2 hover:text-theme-txt'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-[#2979ff]" />
+              <span className="truncate">{u}</span>
+            </div>
+          ))}
+        </>
+      )}
 
       <div className="font-mono text-[9.5px] tracking-wider uppercase text-theme-txt3 px-2 py-3 mt-2">
         Estado CRM
@@ -218,11 +269,11 @@ export default function Sidebar({
         }}
         className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer transition-all mb-1 ${
           statusFilter === 'qualified'
-            ? 'bg-[#00e5a0]/15 text-[#00e5a0] border border-[#00e5a0]/30 font-medium'
+            ? 'bg-[#00a870]/15 text-[#00a870] border border-[#00a870]/30 font-medium'
             : 'text-theme-txt2 hover:bg-theme-sur2 hover:text-theme-txt'
         }`}
       >
-        <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-[#00e5a0]/20 text-[#00e5a0]">
+        <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-[#00a870]/20 text-[#00a870]">
           QUALIFIED
         </span>
         <span>Calificado</span>
@@ -248,7 +299,18 @@ export default function Sidebar({
       </div>
 
       <div className="font-mono text-[9.5px] tracking-wider uppercase text-theme-txt3 px-2 py-3 mt-auto border-t border-theme-bor">
-        Acciones Rápidas
+        Módulos
+      </div>
+
+      <div
+        onClick={() => {
+          onSwitchTab('funnel');
+          if (onCloseMobile) onCloseMobile();
+        }}
+        className="flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-pointer text-theme-txt2 hover:bg-theme-sur2 hover:text-theme-txt transition-all mb-1"
+      >
+        <Filter className="w-3.5 h-3.5 text-[#ff6d3b]" />
+        <span>Embudo (Funnel)</span>
       </div>
 
       <div
@@ -269,7 +331,7 @@ export default function Sidebar({
         }}
         className="flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-pointer text-theme-txt2 hover:bg-theme-sur2 hover:text-theme-txt transition-all mb-1"
       >
-        <PieChart className="w-3.5 h-3.5 text-[#ff6d3b]" />
+        <PieChart className="w-3.5 h-3.5 text-[#00a870]" />
         <span>Dashboard ejecutivo</span>
       </div>
 
@@ -278,7 +340,7 @@ export default function Sidebar({
           onClearFilters();
           if (onCloseMobile) onCloseMobile();
         }}
-        className="flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-pointer text-theme-txt2 hover:bg-theme-sur2 hover:text-[#00e5a0] transition-all"
+        className="flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-pointer text-theme-txt2 hover:bg-theme-sur2 hover:text-[#00a870] transition-all"
       >
         <Filter className="w-3.5 h-3.5" />
         <span>Limpiar filtros</span>

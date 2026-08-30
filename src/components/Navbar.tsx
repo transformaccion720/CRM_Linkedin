@@ -1,21 +1,23 @@
 'use client';
 
 import React from 'react';
-import { Upload, CheckCircle2, RefreshCw, Users, Kanban, BarChart2, PieChart, Download, Sun, Moon, Settings, Menu } from 'lucide-react';
+import { Upload, CheckCircle2, RefreshCw, Users, Kanban, BarChart2, PieChart, Download, Sun, Moon, Settings, Menu, Filter, UserPlus } from 'lucide-react';
 
 interface NavbarProps {
   onOpenImport: () => void;
+  onOpenNewContact: () => void;
   onRefresh: () => void;
   onExport: () => void;
   onOpenTemplateManager?: () => void;
   onToggleMobileSidebar?: () => void;
-  activeTab: 'contactos' | 'segmentos' | 'analytics' | 'ejecutivo';
-  setActiveTab: (tab: 'contactos' | 'segmentos' | 'analytics' | 'ejecutivo') => void;
+  activeTab: 'contactos' | 'segmentos' | 'funnel' | 'analytics' | 'ejecutivo';
+  setActiveTab: (tab: 'contactos' | 'segmentos' | 'funnel' | 'analytics' | 'ejecutivo') => void;
   totalContacts: number;
 }
 
 export default function Navbar({
   onOpenImport,
+  onOpenNewContact,
   onRefresh,
   onExport,
   onOpenTemplateManager,
@@ -60,31 +62,42 @@ export default function Navbar({
             <Menu className="w-4 h-4" />
           </button>
 
-          <div className="w-2.5 h-2.5 rounded-full bg-[#00e5a0] shadow-[0_0_10px_#00e5a0] animate-pulse shrink-0" />
+          <div className="w-2.5 h-2.5 rounded-full bg-[#00a870] shadow-[0_0_10px_#00a870] animate-pulse shrink-0" />
           <span className="font-extrabold text-sm sm:text-base tracking-tight text-theme-txt truncate">
-            CRM <span className="text-[#00e5a0]">LINKEDIN</span>
+            CRM <span className="text-[#00a870]">LINKEDIN</span>
           </span>
           <span className="hidden lg:inline text-[11px] font-mono text-theme-txt2 bg-theme-sur2 px-2 py-0.5 rounded border border-theme-bor">
             Neon Postgres
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-2.5">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           {initStatus && (
-            <div className="hidden sm:flex items-center gap-1.5 text-xs text-[#00e5a0] bg-[#00e5a0]/10 border border-[#00e5a0]/20 px-3 py-1 rounded-lg">
+            <div className="hidden sm:flex items-center gap-1.5 text-xs text-[#00a870] bg-[#00a870]/10 border border-[#00a870]/20 px-3 py-1 rounded-lg">
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>{initStatus}</span>
             </div>
           )}
 
+          {/* New Contact button */}
+          <button
+            onClick={onOpenNewContact}
+            className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#00a870] hover:bg-[#008f5f] flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+            title="Registrar nuevo prospecto"
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Nuevo Prospecto</span>
+            <span className="sm:hidden">Nuevo</span>
+          </button>
+
           {/* Manage Message Templates button */}
           {onOpenTemplateManager && (
             <button
               onClick={onOpenTemplateManager}
-              className="p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold text-theme-txt hover:text-[#00e5a0] bg-theme-sur2 hover:bg-theme-sur3 border border-theme-bor flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+              className="p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold text-theme-txt hover:text-[#00a870] bg-theme-sur2 hover:bg-theme-sur3 border border-theme-bor flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
               title="Configurar Plantillas Comerciales"
             >
-              <Settings className="w-3.5 h-3.5 text-[#00e5a0]" />
+              <Settings className="w-3.5 h-3.5 text-[#00a870]" />
               <span className="hidden md:inline">Plantillas</span>
             </button>
           )}
@@ -92,12 +105,12 @@ export default function Navbar({
           {/* Theme Toggle Button */}
           <button
             onClick={toggleTheme}
-            className="p-1.5 sm:p-2 rounded-lg text-theme-txt2 hover:text-[#00e5a0] bg-theme-sur2 hover:bg-theme-sur3 border border-theme-bor transition-all cursor-pointer flex items-center gap-1.5 text-xs"
+            className="p-1.5 sm:p-2 rounded-lg text-theme-txt2 hover:text-[#00a870] bg-theme-sur2 hover:bg-theme-sur3 border border-theme-bor transition-all cursor-pointer flex items-center gap-1.5 text-xs"
             title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
           >
             {theme === 'dark' ? (
               <>
-                <Sun className="w-4 h-4 text-[#00e5a0]" />
+                <Sun className="w-4 h-4 text-[#00a870]" />
                 <span className="hidden lg:inline">Claro</span>
               </>
             ) : (
@@ -127,7 +140,7 @@ export default function Navbar({
 
           <button
             onClick={onOpenImport}
-            className="px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-semibold text-[#00110b] bg-[#00e5a0] hover:bg-[#00e5a0]/90 flex items-center gap-1.5 shadow-md shadow-[#00e5a0]/15 transition-all cursor-pointer shrink-0"
+            className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold text-theme-txt bg-theme-sur2 hover:bg-theme-sur3 border border-theme-bor flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
           >
             <Upload className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Importar CSV</span>
@@ -136,13 +149,13 @@ export default function Navbar({
         </div>
       </header>
 
-      {/* Tabs matching Reference HTML (Touch-scrollable on mobile) */}
+      {/* Navigation tabs with Funnel included */}
       <nav className="flex gap-1 bg-theme-sur border-b border-theme-bor px-3 sm:px-6 shrink-0 overflow-x-auto no-scrollbar">
         <button
           onClick={() => setActiveTab('contactos')}
           className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 text-xs font-medium border-b-2 transition-all cursor-pointer whitespace-nowrap ${
             activeTab === 'contactos'
-              ? 'border-[#00e5a0] text-[#00e5a0] font-semibold'
+              ? 'border-[#00a870] text-[#00a870] font-semibold'
               : 'border-transparent text-theme-txt2 hover:text-theme-txt hover:bg-theme-sur2'
           }`}
         >
@@ -157,19 +170,31 @@ export default function Navbar({
           onClick={() => setActiveTab('segmentos')}
           className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 text-xs font-medium border-b-2 transition-all cursor-pointer whitespace-nowrap ${
             activeTab === 'segmentos'
-              ? 'border-[#00e5a0] text-[#00e5a0] font-semibold'
+              ? 'border-[#00a870] text-[#00a870] font-semibold'
               : 'border-transparent text-theme-txt2 hover:text-theme-txt hover:bg-theme-sur2'
           }`}
         >
           <Kanban className="w-3.5 h-3.5" />
-          <span>Segmentos</span>
+          <span>Segmentos (Kanban)</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('funnel')}
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 text-xs font-medium border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === 'funnel'
+              ? 'border-[#00a870] text-[#00a870] font-semibold'
+              : 'border-transparent text-theme-txt2 hover:text-theme-txt hover:bg-theme-sur2'
+          }`}
+        >
+          <Filter className="w-3.5 h-3.5 text-[#ff6d3b]" />
+          <span>Embudo (Funnel)</span>
         </button>
 
         <button
           onClick={() => setActiveTab('analytics')}
           className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 text-xs font-medium border-b-2 transition-all cursor-pointer whitespace-nowrap ${
             activeTab === 'analytics'
-              ? 'border-[#00e5a0] text-[#00e5a0] font-semibold'
+              ? 'border-[#00a870] text-[#00a870] font-semibold'
               : 'border-transparent text-theme-txt2 hover:text-theme-txt hover:bg-theme-sur2'
           }`}
         >
@@ -181,7 +206,7 @@ export default function Navbar({
           onClick={() => setActiveTab('ejecutivo')}
           className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 text-xs font-medium border-b-2 transition-all cursor-pointer whitespace-nowrap ${
             activeTab === 'ejecutivo'
-              ? 'border-[#00e5a0] text-[#00e5a0] font-semibold'
+              ? 'border-[#00a870] text-[#00a870] font-semibold'
               : 'border-transparent text-theme-txt2 hover:text-theme-txt hover:bg-theme-sur2'
           }`}
         >

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Contact } from '@/lib/types';
 import { MessageTemplate } from '@/lib/templates';
-import { X, Copy, ExternalLink, Check, Sparkles, Send, MessageSquare, Settings } from 'lucide-react';
+import { X, Copy, ExternalLink, Check, MessageSquare, Settings, Briefcase, Building2 } from 'lucide-react';
 
 interface MessageTemplatesModalProps {
   contact: Contact | null;
@@ -69,25 +69,32 @@ export default function MessageTemplatesModal({
     }
   };
 
-  const handleCopyAndOpenLinkedIn = async () => {
-    await handleCopyOnly();
-    handleOpenLinkedIn();
-  };
-
   return (
     <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-theme-sur border border-theme-bor rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col text-theme-txt animate-in fade-in zoom-in-95 duration-150">
-        {/* Header */}
+        {/* Header with clear Name, Position and Company */}
         <div className="p-4 px-6 border-b border-theme-bor flex items-center justify-between bg-theme-sur">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#00e5a0]/15 flex items-center justify-center text-[#00e5a0]">
+            <div className="w-10 h-10 rounded-xl bg-[#00a870]/15 flex items-center justify-center text-[#00a870]">
               <MessageSquare className="w-5 h-5" />
             </div>
             <div>
               <h3 className="font-bold text-sm text-theme-txt">Generador de Mensaje LinkedIn</h3>
-              <p className="text-xs text-theme-txt2">
-                Para <b className="text-theme-txt">{contact.first_name} {contact.last_name || ''}</b> ({contact.company || 'Sin empresa'})
-              </p>
+              <div className="flex items-center gap-2 text-xs text-theme-txt2 mt-0.5 flex-wrap">
+                <span className="font-semibold text-theme-txt">{contact.first_name} {contact.last_name || ''}</span>
+                {contact.position && (
+                  <span className="flex items-center gap-1 text-[11px] text-theme-txt3">
+                    <Briefcase className="w-3 h-3" />
+                    <span>{contact.position}</span>
+                  </span>
+                )}
+                {contact.company && (
+                  <span className="flex items-center gap-1 text-[11px] text-theme-txt3">
+                    <Building2 className="w-3 h-3" />
+                    <span>({contact.company})</span>
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -95,7 +102,7 @@ export default function MessageTemplatesModal({
             {onOpenTemplateManager && (
               <button
                 onClick={onOpenTemplateManager}
-                className="p-1.5 text-xs text-theme-txt2 hover:text-[#00e5a0] bg-theme-sur2 hover:bg-theme-sur3 border border-theme-bor rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                className="p-1.5 text-xs text-theme-txt2 hover:text-[#00a870] bg-theme-sur2 hover:bg-theme-sur3 border border-theme-bor rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
                 title="Configurar y editar plantillas"
               >
                 <Settings className="w-3.5 h-3.5" />
@@ -114,7 +121,7 @@ export default function MessageTemplatesModal({
 
         {/* Body */}
         <div className="p-6 space-y-5 flex-1 overflow-y-auto max-h-[70vh]">
-          {/* Template pills */}
+          {/* Template pills with high-contrast badge colors */}
           <div>
             <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 block mb-2">
               Selecciona el Mensaje de tu Campaña
@@ -126,16 +133,16 @@ export default function MessageTemplatesModal({
                   onClick={() => handleSelectTemplate(t)}
                   className={`p-3 rounded-xl text-left border transition-all text-xs cursor-pointer ${
                     selectedTemplateId === t.id
-                      ? 'bg-[#00e5a0]/10 border-[#00e5a0] text-theme-txt font-medium shadow-xs ring-1 ring-[#00e5a0]/30'
+                      ? 'bg-[#00a870]/10 border-[#00a870] text-theme-txt font-medium shadow-xs ring-1 ring-[#00a870]/40'
                       : 'bg-theme-sur2 border-theme-bor text-theme-txt2 hover:border-theme-bor2 hover:text-theme-txt'
                   }`}
                 >
-                  <div className="font-semibold text-theme-txt mb-0.5 truncate">{t.name}</div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[9.5px] font-mono text-[#00e5a0] bg-[#00e5a0]/10 px-1.5 py-0.2 rounded">
+                  <div className="font-semibold text-theme-txt mb-1 truncate">{t.name}</div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-mono font-bold text-[#00a870] bg-[#00a870]/15 px-2 py-0.5 rounded">
                       {t.category}
                     </span>
-                    <span className="text-[9px] text-theme-txt3 truncate">{t.targetAudience}</span>
+                    <span className="text-[9.5px] text-theme-txt2 truncate">{t.targetAudience}</span>
                   </div>
                 </button>
               ))}
@@ -155,7 +162,7 @@ export default function MessageTemplatesModal({
               rows={5}
               value={activeMessage}
               onChange={(e) => setCustomText(e.target.value)}
-              className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00e5a0] rounded-xl p-3.5 text-xs text-theme-txt leading-relaxed outline-hidden transition-all resize-none font-sans"
+              className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl p-3.5 text-xs text-theme-txt leading-relaxed outline-hidden transition-all resize-none font-sans"
             />
           </div>
 
@@ -166,7 +173,7 @@ export default function MessageTemplatesModal({
               id="auto-mark"
               checked={autoMark}
               onChange={(e) => setAutoMark(e.target.checked)}
-              className="accent-[#00e5a0] w-4 h-4 rounded cursor-pointer"
+              className="accent-[#00a870] w-4 h-4 rounded cursor-pointer"
             />
             <label htmlFor="auto-mark" className="text-xs text-theme-txt2 cursor-pointer select-none">
               Marcar automáticamente a este prospecto como <b className="text-theme-txt">"En contacto"</b> al copiar
@@ -183,25 +190,24 @@ export default function MessageTemplatesModal({
             Cerrar
           </button>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             {/* Separate Button: Only Copy */}
             <button
               onClick={handleCopyOnly}
-              className="px-4 py-2.5 rounded-xl text-xs font-bold text-theme-txt bg-theme-sur2 hover:bg-theme-sur3 border border-theme-bor hover:border-[#00e5a0] flex items-center gap-1.5 transition-all cursor-pointer"
+              className="px-4 py-2.5 rounded-xl text-xs font-bold text-theme-txt bg-theme-sur2 hover:bg-theme-sur3 border border-theme-bor hover:border-[#00a870] flex items-center gap-1.5 transition-all cursor-pointer"
               title="Copiar texto al portapapeles"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-[#00e5a0]" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? <Check className="w-3.5 h-3.5 text-[#00a870]" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{copied ? '¡Copiado!' : 'Solo Copiar'}</span>
             </button>
 
-            {/* Separate Button: Copy & Open LinkedIn */}
+            {/* Separate Button: Open LinkedIn Profile */}
             <button
-              onClick={handleCopyAndOpenLinkedIn}
-              className="px-5 py-2.5 rounded-xl text-xs font-bold text-[#00110b] bg-[#00e5a0] hover:bg-[#00e5a0]/90 flex items-center gap-1.5 shadow-lg shadow-[#00e5a0]/25 transition-all cursor-pointer"
+              onClick={handleOpenLinkedIn}
+              className="px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-[#0a66c2] hover:bg-[#084e96] flex items-center gap-1.5 shadow-md shadow-[#0a66c2]/25 transition-all cursor-pointer"
             >
-              <Copy className="w-3.5 h-3.5" />
-              <span>Copiar y Abrir LinkedIn</span>
               <ExternalLink className="w-3.5 h-3.5" />
+              <span>Abrir LinkedIn</span>
             </button>
           </div>
         </div>

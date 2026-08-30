@@ -6,21 +6,22 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search')?.trim() || '';
     const status = searchParams.get('status') || '';
-    const viewFilter = searchParams.get('viewFilter') || 'all'; // all, email, noemail, recent, follow_up, star3
+    const viewFilter = searchParams.get('viewFilter') || 'all'; // all, email, noemail, recent, follow_up, star3, my_leads
     const year = searchParams.get('year') || '';
     const company = searchParams.get('company') || '';
     const position = searchParams.get('position') || '';
     const tag = searchParams.get('tag') || '';
     const priority = searchParams.get('priority') || '';
+    const assignedTo = searchParams.get('assignedTo') || '';
 
     const searchPattern = search ? `%${search.toLowerCase()}%` : null;
 
     const rows = await sql`
-      SELECT id, first_name, last_name, linkedin_url, email, company, position, 
+      SELECT id, first_name, last_name, linkedin_url, email, phone, company, position, 
              TO_CHAR(connected_on, 'YYYY-MM-DD') as connected_on,
              status, notes, priority, 
              TO_CHAR(follow_up_date, 'YYYY-MM-DD') as follow_up_date,
-             tags, created_at, updated_at
+             tags, assigned_to, created_at, updated_at
       FROM contacts
       WHERE 
         (${searchPattern}::text IS NULL OR (
@@ -28,13 +29,15 @@ export async function GET(req: NextRequest) {
           LOWER(COALESCE(last_name, '')) LIKE ${searchPattern} OR 
           LOWER(COALESCE(company, '')) LIKE ${searchPattern} OR 
           LOWER(COALESCE(position, '')) LIKE ${searchPattern} OR
-          LOWER(COALESCE(email, '')) LIKE ${searchPattern}
+          LOWER(COALESCE(email, '')) LIKE ${searchPattern} OR
+          LOWER(COALESCE(phone, '')) LIKE ${searchPattern}
         ))
         AND (${status === '' || status === 'all'}::boolean OR status = ${status})
         AND (${company === '' || company === 'all'}::boolean OR company = ${company})
         AND (${position === '' || position === 'all'}::boolean OR position = ${position})
         AND (${year === '' || year === 'all'}::boolean OR TO_CHAR(connected_on, 'YYYY') = ${year})
         AND (${priority === '' || priority === 'all'}::boolean OR priority = ${parseInt(priority || '1', 10)})
+        AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo})
         AND (${tag === '' || tag === 'all'}::boolean OR ${tag} = ANY(tags))
         AND (
           ${viewFilter === 'all'}::boolean OR
@@ -52,7 +55,7 @@ export async function GET(req: NextRequest) {
       LIMIT 3500;
     `;
 
-    // Distinct years for filter dropdown
+    // Distinct years
     const yearsResult = await sql`
       SELECT DISTINCT TO_CHAR(connected_on, 'YYYY') as yr 
       FROM contacts 
@@ -92,6 +95,15 @@ export async function GET(req: NextRequest) {
     `;
     const distinctTags = tagsResult.map((r) => r.tag).filter(Boolean);
 
+    // Distinct assigned users
+    const usersResult = await sql`
+      SELECT DISTINCT assigned_to 
+      FROM contacts 
+      WHERE assigned_to IS NOT NULL AND assigned_to != '' 
+      ORDER BY assigned_to ASC
+    `;
+    const users = usersResult.map((r) => r.assigned_to).filter(Boolean);
+
     return NextResponse.json(
       {
         contacts: rows,
@@ -100,6 +112,7 @@ export async function GET(req: NextRequest) {
           companies: topCompanies,
           positions: topPositions,
           tags: distinctTags,
+          users,
         },
       },
       {
@@ -117,15 +130,50 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { first_name, last_name, linkedin_url, email, company, position, connected_on, status, notes, priority, follow_up_date, tags } = body;
+    const { 
+      first_name, 
+      last_name, 
+      linkedin_url, 
+      email, 
+      phone, 
+      company, 
+      position, 
+      connected_on, 
+      status, 
+      notes, 
+      priority, 
+      follow_up_date, 
+      tags, 
+      assigned_to 
+    } = body;
+
+    if (!first_name) {
+      return NextResponse.json({ error: 'El nombre es obligatorio' }, { status: 400 });
+    }
 
     const result = await sql`
-      INSERT INTO contacts (first_name, last_name, linkedin_url, email, company, position, connected_on, status, notes, priority, follow_up_date, tags)
+      INSERT INTO contacts (
+        first_name, 
+        last_name, 
+        linkedin_url, 
+        email, 
+        phone, 
+        company, 
+        position, 
+        connected_on, 
+        status, 
+        notes, 
+        priority, 
+        follow_up_date, 
+        tags, 
+        assigned_to
+      )
       VALUES (
         ${first_name}, 
         ${last_name || null}, 
         ${linkedin_url || null}, 
         ${email || null}, 
+        ${phone || null}, 
         ${company || null}, 
         ${position || null}, 
         ${connected_on || null}, 
@@ -133,7 +181,8 @@ export async function POST(req: NextRequest) {
         ${notes || null},
         ${priority || 1},
         ${follow_up_date || null},
-        ${tags || []}
+        ${tags || []},
+        ${assigned_to || 'Gabino'}
       )
       RETURNING *
     `;

@@ -2,15 +2,13 @@
 
 import React, { useState, useMemo } from 'react';
 import { Contact, ContactStatus } from '@/lib/types';
-import { MessageTemplate } from '@/lib/templates';
-import { ExternalLink, Mail, Edit3, CheckCircle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageSquare, Star, Clock, Copy, Check } from 'lucide-react';
+import { ExternalLink, Mail, Edit3, CheckCircle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageSquare, Star, Clock, Phone } from 'lucide-react';
 
 interface ContactTableProps {
   contacts: Contact[];
   onSelectContact: (c: Contact) => void;
   onQuickStatusChange: (id: string, newStatus: ContactStatus) => void;
   onOpenTemplates?: (c: Contact) => void;
-  activeTemplate?: MessageTemplate;
   viewMode?: 'table' | 'grid';
 }
 
@@ -21,10 +19,11 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; border: string }
   'Nuevo': { bg: 'bg-[#2979ff]/15', text: 'text-[#2979ff]', border: 'border-[#2979ff]/30' },
   'contacted': { bg: 'bg-[#ff6d3b]/15', text: 'text-[#ff6d3b]', border: 'border-[#ff6d3b]/30' },
   'Contactado': { bg: 'bg-[#ff6d3b]/15', text: 'text-[#ff6d3b]', border: 'border-[#ff6d3b]/30' },
-  'qualified': { bg: 'bg-[#00e5a0]/15', text: 'text-[#00e5a0]', border: 'border-[#00e5a0]/30' },
-  'Calificado': { bg: 'bg-[#00e5a0]/15', text: 'text-[#00e5a0]', border: 'border-[#00e5a0]/30' },
+  'En contacto': { bg: 'bg-[#2979ff]/15', text: 'text-[#2979ff]', border: 'border-[#2979ff]/30' },
+  'qualified': { bg: 'bg-[#00a870]/15', text: 'text-[#00a870]', border: 'border-[#00a870]/30' },
+  'Calificado': { bg: 'bg-[#00a870]/15', text: 'text-[#00a870]', border: 'border-[#00a870]/30' },
   'Oportunidad': { bg: 'bg-[#ff6d3b]/15', text: 'text-[#ff6d3b]', border: 'border-[#ff6d3b]/30' },
-  'Cliente': { bg: 'bg-[#00e5a0]/15', text: 'text-[#00e5a0]', border: 'border-[#00e5a0]/30' },
+  'Cliente': { bg: 'bg-[#00a870]/15', text: 'text-[#00a870]', border: 'border-[#00a870]/30' },
   'En pausa': { bg: 'bg-[#f59e0b]/15', text: 'text-[#f59e0b]', border: 'border-[#f59e0b]/30' },
   'lost': { bg: 'bg-[#3e4c63]/25', text: 'text-theme-txt3', border: 'border-theme-bor2' },
   'Descartado': { bg: 'bg-[#3e4c63]/25', text: 'text-theme-txt3', border: 'border-theme-bor2' },
@@ -44,12 +43,10 @@ export default function ContactTable({
   onSelectContact,
   onQuickStatusChange,
   onOpenTemplates,
-  activeTemplate,
   viewMode = 'table',
 }: ContactTableProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Pagination calculation
   const totalPages = Math.ceil(contacts.length / pageSize) || 1;
@@ -61,28 +58,6 @@ export default function ContactTable({
   React.useEffect(() => {
     setCurrentPage(1);
   }, [contacts.length]);
-
-  const handleQuickCopy = async (e: React.MouseEvent, c: Contact) => {
-    e.stopPropagation();
-    if (!activeTemplate) {
-      if (onOpenTemplates) onOpenTemplates(c);
-      return;
-    }
-
-    const text = activeTemplate.text
-      .replace(/{nombre}/g, c.first_name || '')
-      .replace(/{apellido}/g, c.last_name || '')
-      .replace(/{empresa}/g, c.company || 'tu empresa')
-      .replace(/{cargo}/g, c.position || 'tu rol actual');
-
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedId(c.id);
-      setTimeout(() => setCopiedId(null), 2000);
-    } catch (err) {
-      console.error('Error copying:', err);
-    }
-  };
 
   if (contacts.length === 0) {
     return (
@@ -105,18 +80,19 @@ export default function ContactTable({
             <thead className="sticky top-0 bg-theme-sur border-b border-theme-bor z-10 text-theme-txt2 font-mono uppercase text-[10px] tracking-wider">
               <tr>
                 <th className="py-3 px-4">Contacto</th>
-                <th className="py-3 px-4">Empresa y Cargo</th>
-                <th className="py-3 px-4">Conectado / Seguimiento</th>
-                <th className="py-3 px-4">Estado</th>
+                <th className="py-3 px-4">Cargo</th>
+                <th className="py-3 px-4">Empresa</th>
+                <th className="py-3 px-4">Email / Teléfono</th>
+                <th className="py-3 px-4">Conexión / Seguimiento</th>
+                <th className="py-3 px-4">Estado CRM</th>
                 <th className="py-3 px-4">Etiquetas</th>
-                <th className="py-3 px-4 text-right">Acciones Rápidas</th>
+                <th className="py-3 px-4 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-theme-bor">
               {paginatedContacts.map((c) => {
                 const statusConfig = STATUS_COLORS[c.status] || STATUS_COLORS['Sin contactar'];
                 const isFollowUpDue = c.follow_up_date && new Date(c.follow_up_date) <= new Date();
-                const isCopied = copiedId === c.id;
 
                 return (
                   <tr
@@ -124,45 +100,74 @@ export default function ContactTable({
                     className="hover:bg-theme-sur/70 transition-colors group cursor-pointer"
                     onClick={() => onSelectContact(c)}
                   >
-                    {/* Contact name & avatar + priority */}
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-theme-sur2 border border-theme-bor2 flex items-center justify-center font-bold text-[#00e5a0] text-xs shrink-0">
+                    {/* 1. Contact Name & Avatar + Stars */}
+                    <td className="py-3 px-4 min-w-[180px]">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-theme-sur2 border border-theme-bor2 flex items-center justify-center font-bold text-[#00a870] text-xs shrink-0">
                           {(c.first_name[0] || '') + (c.last_name?.[0] || '')}
                         </div>
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-semibold text-theme-txt group-hover:text-[#00e5a0] transition-colors">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1">
+                            <span className="font-semibold text-theme-txt group-hover:text-[#00a870] transition-colors truncate">
                               {c.first_name} {c.last_name || ''}
                             </span>
                             {c.priority && c.priority > 1 && (
-                              <span className="flex items-center text-[#f59e0b]" title={`${c.priority} Estrellas`}>
+                              <span className="flex items-center text-[#f59e0b] shrink-0" title={`${c.priority} Estrellas`}>
                                 {[...Array(c.priority)].map((_, i) => (
-                                  <Star key={i} className="w-3 h-3 fill-[#f59e0b]" />
+                                  <Star key={i} className="w-2.5 h-2.5 fill-[#f59e0b]" />
                                 ))}
                               </span>
                             )}
                           </div>
-
-                          {c.email ? (
-                            <div className="flex items-center gap-1 text-[11px] text-theme-txt2">
-                              <Mail className="w-3 h-3 text-[#00e5a0] shrink-0" />
-                              <span className="truncate max-w-[180px]">{c.email}</span>
-                            </div>
-                          ) : (
-                            <span className="text-[10px] text-theme-txt3">Sin email</span>
+                          {c.assigned_to && (
+                            <span className="text-[10px] text-theme-txt3 block truncate">
+                              Resp: {c.assigned_to}
+                            </span>
                           )}
                         </div>
                       </div>
                     </td>
 
-                    {/* Company & Position */}
-                    <td className="py-3 px-4 max-w-[220px]">
-                      <div className="font-medium text-theme-txt truncate">{c.company || '—'}</div>
-                      <div className="text-[11px] text-theme-txt2 truncate">{c.position || '—'}</div>
+                    {/* 2. Position (Cargo) */}
+                    <td className="py-3 px-4 max-w-[200px]">
+                      <span className="text-theme-txt font-medium block truncate" title={c.position || '—'}>
+                        {c.position || '—'}
+                      </span>
                     </td>
 
-                    {/* Connected Date & Follow-up */}
+                    {/* 3. Company (Empresa) */}
+                    <td className="py-3 px-4 max-w-[180px]">
+                      <span className="text-theme-txt2 block truncate" title={c.company || '—'}>
+                        {c.company || '—'}
+                      </span>
+                    </td>
+
+                    {/* 4. Email / Phone */}
+                    <td className="py-3 px-4 min-w-[160px]">
+                      <div className="space-y-0.5">
+                        {c.email ? (
+                          <div className="flex items-center gap-1.5 text-[11px] text-[#00a870] hover:underline">
+                            <Mail className="w-3 h-3 shrink-0" />
+                            <a href={`mailto:${c.email}`} onClick={(e) => e.stopPropagation()} className="truncate max-w-[150px]">
+                              {c.email}
+                            </a>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-theme-txt3 block">Sin email</span>
+                        )}
+
+                        {c.phone && (
+                          <div className="flex items-center gap-1.5 text-[11px] text-[#2979ff]">
+                            <Phone className="w-3 h-3 shrink-0" />
+                            <a href={`https://wa.me/${c.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="hover:underline">
+                              {c.phone}
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* 5. Connected Date & Follow-up */}
                     <td className="py-3 px-4 text-theme-txt2 font-mono text-[11px] whitespace-nowrap">
                       <div>{c.connected_on || '—'}</div>
                       {c.follow_up_date && (
@@ -173,7 +178,7 @@ export default function ContactTable({
                       )}
                     </td>
 
-                    {/* Quick Status Select */}
+                    {/* 6. Status CRM Dropdown */}
                     <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                       <select
                         value={c.status}
@@ -188,12 +193,12 @@ export default function ContactTable({
                       </select>
                     </td>
 
-                    {/* Tags preview */}
-                    <td className="py-3 px-4 max-w-[170px]">
+                    {/* 7. Tags preview */}
+                    <td className="py-3 px-4 max-w-[140px]">
                       {c.tags && c.tags.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
                           {c.tags.slice(0, 2).map((t) => (
-                            <span key={t} className="px-1.5 py-0.5 rounded text-[9.5px] bg-[#2979ff]/15 text-[#2979ff] font-medium truncate max-w-[80px]">
+                            <span key={t} className="px-1.5 py-0.5 rounded text-[9.5px] bg-[#2979ff]/15 text-[#2979ff] font-medium truncate max-w-[70px]">
                               {t}
                             </span>
                           ))}
@@ -206,31 +211,18 @@ export default function ContactTable({
                       )}
                     </td>
 
-                    {/* Actions: Quick Copy + Open Templates + LinkedIn + Edit */}
+                    {/* 8. Clear Actions: Message + LinkedIn + Edit */}
                     <td className="py-3 px-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1.5">
-                        {/* 1-Click Fast Copy active campaign message */}
-                        <button
-                          onClick={(e) => handleQuickCopy(e, c)}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
-                            isCopied
-                              ? 'bg-[#00e5a0] text-[#00110b] shadow-xs'
-                              : 'bg-theme-sur2 hover:bg-theme-sur3 text-theme-txt border border-theme-bor hover:border-[#00e5a0]'
-                          }`}
-                          title={activeTemplate ? `Copiar: "${activeTemplate.name}"` : 'Copiar mensaje de campaña'}
-                        >
-                          {isCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                          <span>{isCopied ? '¡Copiado!' : 'Copiar'}</span>
-                        </button>
-
-                        {/* Open Full Templates Modal */}
+                        {/* Open Templates Modal */}
                         {onOpenTemplates && (
                           <button
                             onClick={() => onOpenTemplates(c)}
-                            className="p-1.5 text-theme-txt2 hover:text-[#00e5a0] hover:bg-theme-sur2 rounded-lg transition-colors cursor-pointer"
-                            title="Ver / cambiar plantilla de mensaje"
+                            className="px-2.5 py-1 text-xs font-semibold text-[#00a870] bg-[#00a870]/10 hover:bg-[#00a870]/20 border border-[#00a870]/30 rounded-lg flex items-center gap-1 transition-all cursor-pointer"
+                            title="Generar mensaje personalizado"
                           >
-                            <MessageSquare className="w-4 h-4" />
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            <span>Mensaje</span>
                           </button>
                         )}
 
@@ -240,7 +232,7 @@ export default function ContactTable({
                             href={c.linkedin_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="p-1.5 text-theme-txt2 hover:text-[#2979ff] hover:bg-theme-sur2 rounded-lg transition-colors"
+                            className="p-1.5 text-theme-txt2 hover:text-[#0a66c2] hover:bg-theme-sur2 rounded-lg transition-colors"
                             title="Abrir perfil en LinkedIn"
                           >
                             <ExternalLink className="w-4 h-4" />
@@ -250,7 +242,7 @@ export default function ContactTable({
                         {/* Edit Drawer */}
                         <button
                           onClick={() => onSelectContact(c)}
-                          className="p-1.5 text-theme-txt2 hover:text-[#00e5a0] hover:bg-theme-sur2 rounded-lg transition-colors cursor-pointer"
+                          className="p-1.5 text-theme-txt2 hover:text-[#00a870] hover:bg-theme-sur2 rounded-lg transition-colors cursor-pointer"
                           title="Editar / Ver detalle"
                         >
                           <Edit3 className="w-4 h-4" />
@@ -267,17 +259,16 @@ export default function ContactTable({
           <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {paginatedContacts.map((c) => {
               const statusConfig = STATUS_COLORS[c.status] || STATUS_COLORS['Sin contactar'];
-              const isCopied = copiedId === c.id;
 
               return (
                 <div
                   key={c.id}
                   onClick={() => onSelectContact(c)}
-                  className="bg-theme-sur border border-theme-bor hover:border-[#00e5a0]/40 rounded-xl p-4 transition-all cursor-pointer group shadow-xs hover:shadow-md flex flex-col justify-between"
+                  className="bg-theme-sur border border-theme-bor hover:border-[#00a870]/40 rounded-xl p-4 transition-all cursor-pointer group shadow-xs hover:shadow-md flex flex-col justify-between"
                 >
                   <div>
                     <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="w-9 h-9 rounded-xl bg-theme-sur2 border border-theme-bor flex items-center justify-center font-bold text-[#00e5a0] text-xs shrink-0">
+                      <div className="w-9 h-9 rounded-xl bg-theme-sur2 border border-theme-bor flex items-center justify-center font-bold text-[#00a870] text-xs shrink-0">
                         {(c.first_name[0] || '') + (c.last_name?.[0] || '')}
                       </div>
                       <div className="flex items-center gap-1">
@@ -296,11 +287,18 @@ export default function ContactTable({
                       </div>
                     </div>
 
-                    <h4 className="font-semibold text-xs text-theme-txt group-hover:text-[#00e5a0] transition-colors truncate">
+                    <h4 className="font-semibold text-xs text-theme-txt group-hover:text-[#00a870] transition-colors truncate">
                       {c.first_name} {c.last_name || ''}
                     </h4>
-                    <p className="text-[11px] text-theme-txt2 truncate mt-0.5">{c.position || 'Sin cargo'}</p>
+                    <p className="text-[11px] text-theme-txt2 truncate mt-0.5 font-medium">{c.position || 'Sin cargo'}</p>
                     <p className="text-[10px] text-theme-txt3 truncate">{c.company || 'Sin empresa'}</p>
+
+                    {c.phone && (
+                      <p className="text-[10px] text-[#2979ff] truncate mt-1 flex items-center gap-1">
+                        <Phone className="w-2.5 h-2.5" />
+                        <span>{c.phone}</span>
+                      </p>
+                    )}
 
                     {c.tags && c.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-2">
@@ -314,29 +312,17 @@ export default function ContactTable({
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-theme-bor flex items-center justify-between text-[11px] text-theme-txt2 gap-1.5">
-                    <button
-                      onClick={(e) => handleQuickCopy(e, c)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
-                        isCopied
-                          ? 'bg-[#00e5a0] text-[#00110b]'
-                          : 'bg-theme-sur2 hover:bg-theme-sur3 text-theme-txt border border-theme-bor'
-                      }`}
-                      title="Copiar mensaje de campaña"
-                    >
-                      {isCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                      <span>{isCopied ? '¡Copiado!' : 'Copiar'}</span>
-                    </button>
-
                     {onOpenTemplates && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           onOpenTemplates(c);
                         }}
-                        className="p-1.5 text-theme-txt2 hover:text-[#00e5a0] rounded-lg"
+                        className="px-2.5 py-1 text-xs font-semibold text-[#00a870] bg-[#00a870]/10 hover:bg-[#00a870]/20 rounded-lg flex items-center gap-1"
                         title="Ver plantillas"
                       >
                         <MessageSquare className="w-3.5 h-3.5" />
+                        <span>Mensaje</span>
                       </button>
                     )}
 
@@ -346,7 +332,7 @@ export default function ContactTable({
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="text-[#2979ff] hover:underline flex items-center gap-1 ml-auto text-xs"
+                        className="text-[#0a66c2] hover:underline flex items-center gap-1 ml-auto text-xs font-medium"
                       >
                         <span>LinkedIn</span>
                         <ExternalLink className="w-3 h-3" />

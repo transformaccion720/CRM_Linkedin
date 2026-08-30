@@ -12,6 +12,7 @@ export interface Contact {
   last_name: string | null;
   linkedin_url: string | null;
   email: string | null;
+  phone?: string | null;
   company: string | null;
   position: string | null;
   connected_on: string | null;
@@ -20,6 +21,7 @@ export interface Contact {
   priority?: number; // 1, 2, 3 stars
   follow_up_date?: string | null;
   tags?: string[];
+  assigned_to?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -28,6 +30,7 @@ export interface ContactStats {
   total: number;
   withEmail: number;
   noEmail?: number;
+  withPhone?: number;
   companiesCount: number;
   recentCount: number;
   pendingFollowUps?: number;
