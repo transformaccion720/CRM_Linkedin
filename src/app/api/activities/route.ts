@@ -4,7 +4,7 @@ import { sql } from '@/lib/db';
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const limit = parseInt(searchParams.get('limit') || '30', 10);
+    const limit = parseInt(searchParams.get('limit') || '50', 10);
 
     const activities = await sql`
       SELECT id, contact_id, contact_name, action_type, description, performed_by,
@@ -41,6 +41,29 @@ export async function POST(req: NextRequest) {
     `;
 
     return NextResponse.json({ activity: result[0] }, { status: 201 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    const all = searchParams.get('all');
+
+    if (all === 'true') {
+      await sql`DELETE FROM activity_logs;`;
+      return NextResponse.json({ success: true, message: 'Todas las notificaciones eliminadas' });
+    }
+
+    if (id) {
+      await sql`DELETE FROM activity_logs WHERE id = ${id}::uuid;`;
+      return NextResponse.json({ success: true, message: 'Notificación eliminada' });
+    }
+
+    return NextResponse.json({ error: 'Parámetro inválido' }, { status: 400 });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ error: message }, { status: 500 });
