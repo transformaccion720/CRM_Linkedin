@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Contact, ContactStatus } from '@/lib/types';
-import { ExternalLink, Mail, Edit3, CheckCircle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageSquare, Star, Clock, Phone, AlertTriangle } from 'lucide-react';
+import { ExternalLink, Mail, Edit3, CheckCircle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageSquare, Star, Phone, AlertTriangle, Tag } from 'lucide-react';
 
 interface ContactTableProps {
   contacts: Contact[];
@@ -73,25 +73,24 @@ export default function ContactTable({
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-theme-bg overflow-hidden">
       {/* View Content */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-x-auto overflow-y-auto">
         {viewMode === 'table' ? (
-          <table className="w-full text-left border-collapse text-xs table-fixed">
+          <table className="w-full text-left border-collapse text-xs table-fixed min-w-[950px]">
             <thead className="sticky top-0 bg-theme-sur border-b border-theme-bor z-10 text-theme-txt2 font-mono uppercase text-[10px] tracking-wider">
               <tr>
                 <th className="py-2.5 px-3 w-[22%]">Contacto</th>
                 <th className="py-2.5 px-3 w-[15%]">Cargo</th>
                 <th className="py-2.5 px-3 w-[14%]">Empresa</th>
                 <th className="py-2.5 px-3 w-[14%]">Email</th>
-                <th className="py-2.5 px-3 w-[12%]">Teléfono / WhatsApp</th>
-                <th className="py-2.5 px-3 w-[9%]">Conexión</th>
-                <th className="py-2.5 px-3 w-[8%]">Estado</th>
+                <th className="py-2.5 px-3 w-[11%]">Teléfono / WhatsApp</th>
+                <th className="py-2.5 px-3 w-[10%]">Estado</th>
+                <th className="py-2.5 px-3 w-[8%]">Etiquetas</th>
                 <th className="py-2.5 px-3 w-[6%] text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-theme-bor">
               {paginatedContacts.map((c) => {
                 const statusConfig = STATUS_COLORS[c.status] || STATUS_COLORS['Sin contactar'];
-                const isFollowUpDue = c.follow_up_date && new Date(c.follow_up_date) <= new Date();
                 const isShared = c.shared_with && c.shared_with.length > 0;
 
                 return (
@@ -189,23 +188,12 @@ export default function ContactTable({
                       )}
                     </td>
 
-                    {/* 6. Conexión */}
-                    <td className="py-2.5 px-3 text-theme-txt2 font-mono text-[10px] whitespace-nowrap overflow-hidden">
-                      <div>{c.connected_on || '—'}</div>
-                      {c.follow_up_date && (
-                        <div className={`flex items-center gap-1 text-[9.5px] ${isFollowUpDue ? 'text-[#ff6d3b] font-bold' : 'text-theme-txt3'}`}>
-                          <Clock className="w-2.5 h-2.5" />
-                          <span>{c.follow_up_date}</span>
-                        </div>
-                      )}
-                    </td>
-
-                    {/* 7. Estado CRM */}
+                    {/* 6. Estado CRM */}
                     <td className="py-2.5 px-3 overflow-hidden" onClick={(e) => e.stopPropagation()}>
                       <select
                         value={c.status}
                         onChange={(e) => onQuickStatusChange(c.id, e.target.value as ContactStatus)}
-                        className={`w-full px-1.5 py-0.5 rounded text-[10.5px] font-medium border outline-hidden cursor-pointer truncate ${statusConfig.bg} ${statusConfig.text} ${statusConfig.border}`}
+                        className={`w-full px-1.5 py-1 rounded text-[10.5px] font-semibold border outline-hidden cursor-pointer truncate ${statusConfig.bg} ${statusConfig.text} ${statusConfig.border}`}
                       >
                         {ALL_STATUSES.map((st) => (
                           <option key={st} value={st} className="bg-theme-sur text-theme-txt">
@@ -215,17 +203,38 @@ export default function ContactTable({
                       </select>
                     </td>
 
-                    {/* 8. Acciones */}
+                    {/* 7. Etiquetas (Reemplazo ordenado de Conexión) */}
+                    <td className="py-2.5 px-3 overflow-hidden">
+                      {c.tags && c.tags.length > 0 ? (
+                        <div className="flex items-center gap-1 flex-wrap">
+                          {c.tags.slice(0, 2).map((t) => (
+                            <span
+                              key={t}
+                              className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-[#2979ff]/15 text-[#2979ff] border border-[#2979ff]/30 truncate max-w-[65px]"
+                              title={t}
+                            >
+                              {t}
+                            </span>
+                          ))}
+                          {c.tags.length > 2 && (
+                            <span className="text-[9px] text-theme-txt3">+{c.tags.length - 2}</span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-theme-txt3">—</span>
+                      )}
+                    </td>
+
+                    {/* 8. Acciones Rápidas Directas */}
                     <td className="py-2.5 px-3 text-right whitespace-nowrap overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-end gap-1">
+                      <div className="flex items-center justify-end gap-1.5">
                         {onOpenTemplates && (
                           <button
                             onClick={() => onOpenTemplates(c)}
-                            className="px-2 py-0.5 text-[10.5px] font-semibold text-[#00a870] bg-[#00a870]/10 hover:bg-[#00a870]/20 border border-[#00a870]/30 rounded flex items-center gap-0.5 transition-all cursor-pointer"
-                            title="Generar mensaje personalizado"
+                            className="p-1.5 text-theme-txt2 hover:text-[#00a870] hover:bg-[#00a870]/15 rounded-lg border border-transparent hover:border-[#00a870]/30 transition-all cursor-pointer"
+                            title="Generar mensaje LinkedIn personalizado"
                           >
-                            <MessageSquare className="w-3 h-3" />
-                            <span>Mensaje</span>
+                            <MessageSquare className="w-3.5 h-3.5 text-[#00a870]" />
                           </button>
                         )}
 
@@ -234,7 +243,7 @@ export default function ContactTable({
                             href={c.linkedin_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="p-1 text-theme-txt2 hover:text-[#0a66c2] hover:bg-theme-sur2 rounded transition-colors"
+                            className="p-1.5 text-theme-txt2 hover:text-[#0a66c2] hover:bg-[#0a66c2]/15 rounded-lg transition-colors"
                             title="Abrir perfil en LinkedIn"
                           >
                             <ExternalLink className="w-3.5 h-3.5" />
@@ -243,8 +252,8 @@ export default function ContactTable({
 
                         <button
                           onClick={() => onSelectContact(c)}
-                          className="p-1 text-theme-txt2 hover:text-[#00a870] hover:bg-theme-sur2 rounded transition-colors cursor-pointer"
-                          title="Editar / Ver detalle"
+                          className="p-1.5 text-theme-txt2 hover:text-[#00a870] hover:bg-theme-sur2 rounded-lg transition-colors cursor-pointer"
+                          title="Ver ficha completa / Editar"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
@@ -403,7 +412,7 @@ export default function ContactTable({
             className="p-1 rounded border border-theme-bor hover:bg-theme-sur2 disabled:opacity-30 cursor-pointer"
             title="Siguiente"
           >
-            <ChevronRight className="w-3 h-3" />
+            <ChevronRight className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => setCurrentPage(totalPages)}
@@ -411,7 +420,7 @@ export default function ContactTable({
             className="p-1 rounded border border-theme-bor hover:bg-theme-sur2 disabled:opacity-30 cursor-pointer"
             title="Última"
           >
-            <ChevronsRight className="w-3 h-3" />
+            <ChevronsRight className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
