@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Contact, ContactStatus } from '@/lib/types';
-import { X, ExternalLink, Mail, Building2, Briefcase, Calendar, Trash2, CheckCircle2, Save, Star, Tag, Clock, MessageSquare, Plus, Phone, User } from 'lucide-react';
+import { Contact, ContactStatus, TeamMember } from '@/lib/types';
+import { X, ExternalLink, Mail, Building2, Briefcase, Calendar, Trash2, CheckCircle2, Save, Star, Tag, Clock, MessageSquare, Plus, Phone, UserCheck } from 'lucide-react';
 
 interface ContactDrawerProps {
   contact: Contact | null;
@@ -11,6 +11,7 @@ interface ContactDrawerProps {
   onUpdate: (updated: Contact) => void;
   onDelete: (id: string) => void;
   onOpenTemplates?: (c: Contact) => void;
+  teamMembers?: TeamMember[];
 }
 
 const ALL_STATUSES: ContactStatus[] = [
@@ -29,12 +30,19 @@ export default function ContactDrawer({
   onUpdate,
   onDelete,
   onOpenTemplates,
+  teamMembers = [],
 }: ContactDrawerProps) {
+  // Editable fields
+  const [firstName, setFirstName] = useState<string>('');
+  const [lastName, setLastName] = useState<string>('');
+  const [company, setCompany] = useState<string>('');
+  const [position, setPosition] = useState<string>('');
+  const [email, setEmail] = useState<string>('');
+  const [phone, setPhone] = useState<string>('');
   const [status, setStatus] = useState<ContactStatus>('Sin contactar');
   const [notes, setNotes] = useState<string>('');
   const [priority, setPriority] = useState<number>(1);
   const [followUpDate, setFollowUpDate] = useState<string>('');
-  const [phone, setPhone] = useState<string>('');
   const [assignedTo, setAssignedTo] = useState<string>('Gabino');
   const [tags, setTags] = useState<string[]>([]);
   const [newTagInput, setNewTagInput] = useState<string>('');
@@ -43,11 +51,16 @@ export default function ContactDrawer({
 
   useEffect(() => {
     if (contact) {
+      setFirstName(contact.first_name || '');
+      setLastName(contact.last_name || '');
+      setCompany(contact.company || '');
+      setPosition(contact.position || '');
+      setEmail(contact.email || '');
+      setPhone(contact.phone || '');
       setStatus(contact.status);
       setNotes(contact.notes || '');
       setPriority(contact.priority || 1);
       setFollowUpDate(contact.follow_up_date || '');
-      setPhone(contact.phone || '');
       setAssignedTo(contact.assigned_to || 'Gabino');
       setTags(contact.tags || []);
       setSaveSuccess(false);
@@ -63,12 +76,17 @@ export default function ContactDrawer({
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          first_name: firstName.trim() || contact.first_name,
+          last_name: lastName.trim() || null,
+          company: company.trim() || null,
+          position: position.trim() || null,
+          email: email.trim() || null,
+          phone: phone.trim() || null,
           status,
           notes,
           priority,
           follow_up_date: followUpDate || null,
-          phone: phone.trim() || null,
-          assigned_to: assignedTo.trim() || null,
+          assigned_to: assignedTo.trim() || 'Gabino',
           tags,
         }),
       });
@@ -121,15 +139,15 @@ export default function ContactDrawer({
       <div className="w-full max-w-md bg-theme-sur border-l border-theme-bor h-full shadow-2xl flex flex-col text-theme-txt transition-all animate-in slide-in-from-right duration-200">
         {/* Drawer Header */}
         <div className="p-4 border-b border-theme-bor flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-theme-sur2 border border-theme-bor2 flex items-center justify-center font-bold text-[#00a870] text-sm shrink-0">
-              {(contact.first_name[0] || '') + (contact.last_name?.[0] || '')}
+              {(firstName[0] || '') + (lastName?.[0] || '')}
             </div>
             <div className="min-w-0">
               <h3 className="font-bold text-sm text-theme-txt truncate">
-                {contact.first_name} {contact.last_name || ''}
+                {firstName} {lastName || ''}
               </h3>
-              <p className="text-[11px] text-theme-txt2 truncate">{contact.position || 'Sin cargo'}</p>
+              <p className="text-[11px] text-theme-txt2 truncate">{position || 'Sin cargo asignado'}</p>
             </div>
           </div>
 
@@ -145,7 +163,7 @@ export default function ContactDrawer({
         <div className="p-3 bg-theme-sur2/60 border-b border-theme-bor flex gap-2">
           {onOpenTemplates && (
             <button
-              onClick={() => onOpenTemplates(contact)}
+              onClick={() => onOpenTemplates({ ...contact, first_name: firstName, last_name: lastName, company, position })}
               className="flex-1 py-2 px-3 rounded-lg text-xs font-bold text-[#00110b] bg-[#00a870] hover:bg-[#00a870]/90 flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
             >
               <MessageSquare className="w-4 h-4" />
@@ -155,7 +173,7 @@ export default function ContactDrawer({
         </div>
 
         {/* Drawer Body */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-5 text-xs">
+        <div className="flex-1 overflow-y-auto p-5 space-y-4 text-xs">
           {/* Priority Star Scoring & Assigned user */}
           <div className="grid grid-cols-2 gap-3">
             <div className="p-3 bg-theme-sur2 rounded-xl border border-theme-bor">
@@ -186,14 +204,134 @@ export default function ContactDrawer({
               <span className="text-[10px] font-mono uppercase tracking-wider text-theme-txt2 block mb-1">
                 Responsable
               </span>
-              <input
-                type="text"
+              <select
                 value={assignedTo}
                 onChange={(e) => setAssignedTo(e.target.value)}
-                placeholder="Ej. Gabino"
-                className="w-full bg-theme-sur border border-theme-bor rounded-md px-2 py-1 text-xs text-theme-txt outline-hidden"
+                className="w-full bg-theme-sur border border-theme-bor rounded-md px-2 py-1 text-xs text-theme-txt outline-hidden cursor-pointer"
+              >
+                {teamMembers.length > 0 ? (
+                  teamMembers.map((m) => (
+                    <option key={m.id} value={m.name}>
+                      {m.name}
+                    </option>
+                  ))
+                ) : (
+                  <option value="Gabino">Gabino</option>
+                )}
+              </select>
+            </div>
+          </div>
+
+          {/* Editable Contact Details: Cargo, Empresa, Email, Teléfono */}
+          <div className="space-y-3 bg-theme-sur2 p-4 rounded-xl border border-theme-bor">
+            <span className="text-[10.5px] font-mono uppercase tracking-wider text-theme-txt3 block font-bold">
+              Datos Profesionales Editables
+            </span>
+
+            {/* Cargo / Puesto editable */}
+            <div>
+              <label className="text-[10px] font-mono uppercase tracking-wider text-theme-txt2 flex items-center gap-1 mb-1">
+                <Briefcase className="w-3 h-3 text-[#2979ff]" />
+                <span>Cargo / Puesto Actual</span>
+              </label>
+              <input
+                type="text"
+                value={position}
+                onChange={(e) => setPosition(e.target.value)}
+                placeholder="Ej. Gerente de Operaciones, Director de TI..."
+                className="w-full bg-theme-sur border border-theme-bor focus:border-[#00a870] rounded-lg px-2.5 py-1.5 text-xs text-theme-txt outline-hidden font-medium"
               />
             </div>
+
+            {/* Empresa editable */}
+            <div>
+              <label className="text-[10px] font-mono uppercase tracking-wider text-theme-txt2 flex items-center gap-1 mb-1">
+                <Building2 className="w-3 h-3 text-[#00a870]" />
+                <span>Empresa / Organización</span>
+              </label>
+              <input
+                type="text"
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+                placeholder="Ej. Minera Chinalco, BBVA..."
+                className="w-full bg-theme-sur border border-theme-bor focus:border-[#00a870] rounded-lg px-2.5 py-1.5 text-xs text-theme-txt outline-hidden font-medium"
+              />
+            </div>
+
+            {/* Email editable */}
+            <div>
+              <label className="text-[10px] font-mono uppercase tracking-wider text-theme-txt2 flex items-center gap-1 mb-1">
+                <Mail className="w-3 h-3 text-[#ff6d3b]" />
+                <span>Correo Electrónico</span>
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="correo@empresa.com"
+                className="w-full bg-theme-sur border border-theme-bor focus:border-[#00a870] rounded-lg px-2.5 py-1.5 text-xs text-theme-txt outline-hidden"
+              />
+            </div>
+
+            {/* Phone / WhatsApp editable */}
+            <div>
+              <label className="text-[10px] font-mono uppercase tracking-wider text-theme-txt2 flex items-center justify-between mb-1">
+                <span className="flex items-center gap-1">
+                  <Phone className="w-3 h-3 text-[#2979ff]" />
+                  <span>Teléfono / WhatsApp</span>
+                </span>
+                {phone && (
+                  <a
+                    href={`https://wa.me/${phone.replace(/\D/g, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#25D366] hover:underline text-[10px] font-bold"
+                  >
+                    Abrir WhatsApp ↗
+                  </a>
+                )}
+              </label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+51 987 654 321"
+                className="w-full bg-theme-sur border border-theme-bor focus:border-[#2979ff] rounded-lg px-2.5 py-1.5 text-xs text-theme-txt outline-hidden font-mono"
+              />
+            </div>
+
+            {contact.linkedin_url && (
+              <div className="pt-2 border-t border-theme-bor flex items-center justify-between">
+                <a
+                  href={contact.linkedin_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-[#0a66c2] hover:underline font-semibold"
+                >
+                  <span>Ver perfil en LinkedIn</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+                <span className="text-[10px] font-mono text-theme-txt3">{contact.connected_on || ''}</span>
+              </div>
+            )}
+          </div>
+
+          {/* CRM Status Selection */}
+          <div className="space-y-2">
+            <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2">
+              Estado del Prospecto / Pipeline
+            </label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as ContactStatus)}
+              className="w-full bg-theme-sur2 border border-theme-bor rounded-lg p-2.5 text-xs text-theme-txt outline-hidden focus:border-[#00a870] cursor-pointer font-semibold"
+            >
+              {ALL_STATUSES.map((st) => (
+                <option key={st} value={st} className="bg-theme-sur text-theme-txt">
+                  {st}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Follow-up Reminder */}
@@ -244,89 +382,6 @@ export default function ContactDrawer({
             </div>
           </div>
 
-          {/* Contact Details & Phone field */}
-          <div className="space-y-3 bg-theme-sur2 p-4 rounded-xl border border-theme-bor">
-            <div className="flex items-center gap-2.5 text-theme-txt2">
-              <Building2 className="w-4 h-4 text-theme-txt3 shrink-0" />
-              <span className="text-theme-txt font-medium">{contact.company || 'Empresa no registrada'}</span>
-            </div>
-
-            <div className="flex items-center gap-2.5 text-theme-txt2">
-              <Briefcase className="w-4 h-4 text-theme-txt3 shrink-0" />
-              <span className="text-theme-txt">{contact.position || 'Cargo no registrado'}</span>
-            </div>
-
-            <div className="flex items-center gap-2.5 text-theme-txt2">
-              <Mail className="w-4 h-4 text-[#00a870] shrink-0" />
-              {contact.email ? (
-                <a href={`mailto:${contact.email}`} className="text-[#00a870] hover:underline truncate">
-                  {contact.email}
-                </a>
-              ) : (
-                <span className="text-theme-txt3">Sin email</span>
-              )}
-            </div>
-
-            {/* Phone / WhatsApp input */}
-            <div className="flex items-center gap-2.5 text-theme-txt2 pt-1 border-t border-theme-bor">
-              <Phone className="w-4 h-4 text-[#2979ff] shrink-0" />
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Añadir número / WhatsApp..."
-                className="flex-1 bg-theme-sur border border-theme-bor rounded-md px-2 py-1 text-xs text-theme-txt outline-hidden focus:border-[#2979ff]"
-              />
-              {phone && (
-                <a
-                  href={`https://wa.me/${phone.replace(/\D/g, '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-2 py-1 bg-[#25D366]/15 hover:bg-[#25D366]/25 text-[#25D366] rounded-md text-[10px] font-bold"
-                >
-                  WhatsApp ↗
-                </a>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2.5 text-theme-txt2">
-              <Calendar className="w-4 h-4 text-theme-txt3 shrink-0" />
-              <span>Conectado el: {contact.connected_on || 'Fecha desconocida'}</span>
-            </div>
-
-            {contact.linkedin_url && (
-              <div className="pt-2 border-t border-theme-bor">
-                <a
-                  href={contact.linkedin_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs text-[#0a66c2] hover:underline font-medium"
-                >
-                  <span>Ver perfil en LinkedIn</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
-            )}
-          </div>
-
-          {/* CRM Status Selection */}
-          <div className="space-y-2">
-            <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2">
-              Estado del Prospecto / Pipeline
-            </label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as ContactStatus)}
-              className="w-full bg-theme-sur2 border border-theme-bor rounded-lg p-2.5 text-xs text-theme-txt outline-hidden focus:border-[#00a870] cursor-pointer"
-            >
-              {ALL_STATUSES.map((st) => (
-                <option key={st} value={st} className="bg-theme-sur text-theme-txt">
-                  {st}
-                </option>
-              ))}
-            </select>
-          </div>
-
           {/* Tags */}
           <div className="space-y-2">
             <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 flex items-center gap-1.5">
@@ -357,7 +412,7 @@ export default function ContactDrawer({
                     handleAddTag();
                   }
                 }}
-                placeholder="Ej. Minería, Tier 1, Decisor..."
+                placeholder="Ej. Minería, Decisor..."
                 className="flex-1 bg-theme-sur2 border border-theme-bor rounded-lg px-3 py-1.5 text-xs text-theme-txt outline-hidden focus:border-[#00a870]"
               />
               <button
@@ -373,7 +428,7 @@ export default function ContactDrawer({
           {/* Notes Textarea */}
           <div className="space-y-2">
             <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2">
-              Notas y Acuerdos
+              Notas y Acuerdos de la Conversación
             </label>
             <textarea
               rows={4}
@@ -397,15 +452,15 @@ export default function ContactDrawer({
 
           <div className="flex items-center gap-2">
             {saveSuccess && (
-              <span className="text-xs text-[#00a870] flex items-center gap-1">
+              <span className="text-xs text-[#00a870] flex items-center gap-1 font-bold">
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Guardado</span>
+                <span>¡Actualizado!</span>
               </span>
             )}
             <button
               onClick={handleSave}
               disabled={saving}
-              className="px-4 py-2 rounded-lg text-xs font-semibold text-[#00110b] bg-[#00a870] hover:bg-[#00a870]/90 disabled:opacity-50 flex items-center gap-1.5 shadow-md shadow-[#00a870]/15 transition-all cursor-pointer"
+              className="px-4 py-2 rounded-lg text-xs font-bold text-[#00110b] bg-[#00a870] hover:bg-[#00a870]/90 disabled:opacity-50 flex items-center gap-1.5 shadow-md shadow-[#00a870]/15 transition-all cursor-pointer"
             >
               <Save className="w-3.5 h-3.5" />
               <span>{saving ? 'Guardando...' : 'Guardar Cambios'}</span>
