@@ -4,25 +4,29 @@ import { DEFAULT_TEMPLATES } from '@/lib/templates';
 
 export async function GET() {
   try {
-    // 1. Table team_members
+    // 1. Table team_members with password support
     await sql`
       CREATE TABLE IF NOT EXISTS team_members (
         id VARCHAR(80) PRIMARY KEY,
         name VARCHAR(120) NOT NULL,
-        email VARCHAR(255),
+        email VARCHAR(255) UNIQUE,
         role VARCHAR(100) DEFAULT 'Comercial',
         color VARCHAR(50) DEFAULT '#00a870',
+        password VARCHAR(255) DEFAULT '123456',
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       );
     `;
+
+    // Ensure password column exists if table was created previously
+    await sql`ALTER TABLE team_members ADD COLUMN IF NOT EXISTS password VARCHAR(255) DEFAULT '123456';`;
 
     // Seed default admin member Gabino if empty
     const teamCountRes = await sql`SELECT COUNT(*) as count FROM team_members`;
     const teamCount = parseInt(teamCountRes[0]?.count || '0', 10);
     if (teamCount === 0) {
       await sql`
-        INSERT INTO team_members (id, name, email, role, color)
-        VALUES ('gabino', 'Gabino', 'transformaccion720@gmail.com', 'Director Comercial', '#00a870')
+        INSERT INTO team_members (id, name, email, role, color, password)
+        VALUES ('gabino', 'Gabino', 'transformaccion720@gmail.com', 'Director Comercial', '#00a870', '123456')
         ON CONFLICT (id) DO NOTHING;
       `;
     }
@@ -60,7 +64,7 @@ export async function GET() {
       WHERE linkedin_url IS NOT NULL AND linkedin_url != '';
     `;
 
-    // 3. Table activity_logs for audit and real-time team notifications
+    // 3. Table activity_logs for audit
     await sql`
       CREATE TABLE IF NOT EXISTS activity_logs (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -89,7 +93,7 @@ export async function GET() {
       );
     `;
 
-    // 5. Table general user settings / preferences
+    // 5. Table settings
     await sql`
       CREATE TABLE IF NOT EXISTS settings (
         key VARCHAR(100) PRIMARY KEY,
@@ -123,7 +127,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      message: 'Base de datos Neon inicializada con activity_logs, team_members, contacts y templates.',
+      message: 'Base de datos Neon inicializada con soporte de contraseñas de usuario.',
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);

@@ -12,6 +12,7 @@ export interface TeamMember {
   email?: string | null;
   role: string;
   color: string;
+  password?: string | null;
   contact_count?: number;
   created_at?: string;
 }

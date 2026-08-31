@@ -1,13 +1,15 @@
 'use client';
 
 import React from 'react';
-import { Upload, CheckCircle2, RefreshCw, Users, Kanban, BarChart2, PieChart, Download, Sun, Moon, Settings, Menu, Filter, UserPlus, UserCog } from 'lucide-react';
+import { Upload, CheckCircle2, RefreshCw, Users, Kanban, BarChart2, PieChart, Download, Sun, Moon, Settings, Menu, Filter, UserPlus, UserCog, User } from 'lucide-react';
 import ActivityBell from '@/components/ActivityBell';
+import { TeamMember } from '@/lib/types';
 
 interface NavbarProps {
   onOpenImport: () => void;
   onOpenNewContact: () => void;
   onOpenTeamManager?: () => void;
+  onOpenProfile?: () => void;
   onRefresh: () => void;
   onExport: () => void;
   onOpenTemplateManager?: () => void;
@@ -15,12 +17,14 @@ interface NavbarProps {
   activeTab: 'contactos' | 'segmentos' | 'funnel' | 'analytics' | 'ejecutivo';
   setActiveTab: (tab: 'contactos' | 'segmentos' | 'funnel' | 'analytics' | 'ejecutivo') => void;
   totalContacts: number;
+  currentUser?: TeamMember | null;
 }
 
 export default function Navbar({
   onOpenImport,
   onOpenNewContact,
   onOpenTeamManager,
+  onOpenProfile,
   onRefresh,
   onExport,
   onOpenTemplateManager,
@@ -28,6 +32,7 @@ export default function Navbar({
   activeTab,
   setActiveTab,
   totalContacts,
+  currentUser,
 }: NavbarProps) {
   const [initStatus, setInitStatus] = React.useState<string | null>(null);
   const [theme, setTheme] = React.useState<'dark' | 'light'>('dark');
@@ -164,6 +169,25 @@ export default function Navbar({
             <span className="hidden sm:inline">Importar CSV</span>
             <span className="sm:hidden">Importar</span>
           </button>
+
+          {/* User Profile Avatar / Trigger */}
+          {currentUser && (
+            <button
+              onClick={onOpenProfile}
+              className="flex items-center gap-2 pl-1.5 pr-2 py-1 bg-theme-sur2 hover:bg-theme-sur3 border border-theme-bor hover:border-[#00a870]/40 rounded-xl transition-all cursor-pointer shrink-0 ml-1"
+              title="Mi Perfil y Cambiar Contraseña"
+            >
+              <div
+                className="w-6 h-6 rounded-lg flex items-center justify-center font-bold text-white text-[10px] shadow-xs"
+                style={{ backgroundColor: currentUser.color || '#00a870' }}
+              >
+                {currentUser.name.slice(0, 2).toUpperCase()}
+              </div>
+              <span className="text-xs font-bold text-theme-txt hidden xl:inline max-w-[90px] truncate">
+                {currentUser.name}
+              </span>
+            </button>
+          )}
         </div>
       </header>
 

@@ -16,9 +16,15 @@ import NewContactModal from '@/components/NewContactModal';
 import TeamManagerModal from '@/components/TeamManagerModal';
 import MessageTemplatesModal from '@/components/MessageTemplatesModal';
 import TemplateManagerModal from '@/components/TemplateManagerModal';
+import ProfileModal from '@/components/ProfileModal';
+import LoginScreen from '@/components/LoginScreen';
 import { Search, ShieldAlert, LayoutGrid, LayoutList, UserCheck } from 'lucide-react';
 
 export default function Home() {
+  // Authentication state
+  const [currentUser, setCurrentUser] = useState<TeamMember | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
@@ -60,6 +66,21 @@ export default function Home() {
   const [isNewContactOpen, setIsNewContactOpen] = useState(false);
   const [isTeamManagerOpen, setIsTeamManagerOpen] = useState(false);
   const [isTemplateManagerOpen, setIsTemplateManagerOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  // Check saved session in localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('crm_auth_user');
+      if (saved) {
+        setCurrentUser(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error('Error reading auth session:', e);
+    } finally {
+      setAuthChecked(true);
+    }
+  }, []);
 
   // Auto detect mobile device to switch default viewMode to 'grid'
   useEffect(() => {
@@ -67,6 +88,12 @@ export default function Home() {
       setViewMode('grid');
     }
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('crm_auth_user');
+    setCurrentUser(null);
+    setIsProfileOpen(false);
+  };
 
   // Fetch team members from Neon DB
   const fetchTeamMembers = useCallback(async () => {
@@ -103,9 +130,11 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    fetchTemplates();
-    fetchTeamMembers();
-  }, [fetchTemplates, fetchTeamMembers]);
+    if (currentUser) {
+      fetchTemplates();
+      fetchTeamMembers();
+    }
+  }, [currentUser, fetchTemplates, fetchTeamMembers]);
 
   const handleSaveTemplates = async (newTemplates: MessageTemplate[]) => {
     setTemplates(newTemplates);
@@ -199,9 +228,11 @@ export default function Home() {
   }, [search, statusFilter, viewFilter, yearFilter, companyFilter, positionFilter, tagFilter, priorityFilter, assignedToFilter]);
 
   useEffect(() => {
-    fetchContacts();
-    fetchStats();
-  }, [fetchContacts, fetchStats]);
+    if (currentUser) {
+      fetchContacts();
+      fetchStats();
+    }
+  }, [currentUser, fetchContacts, fetchStats]);
 
   const handleQuickStatusChange = async (id: string, newStatus: ContactStatus) => {
     setContacts((prev) =>
@@ -215,7 +246,7 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           status: newStatus,
-          performed_by: contactObj?.assigned_to || 'Comercial'
+          performed_by: currentUser?.name || contactObj?.assigned_to || 'Comercial'
         }),
       });
       if (res.ok) {
@@ -272,6 +303,19 @@ export default function Home() {
     URL.revokeObjectURL(url);
   };
 
+  // If not authenticated, display login screen
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen bg-[#0a0f18] flex items-center justify-center text-xs text-[#7d8fa8]">
+        <div className="w-3 h-3 rounded-full bg-[#00a870] animate-ping" />
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return <LoginScreen onLoginSuccess={setCurrentUser} />;
+  }
+
   return (
     <div className="flex flex-col h-screen bg-theme-bg text-theme-txt overflow-hidden">
       {/* Responsive Header */}
@@ -281,6 +325,7 @@ export default function Home() {
         onOpenImport={() => setIsImportOpen(true)}
         onOpenNewContact={() => setIsNewContactOpen(true)}
         onOpenTeamManager={() => setIsTeamManagerOpen(true)}
+        onOpenProfile={() => setIsProfileOpen(true)}
         onOpenTemplateManager={() => setIsTemplateManagerOpen(true)}
         onToggleMobileSidebar={() => setIsMobileSidebarOpen(true)}
         onRefresh={() => {
@@ -291,6 +336,7 @@ export default function Home() {
         }}
         onExport={handleExportCSV}
         totalContacts={stats?.total || 0}
+        currentUser={currentUser}
       />
 
       {/* Main workspace layout */}
@@ -329,7 +375,7 @@ export default function Home() {
 
           {activeTab === 'contactos' && (
             <>
-              {/* Toolbar - Full height workspace with StatsCards removed from here */}
+              {/* Toolbar */}
               <div className="px-3 sm:px-5 py-2.5 border-b border-theme-bor bg-theme-sur flex items-center gap-2 flex-wrap shrink-0">
                 <div className="relative flex-1 min-w-[140px] max-w-xs">
                   <Search className="w-3.5 h-3.5 text-theme-txt2 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -444,7 +490,7 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Table Body - Max space */}
+              {/* Table Body */}
               <div className="flex-1 flex flex-col min-h-0">
                 {loading ? (
                   <div className="flex-1 flex items-center justify-center text-xs text-theme-txt2">
@@ -490,7 +536,7 @@ export default function Home() {
         </main>
       </div>
 
-      {/* Detail Drawer with team members passed */}
+      {/* Detail Drawer */}
       <ContactDrawer
         contact={selectedContact}
         teamMembers={teamMembers}
@@ -510,6 +556,15 @@ export default function Home() {
           fetchStats();
           fetchTeamMembers();
         }}
+      />
+
+      {/* Profile & Security Modal */}
+      <ProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        currentUser={currentUser}
+        onUpdateUser={setCurrentUser}
+        onLogout={handleLogout}
       />
 
       {/* Message Templates Modal */}
