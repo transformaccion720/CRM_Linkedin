@@ -11,6 +11,8 @@ import FunnelView from '@/components/FunnelView';
 import WeeklyGoalsView from '@/components/WeeklyGoalsView';
 import AnalyticsView from '@/components/AnalyticsView';
 import ExecutiveDashboard from '@/components/ExecutiveDashboard';
+import MessagingInboxView from '@/components/MessagingInboxView';
+import ResourcesDirectoryView from '@/components/ResourcesDirectoryView';
 import ContactDrawer from '@/components/ContactDrawer';
 import CsvUploader from '@/components/CsvUploader';
 import NewContactModal from '@/components/NewContactModal';
@@ -46,7 +48,7 @@ export default function Home() {
   const [activeTemplateId, setActiveTemplateId] = useState<string>(DEFAULT_TEMPLATES[0].id);
 
   // Tabs & Views
-  const [activeTab, setActiveTab] = useState<'contactos' | 'segmentos' | 'funnel' | 'objetivos' | 'analytics' | 'ejecutivo'>('contactos');
+  const [activeTab, setActiveTab] = useState<'contactos' | 'segmentos' | 'funnel' | 'objetivos' | 'mensajeria' | 'recursos' | 'analytics' | 'ejecutivo'>('contactos');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
 
   // Filters
@@ -530,6 +532,21 @@ export default function Home() {
           )}
 
           {activeTab === 'objetivos' && <WeeklyGoalsView />}
+
+          {activeTab === 'mensajeria' && (
+            <MessagingInboxView
+              currentUser={currentUser}
+              teamMembers={teamMembers}
+              onOpenContactDrawer={(cId) => {
+                const found = contacts.find((c) => c.id === cId);
+                if (found) setSelectedContact(found);
+              }}
+            />
+          )}
+
+          {activeTab === 'recursos' && (
+            <ResourcesDirectoryView currentUser={currentUser} />
+          )}
 
           {activeTab === 'analytics' && <AnalyticsView stats={stats} />}
 

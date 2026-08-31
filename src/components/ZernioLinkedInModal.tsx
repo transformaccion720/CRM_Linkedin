@@ -77,6 +77,31 @@ export default function ZernioLinkedInModal({
     setCopied(false);
   };
 
+  const saveMessageToInbox = async (textToSend: string) => {
+    if (!contact || !textToSend.trim()) return;
+    try {
+      const currentT = templates.find((t) => t.id === selectedTemplateId);
+      await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contact_id: contact.id,
+          contact_name: `${contact.first_name} ${contact.last_name || ''}`.trim(),
+          contact_company: contact.company || null,
+          contact_position: contact.position || null,
+          contact_linkedin_url: contact.linkedin_url || null,
+          sender_name: activeMemberName,
+          direction: 'OUTBOUND',
+          channel: 'LINKEDIN',
+          message_text: textToSend.trim(),
+          template_name: currentT?.name || 'Mensaje Personalizado',
+        }),
+      });
+    } catch (e) {
+      console.error('Error auto-saving message to inbox:', e);
+    }
+  };
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(customMessage);
@@ -84,6 +109,7 @@ export default function ZernioLinkedInModal({
       if (autoMark && onMarkContacted) {
         onMarkContacted(contact.id);
       }
+      saveMessageToInbox(customMessage);
       setTimeout(() => setCopied(false), 2500);
     } catch (e) {
       console.error('Error copying text:', e);

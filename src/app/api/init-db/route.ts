@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
-import { DEFAULT_TEMPLATES } from '@/lib/templates';
 
 export async function GET() {
   try {
@@ -66,10 +65,48 @@ export async function GET() {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       );
     `;
-
     await sql`CREATE INDEX IF NOT EXISTS idx_activities_created_at ON activity_logs(created_at DESC);`;
 
-    // 4. Table message templates
+    // 4. Table contact_messages (Bandeja de Entrada & Hilos de Conversación)
+    await sql`
+      CREATE TABLE IF NOT EXISTS contact_messages (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        contact_id UUID REFERENCES contacts(id) ON DELETE CASCADE,
+        contact_name VARCHAR(255) NOT NULL,
+        contact_company VARCHAR(255),
+        contact_position VARCHAR(255),
+        contact_linkedin_url TEXT,
+        sender_name VARCHAR(120) NOT NULL,
+        direction VARCHAR(20) DEFAULT 'OUTBOUND',
+        channel VARCHAR(30) DEFAULT 'LINKEDIN',
+        message_text TEXT NOT NULL,
+        template_name VARCHAR(255),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `;
+    await sql`CREATE INDEX IF NOT EXISTS idx_contact_messages_contact_id ON contact_messages(contact_id);`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_contact_messages_sender ON contact_messages(sender_name);`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_contact_messages_created_at ON contact_messages(created_at DESC);`;
+
+    // 5. Table commercial_resources (Directorio de Archivos, PDFs, Videos, Flyers)
+    await sql`
+      CREATE TABLE IF NOT EXISTS commercial_resources (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        category VARCHAR(50) NOT NULL,
+        file_url TEXT,
+        file_name VARCHAR(255),
+        file_size VARCHAR(50),
+        external_link TEXT,
+        created_by VARCHAR(120) DEFAULT 'Gabino',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `;
+    await sql`CREATE INDEX IF NOT EXISTS idx_commercial_resources_category ON commercial_resources(category);`;
+
+    // 6. Table message templates
     await sql`
       CREATE TABLE IF NOT EXISTS templates (
         id VARCHAR(80) PRIMARY KEY,
@@ -83,7 +120,7 @@ export async function GET() {
       );
     `;
 
-    // 5. Table settings
+    // 7. Table settings
     await sql`
       CREATE TABLE IF NOT EXISTS settings (
         key VARCHAR(100) PRIMARY KEY,
@@ -91,6 +128,18 @@ export async function GET() {
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       );
     `;
+
+    // Seed default commercial resources if empty
+    const resCount = await sql`SELECT COUNT(*) as count FROM commercial_resources;`;
+    if (parseInt(resCount[0]?.count || '0', 10) === 0) {
+      await sql`
+        INSERT INTO commercial_resources (title, description, category, external_link, created_by)
+        VALUES 
+          ('Brochure Corporativo: Gestión de Proyectos Ágiles 2026', 'Temario oficial, certificaciones Scrum Master & PM Essentials y beneficios del programa.', 'BROCHURE', 'https://transformaccion720.com/brochure-agil.pdf', 'Gabino'),
+          ('Video Demo: TransformAccion 720° para Empresas', 'Explicación de 2 minutos sobre cómo escalamos la productividad y cultura ágil.', 'VIDEO', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'Gabino'),
+          ('Flyer: Entrenamiento In-Company para Equipos', 'Resumen gráfico de módulos y modalidades presencial/online.', 'FLYER', 'https://transformaccion720.com/flyer-incompany.png', 'Gabino');
+      `;
+    }
 
     // Indexes
     await sql`CREATE INDEX IF NOT EXISTS idx_contacts_status ON contacts(status);`;
@@ -104,7 +153,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      message: 'Base de datos Neon inicializada con soporte de país y optimizaciones.',
+      message: 'Base de datos Neon inicializada con tablas de mensajes y directorio de recursos.',
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);

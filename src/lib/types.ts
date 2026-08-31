@@ -27,6 +27,35 @@ export interface ActivityLog {
   created_at: string;
 }
 
+export interface ContactMessage {
+  id: string;
+  contact_id: string;
+  contact_name: string;
+  contact_company?: string | null;
+  contact_position?: string | null;
+  contact_linkedin_url?: string | null;
+  sender_name: string;
+  direction: 'OUTBOUND' | 'INBOUND'; // OUTBOUND = Enviado por comercial, INBOUND = Respuesta del prospecto
+  channel: 'LINKEDIN' | 'WHATSAPP' | 'EMAIL';
+  message_text: string;
+  template_name?: string | null;
+  created_at: string;
+}
+
+export interface CommercialResource {
+  id: string;
+  title: string;
+  description?: string | null;
+  category: 'BROCHURE' | 'VIDEO' | 'FLYER' | 'PROPOSAL' | 'LINK';
+  file_url?: string | null; // URL en base64 o link externo (Drive/YouTube/Loom)
+  file_name?: string | null;
+  file_size?: string | null;
+  external_link?: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at?: string;
+}
+
 export interface Contact {
   id: string;
   first_name: string;
@@ -44,7 +73,9 @@ export interface Contact {
   follow_up_date?: string | null;
   tags?: string[];
   assigned_to?: string | null;
-  shared_with?: string[]; // Array of other team members who have this same contact
+  shared_with?: string[];
+  last_interaction_date?: string | null;
+  last_message_preview?: string | null;
   created_at?: string;
   updated_at?: string;
 }
