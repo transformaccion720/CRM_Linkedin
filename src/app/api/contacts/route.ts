@@ -76,43 +76,48 @@ export async function GET(req: NextRequest) {
       LIMIT 3500;
     `;
 
-    // Distinct years
+    // Dynamic contextual filter options based on assignedTo (respects current team member base)
+    // 1. Distinct years for this base
     const yearsResult = await sql`
       SELECT DISTINCT TO_CHAR(connected_on, 'YYYY') as yr 
       FROM contacts 
       WHERE connected_on IS NOT NULL 
-      ORDER BY yr DESC
+        AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo})
+      ORDER BY yr DESC;
     `;
     const years = yearsResult.map((r) => r.yr).filter(Boolean);
 
-    // Top companies
+    // 2. Top companies for this base
     const companiesResult = await sql`
       SELECT company, COUNT(*) as count 
       FROM contacts 
       WHERE company IS NOT NULL AND company != '' 
+        AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo})
       GROUP BY company 
       ORDER BY count DESC 
-      LIMIT 60
+      LIMIT 80;
     `;
     const topCompanies = companiesResult.map((r) => r.company);
 
-    // Top positions
+    // 3. Top positions (cargos) for this base
     const positionsResult = await sql`
       SELECT position, COUNT(*) as count 
       FROM contacts 
       WHERE position IS NOT NULL AND position != '' 
+        AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo})
       GROUP BY position 
       ORDER BY count DESC 
-      LIMIT 60
+      LIMIT 80;
     `;
     const topPositions = positionsResult.map((r) => r.position);
 
-    // Distinct tags
+    // 4. Distinct tags for this base
     const tagsResult = await sql`
       SELECT DISTINCT UNNEST(tags) as tag 
       FROM contacts 
       WHERE tags IS NOT NULL AND array_length(tags, 1) > 0
-      ORDER BY tag ASC
+        AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo})
+      ORDER BY tag ASC;
     `;
     const distinctTags = tagsResult.map((r) => r.tag).filter(Boolean);
 
