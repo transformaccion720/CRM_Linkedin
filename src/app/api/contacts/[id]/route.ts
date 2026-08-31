@@ -20,8 +20,13 @@ export async function PATCH(
       position,
       email,
       phone, 
-      assigned_to 
+      assigned_to,
+      performed_by 
     } = body;
+
+    // Get current state before update for audit log
+    const prevRows = await sql`SELECT first_name, last_name, status, email, phone, company, position, assigned_to FROM contacts WHERE id = ${id} LIMIT 1`;
+    const prev = prevRows[0];
 
     const result = await sql`
       UPDATE contacts
@@ -45,6 +50,42 @@ export async function PATCH(
 
     if (result.length === 0) {
       return NextResponse.json({ error: 'Contacto no encontrado' }, { status: 404 });
+    }
+
+    const updated = result[0];
+    const contactFullName = `${updated.first_name} ${updated.last_name || ''}`.trim();
+    const actor = performed_by || updated.assigned_to || 'Comercial';
+
+    // Automatic Audit Logging
+    try {
+      if (status && prev && prev.status !== status) {
+        await sql`
+          INSERT INTO activity_logs (contact_id, contact_name, action_type, description, performed_by)
+          VALUES (${id}, ${contactFullName}, 'STATUS_CHANGE', ${'Cambió estado de "' + prev.status + '" a "' + status + '"'}, ${actor});
+        `;
+      } else if (phone && prev && prev.phone !== phone) {
+        await sql`
+          INSERT INTO activity_logs (contact_id, contact_name, action_type, description, performed_by)
+          VALUES (${id}, ${contactFullName}, 'PHONE_ADDED', ${'Añadió/actualizó teléfono: ' + phone}, ${actor});
+        `;
+      } else if (email && prev && prev.email !== email) {
+        await sql`
+          INSERT INTO activity_logs (contact_id, contact_name, action_type, description, performed_by)
+          VALUES (${id}, ${contactFullName}, 'EMAIL_ADDED', ${'Añadió/actualizó email: ' + email}, ${actor});
+        `;
+      } else if (position && prev && prev.position !== position) {
+        await sql`
+          INSERT INTO activity_logs (contact_id, contact_name, action_type, description, performed_by)
+          VALUES (${id}, ${contactFullName}, 'DATA_UPDATE', ${'Actualizó cargo a: ' + position}, ${actor});
+        `;
+      } else if (notes && prev && prev.notes !== notes) {
+        await sql`
+          INSERT INTO activity_logs (contact_id, contact_name, action_type, description, performed_by)
+          VALUES (${id}, ${contactFullName}, 'NOTE_ADDED', ${'Registró nuevos acuerdos/notas de conversación'}, ${actor});
+        `;
+      }
+    } catch (auditErr) {
+      console.error('Audit log insert failed:', auditErr);
     }
 
     return NextResponse.json({ contact: result[0] });

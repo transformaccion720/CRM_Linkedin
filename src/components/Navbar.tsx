@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Upload, CheckCircle2, RefreshCw, Users, Kanban, BarChart2, PieChart, Download, Sun, Moon, Settings, Menu, Filter, UserPlus, UserCog } from 'lucide-react';
+import ActivityBell from '@/components/ActivityBell';
 
 interface NavbarProps {
   onOpenImport: () => void;
@@ -80,6 +81,9 @@ export default function Navbar({
               <span>{initStatus}</span>
             </div>
           )}
+
+          {/* Activity Notifications Bell */}
+          <ActivityBell onRefreshTrigger={onRefresh} />
 
           {/* Manage Team Members button */}
           {onOpenTeamManager && (

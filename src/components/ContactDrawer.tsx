@@ -61,11 +61,12 @@ export default function ContactDrawer({
       setNotes(contact.notes || '');
       setPriority(contact.priority || 1);
       setFollowUpDate(contact.follow_up_date || '');
-      setAssignedTo(contact.assigned_to || 'Gabino');
+      // Recognize the exact assigned_to from the contact record
+      setAssignedTo(contact.assigned_to || (teamMembers[0]?.name) || 'Gabino');
       setTags(contact.tags || []);
       setSaveSuccess(false);
     }
-  }, [contact]);
+  }, [contact, teamMembers]);
 
   if (!isOpen || !contact) return null;
 
@@ -86,7 +87,8 @@ export default function ContactDrawer({
           notes,
           priority,
           follow_up_date: followUpDate || null,
-          assigned_to: assignedTo.trim() || 'Gabino',
+          assigned_to: assignedTo.trim() || contact.assigned_to || 'Gabino',
+          performed_by: assignedTo.trim() || 'Comercial',
           tags,
         }),
       });
@@ -207,8 +209,9 @@ export default function ContactDrawer({
               <select
                 value={assignedTo}
                 onChange={(e) => setAssignedTo(e.target.value)}
-                className="w-full bg-theme-sur border border-theme-bor rounded-md px-2 py-1 text-xs text-theme-txt outline-hidden cursor-pointer"
+                className="w-full bg-theme-sur border border-theme-bor rounded-md px-2 py-1 text-xs text-theme-txt font-semibold outline-hidden cursor-pointer"
               >
+                {/* Dynamically show members and preserve the current contact assignment */}
                 {teamMembers.length > 0 ? (
                   teamMembers.map((m) => (
                     <option key={m.id} value={m.name}>
@@ -216,7 +219,11 @@ export default function ContactDrawer({
                     </option>
                   ))
                 ) : (
-                  <option value="Gabino">Gabino</option>
+                  <option value={assignedTo}>{assignedTo}</option>
+                )}
+                {/* Fallback if contact has a custom assigned name not in team list yet */}
+                {teamMembers.length > 0 && !teamMembers.some((m) => m.name === assignedTo) && (
+                  <option value={assignedTo}>{assignedTo}</option>
                 )}
               </select>
             </div>

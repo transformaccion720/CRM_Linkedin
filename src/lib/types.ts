@@ -16,6 +16,16 @@ export interface TeamMember {
   created_at?: string;
 }
 
+export interface ActivityLog {
+  id: string;
+  contact_id?: string | null;
+  contact_name: string;
+  action_type: 'STATUS_CHANGE' | 'DATA_UPDATE' | 'PHONE_ADDED' | 'EMAIL_ADDED' | 'NOTE_ADDED';
+  description: string;
+  performed_by: string;
+  created_at: string;
+}
+
 export interface Contact {
   id: string;
   first_name: string;
@@ -37,6 +47,17 @@ export interface Contact {
   updated_at?: string;
 }
 
+export interface MemberStats {
+  member_name: string;
+  total: number;
+  withEmail: number;
+  withPhone: number;
+  inContact: number;
+  opportunity: number;
+  client: number;
+  paused: number;
+}
+
 export interface ContactStats {
   total: number;
   withEmail: number;
@@ -50,4 +71,5 @@ export interface ContactStats {
   byYear?: { yr: string; count: string }[];
   topPositions?: { position: string; count: string }[];
   recentContacts?: { id: string; first_name: string; last_name: string; connected_on: string }[];
+  byMember?: MemberStats[];
 }

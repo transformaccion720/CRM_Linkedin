@@ -5,7 +5,6 @@ import { Contact, ContactStatus, TeamMember } from '@/lib/types';
 import { MessageTemplate, DEFAULT_TEMPLATES } from '@/lib/templates';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
-import StatsCards from '@/components/StatsCards';
 import ContactTable from '@/components/ContactTable';
 import PipelineView from '@/components/PipelineView';
 import FunnelView from '@/components/FunnelView';
@@ -210,10 +209,14 @@ export default function Home() {
     );
 
     try {
+      const contactObj = contacts.find((c) => c.id === id);
       const res = await fetch(`/api/contacts/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ 
+          status: newStatus,
+          performed_by: contactObj?.assigned_to || 'Comercial'
+        }),
       });
       if (res.ok) {
         fetchStats();
@@ -292,7 +295,7 @@ export default function Home() {
 
       {/* Main workspace layout */}
       <div className="flex flex-1 overflow-hidden min-h-0">
-        {/* Clean Responsive Sidebar */}
+        {/* Responsive Sidebar */}
         <Sidebar
           viewFilter={viewFilter}
           setViewFilter={setViewFilter}
@@ -326,10 +329,7 @@ export default function Home() {
 
           {activeTab === 'contactos' && (
             <>
-              {/* Stat Strip */}
-              <StatsCards stats={stats} showingCount={contacts.length} />
-
-              {/* Toolbar */}
+              {/* Toolbar - Full height workspace with StatsCards removed from here */}
               <div className="px-3 sm:px-5 py-2.5 border-b border-theme-bor bg-theme-sur flex items-center gap-2 flex-wrap shrink-0">
                 <div className="relative flex-1 min-w-[140px] max-w-xs">
                   <Search className="w-3.5 h-3.5 text-theme-txt2 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -444,7 +444,7 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Table Body */}
+              {/* Table Body - Max space */}
               <div className="flex-1 flex flex-col min-h-0">
                 {loading ? (
                   <div className="flex-1 flex items-center justify-center text-xs text-theme-txt2">
@@ -490,9 +490,10 @@ export default function Home() {
         </main>
       </div>
 
-      {/* Detail Drawer */}
+      {/* Detail Drawer with team members passed */}
       <ContactDrawer
         contact={selectedContact}
+        teamMembers={teamMembers}
         isOpen={Boolean(selectedContact)}
         onClose={() => setSelectedContact(null)}
         onOpenTemplates={(c) => {
