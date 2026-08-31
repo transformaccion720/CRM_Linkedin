@@ -393,22 +393,32 @@ export default function ContactDrawer({
               />
             </div>
 
-            <div className="flex items-center gap-1.5 pt-1">
+            <div className="flex items-center gap-1.5 pt-1 flex-wrap">
               <button
+                type="button"
                 onClick={() => setQuickFollowUp(0)}
-                className="px-2 py-1 rounded bg-theme-sur border border-theme-bor hover:border-[#00a870] text-[10px] text-theme-txt2 hover:text-theme-txt"
+                className="px-2 py-1 rounded bg-theme-sur border border-theme-bor hover:border-[#00a870] text-[10px] text-theme-txt2 hover:text-theme-txt cursor-pointer"
               >
                 Hoy
               </button>
               <button
+                type="button"
+                onClick={() => setQuickFollowUp(1)}
+                className="px-2 py-1 rounded bg-theme-sur border border-theme-bor hover:border-[#00a870] text-[10px] font-semibold text-[#00a870] hover:text-[#00a870] cursor-pointer"
+              >
+                +1 día
+              </button>
+              <button
+                type="button"
                 onClick={() => setQuickFollowUp(3)}
-                className="px-2 py-1 rounded bg-theme-sur border border-theme-bor hover:border-[#00a870] text-[10px] text-theme-txt2 hover:text-theme-txt"
+                className="px-2 py-1 rounded bg-theme-sur border border-theme-bor hover:border-[#00a870] text-[10px] text-theme-txt2 hover:text-theme-txt cursor-pointer"
               >
                 +3 días
               </button>
               <button
+                type="button"
                 onClick={() => setQuickFollowUp(7)}
-                className="px-2 py-1 rounded bg-theme-sur border border-theme-bor hover:border-[#00a870] text-[10px] text-theme-txt2 hover:text-theme-txt"
+                className="px-2 py-1 rounded bg-theme-sur border border-theme-bor hover:border-[#00a870] text-[10px] text-theme-txt2 hover:text-theme-txt cursor-pointer"
               >
                 +1 semana
               </button>
