@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Contact, ContactStatus, TeamMember } from '@/lib/types';
 import { MessageTemplate, DEFAULT_TEMPLATES } from '@/lib/templates';
 import Navbar from '@/components/Navbar';
@@ -235,29 +235,26 @@ export default function Home() {
     }
   }, [currentUser, fetchContacts, fetchStats]);
 
-  const handleQuickStatusChange = async (id: string, newStatus: ContactStatus) => {
+  const handleQuickStatusChange = useCallback(async (id: string, newStatus: ContactStatus) => {
     setContacts((prev) =>
       prev.map((c) => (c.id === id ? { ...c, status: newStatus } : c))
     );
 
     try {
-      const contactObj = contacts.find((c) => c.id === id);
-      const res = await fetch(`/api/contacts/${id}`, {
+      await fetch(`/api/contacts/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           status: newStatus,
-          performed_by: currentUser?.name || contactObj?.assigned_to || 'Comercial'
+          performed_by: currentUser?.name || 'Comercial'
         }),
       });
-      if (res.ok) {
-        fetchStats();
-      }
+      fetchStats();
     } catch (e) {
       console.error('Error actualizando estado:', e);
       fetchContacts();
     }
-  };
+  }, [currentUser?.name, fetchContacts, fetchStats]);
 
   const handleClearFilters = () => {
     setSearch('');
@@ -273,7 +270,7 @@ export default function Home() {
 
   const handleExportCSV = () => {
     if (!contacts.length) return;
-    const header = ['Nombre', 'Apellido', 'URL', 'Email', 'Teléfono', 'Empresa', 'Cargo', 'Fecha Conexión', 'Estado', 'Prioridad', 'Próximo Seguimiento', 'Responsable', 'Etiquetas', 'Notas'];
+    const header = ['Nombre', 'Apellido', 'URL', 'Email', 'Teléfono', 'Empresa', 'Cargo', 'País', 'Fecha Conexión', 'Estado', 'Prioridad', 'Próximo Seguimiento', 'Responsable', 'Etiquetas', 'Notas'];
     const rows = contacts.map((c) => [
       c.first_name,
       c.last_name || '',
@@ -282,6 +279,7 @@ export default function Home() {
       c.phone || '',
       c.company || '',
       c.position || '',
+      c.country || 'Perú',
       c.connected_on || '',
       c.status || '',
       c.priority || 1,
@@ -550,14 +548,14 @@ export default function Home() {
           setTemplateContact(c);
         }}
         onUpdate={(updated) => {
+          setSelectedContact(updated);
           setContacts((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
           fetchStats();
-          fetchTeamMembers();
         }}
         onDelete={(deletedId) => {
+          setSelectedContact(null);
           setContacts((prev) => prev.filter((c) => c.id !== deletedId));
           fetchStats();
-          fetchTeamMembers();
         }}
       />
 
@@ -611,7 +609,6 @@ export default function Home() {
         onSuccess={(newContact) => {
           setContacts((prev) => [newContact, ...prev]);
           fetchStats();
-          fetchTeamMembers();
         }}
       />
 

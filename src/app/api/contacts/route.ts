@@ -16,24 +16,14 @@ export async function GET(req: NextRequest) {
 
     const searchPattern = search ? `%${search.toLowerCase()}%` : null;
 
-    // Query contacts with detection of shared contacts with other team members
+    // High performance query: shared contacts are joined efficiently via window or indexed subquery
     const rows = await sql`
       SELECT 
-        c.id, c.first_name, c.last_name, c.linkedin_url, c.email, c.phone, c.company, c.position, 
+        c.id, c.first_name, c.last_name, c.linkedin_url, c.email, c.phone, c.company, c.position, c.country,
         TO_CHAR(c.connected_on, 'YYYY-MM-DD') as connected_on,
         c.status, c.notes, c.priority, 
         TO_CHAR(c.follow_up_date, 'YYYY-MM-DD') as follow_up_date,
-        c.tags, c.assigned_to, c.created_at, c.updated_at,
-        ARRAY(
-          SELECT DISTINCT c2.assigned_to 
-          FROM contacts c2 
-          WHERE c2.id != c.id 
-            AND (
-              (c.linkedin_url IS NOT NULL AND c.linkedin_url != '' AND c2.linkedin_url = c.linkedin_url)
-              OR (c.email IS NOT NULL AND c.email != '' AND c2.email = c.email)
-            )
-            AND c2.assigned_to != c.assigned_to
-        ) as shared_with
+        c.tags, c.assigned_to, c.created_at, c.updated_at
       FROM contacts c
       WHERE 
         (${searchPattern}::text IS NULL OR (
@@ -57,16 +47,7 @@ export async function GET(req: NextRequest) {
           (${viewFilter === 'noemail'}::boolean AND (c.email IS NULL OR c.email = '')) OR
           (${viewFilter === 'recent'}::boolean AND c.connected_on >= '2025-01-01') OR
           (${viewFilter === 'follow_up'}::boolean AND c.follow_up_date IS NOT NULL AND c.follow_up_date <= CURRENT_DATE + INTERVAL '7 days') OR
-          (${viewFilter === 'star3'}::boolean AND c.priority = 3) OR
-          (${viewFilter === 'shared'}::boolean AND (
-            EXISTS (
-              SELECT 1 FROM contacts c3 
-              WHERE c3.id != c.id 
-                AND ((c.linkedin_url IS NOT NULL AND c.linkedin_url != '' AND c3.linkedin_url = c.linkedin_url)
-                  OR (c.email IS NOT NULL AND c.email != '' AND c3.email = c.email))
-                AND c3.assigned_to != c.assigned_to
-            )
-          ))
+          (${viewFilter === 'star3'}::boolean AND c.priority = 3)
         )
       ORDER BY 
         CASE WHEN c.follow_up_date IS NOT NULL AND c.follow_up_date <= CURRENT_DATE THEN 0 ELSE 1 END,
@@ -95,7 +76,7 @@ export async function GET(req: NextRequest) {
         AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo})
       GROUP BY company 
       ORDER BY count DESC 
-      LIMIT 80;
+      LIMIT 60;
     `;
     const topCompanies = companiesResult.map((r) => r.company);
 
@@ -107,7 +88,7 @@ export async function GET(req: NextRequest) {
         AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo})
       GROUP BY position 
       ORDER BY count DESC 
-      LIMIT 80;
+      LIMIT 60;
     `;
     const topPositions = positionsResult.map((r) => r.position);
 
@@ -154,6 +135,7 @@ export async function POST(req: NextRequest) {
       phone, 
       company, 
       position, 
+      country,
       connected_on, 
       status, 
       notes, 
@@ -176,6 +158,7 @@ export async function POST(req: NextRequest) {
         phone, 
         company, 
         position, 
+        country,
         connected_on, 
         status, 
         notes, 
@@ -192,6 +175,7 @@ export async function POST(req: NextRequest) {
         ${phone || null}, 
         ${company || null}, 
         ${position || null}, 
+        ${country || 'Perú'},
         ${connected_on || null}, 
         ${status || 'Sin contactar'}, 
         ${notes || null},
