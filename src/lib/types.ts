@@ -67,6 +67,14 @@ export interface WeeklyGoal {
   clients: number;
 }
 
+export interface DailyGoalProgress {
+  contacted_today: number;
+  contacted_daily_goal: number;
+  phones_today: number;
+  opportunities_today: number;
+  today_pct: number;
+}
+
 export interface WeeklySprintProgress {
   member_name: string;
   color: string;
@@ -79,6 +87,7 @@ export interface WeeklySprintProgress {
   clients_actual: number;
   clients_goal: number;
   overall_pct: number;
+  daily_progress: DailyGoalProgress;
 }
 
 export interface WeeklySprintData {
@@ -86,6 +95,7 @@ export interface WeeklySprintData {
   start_date: string;
   end_date: string;
   goals: WeeklyGoal;
+  daily_goal_target: number;
   global_totals: {
     contacted_actual: number;
     contacted_goal: number;
@@ -96,6 +106,9 @@ export interface WeeklySprintData {
     clients_actual: number;
     clients_goal: number;
     overall_pct: number;
+    contacted_today_total: number;
+    contacted_daily_goal_total: number;
+    today_pct_total: number;
   };
   members_progress: WeeklySprintProgress[];
 }

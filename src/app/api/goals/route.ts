@@ -22,6 +22,9 @@ export async function GET(req: NextRequest) {
       goals = { ...DEFAULT_GOALS, ...settingsRows[0].value };
     }
 
+    // Daily target: ~1/5 of weekly target (assuming 5 business days per week)
+    const dailyContactTarget = Math.max(1, Math.round(goals.contacted / 5));
+
     // 2. Fetch team members
     const members = await sql`
       SELECT id, name, role, color FROM team_members ORDER BY name ASC;
@@ -34,38 +37,55 @@ export async function GET(req: NextRequest) {
         TO_CHAR(DATE_TRUNC('week', CURRENT_DATE + (${weekOffset} * INTERVAL '7 days')) + INTERVAL '6 days', 'YYYY-MM-DD') as end_date,
         TO_CHAR(DATE_TRUNC('week', CURRENT_DATE + (${weekOffset} * INTERVAL '7 days')), 'DD Mon') as start_label,
         TO_CHAR(DATE_TRUNC('week', CURRENT_DATE + (${weekOffset} * INTERVAL '7 days')) + INTERVAL '6 days', 'DD Mon YYYY') as end_label,
-        EXTRACT(WEEK FROM CURRENT_DATE + (${weekOffset} * INTERVAL '7 days')) as week_num;
+        EXTRACT(WEEK FROM CURRENT_DATE + (${weekOffset} * INTERVAL '7 days')) as week_num,
+        TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') as today_date;
     `;
     const dateRange = dateRangeRows[0];
     const startDate = dateRange.start_date;
     const endDate = dateRange.end_date;
+    const todayDate = dateRange.today_date;
     const weekLabel = `Semana ${Math.round(dateRange.week_num)} (${dateRange.start_label} - ${dateRange.end_label})`;
 
-    // 4. Compute actual activities per member in that week range from activity_logs + updated contacts
+    // 4. Compute actual activities per member:
+    // Contacted means ANY lead touched this week (whether currently in 'En contacto', 'En pausa', 'Oportunidad', etc.)
     const memberProgressList = [];
     let globalContacted = 0;
     let globalPhones = 0;
     let globalOpportunities = 0;
     let globalClients = 0;
+    let globalTodayContacted = 0;
 
     for (const m of members) {
-      // Activity queries for this member in this week
+      // Activity queries for this member in this week:
+      // A contact is counted as CONTACTED if there is an activity log of outreach, status change, notes or if lead is currently active
       const acts = await sql`
         SELECT 
-          COUNT(CASE WHEN action_type = 'STATUS_CHANGE' AND description LIKE '%En contacto%' THEN 1 END)::int as contacted_count,
+          COUNT(DISTINCT contact_id)::int as distinct_contacts_touched,
           COUNT(CASE WHEN action_type = 'PHONE_ADDED' THEN 1 END)::int as phone_count,
-          COUNT(CASE WHEN action_type = 'STATUS_CHANGE' AND description LIKE '%Oportunidad%' THEN 1 END)::int as opportunity_count,
-          COUNT(CASE WHEN action_type = 'STATUS_CHANGE' AND description LIKE '%Cliente%' THEN 1 END)::int as client_count
+          COUNT(CASE WHEN action_type = 'OPPORTUNITY_CREATED' OR (action_type = 'STATUS_CHANGE' AND description LIKE '%Oportunidad%') THEN 1 END)::int as opportunity_count,
+          COUNT(CASE WHEN action_type = 'CLIENT_WON' OR (action_type = 'STATUS_CHANGE' AND description LIKE '%Cliente%') THEN 1 END)::int as client_count
         FROM activity_logs
         WHERE (performed_by = ${m.name} OR performed_by = ${m.id})
           AND created_at::date >= ${startDate}::date
           AND created_at::date <= (${endDate}::date + INTERVAL '1 day');
       `;
 
-      // Fallback: Check current contact statuses updated recently if activity_logs is new
+      // Today's activities for this member (Daily rhythm)
+      const todayActs = await sql`
+        SELECT 
+          COUNT(DISTINCT contact_id)::int as today_contacts_touched,
+          COUNT(CASE WHEN action_type = 'PHONE_ADDED' THEN 1 END)::int as today_phones,
+          COUNT(CASE WHEN action_type = 'OPPORTUNITY_CREATED' OR (action_type = 'STATUS_CHANGE' AND description LIKE '%Oportunidad%') THEN 1 END)::int as today_opportunities
+        FROM activity_logs
+        WHERE (performed_by = ${m.name} OR performed_by = ${m.id})
+          AND created_at::date = ${todayDate}::date;
+      `;
+
+      // Fallback: Check current contact statuses for this member updated recently
       const contactFallback = await sql`
         SELECT 
-          COUNT(CASE WHEN status = 'En contacto' THEN 1 END)::int as curr_in_contact,
+          COUNT(CASE WHEN status != 'Sin contactar' THEN 1 END)::int as active_contacts,
+          COUNT(CASE WHEN status = 'En contacto' THEN 1 END)::int as in_contact_count,
           COUNT(CASE WHEN phone IS NOT NULL AND phone != '' THEN 1 END)::int as curr_phones,
           COUNT(CASE WHEN status = 'Oportunidad' THEN 1 END)::int as curr_opportunities,
           COUNT(CASE WHEN status = 'Cliente' THEN 1 END)::int as curr_clients
@@ -75,15 +95,21 @@ export async function GET(req: NextRequest) {
           AND updated_at::date <= (${endDate}::date + INTERVAL '1 day');
       `;
 
-      const cAct = Math.max(acts[0]?.contacted_count || 0, contactFallback[0]?.curr_in_contact || 0);
+      // Contacted actual: maximum of distinct logs or active contacts touched in period
+      const cAct = Math.max(acts[0]?.distinct_contacts_touched || 0, contactFallback[0]?.active_contacts || 0);
       const pAct = Math.max(acts[0]?.phone_count || 0, contactFallback[0]?.curr_phones || 0);
       const oAct = Math.max(acts[0]?.opportunity_count || 0, contactFallback[0]?.curr_opportunities || 0);
       const clAct = Math.max(acts[0]?.client_count || 0, contactFallback[0]?.curr_clients || 0);
+
+      const todayContacted = todayActs[0]?.today_contacts_touched || 0;
+      const todayPhones = todayActs[0]?.today_phones || 0;
+      const todayOpportunities = todayActs[0]?.today_opportunities || 0;
 
       globalContacted += cAct;
       globalPhones += pAct;
       globalOpportunities += oAct;
       globalClients += clAct;
+      globalTodayContacted += todayContacted;
 
       const cPct = Math.min(100, Math.round((cAct / Math.max(goals.contacted, 1)) * 100));
       const pPct = Math.min(100, Math.round((pAct / Math.max(goals.phones, 1)) * 100));
@@ -91,6 +117,7 @@ export async function GET(req: NextRequest) {
       const clPct = Math.min(100, Math.round((clAct / Math.max(goals.clients, 1)) * 100));
 
       const overall = Math.round((cPct * 0.35) + (pPct * 0.25) + (oPct * 0.25) + (clPct * 0.15));
+      const todayPct = Math.min(100, Math.round((todayContacted / Math.max(dailyContactTarget, 1)) * 100));
 
       memberProgressList.push({
         member_name: m.name,
@@ -104,6 +131,13 @@ export async function GET(req: NextRequest) {
         clients_actual: clAct,
         clients_goal: goals.clients,
         overall_pct: overall,
+        daily_progress: {
+          contacted_today: todayContacted,
+          contacted_daily_goal: dailyContactTarget,
+          phones_today: todayPhones,
+          opportunities_today: todayOpportunities,
+          today_pct: todayPct,
+        },
       });
     }
 
@@ -112,12 +146,14 @@ export async function GET(req: NextRequest) {
     const globalGoalPhones = goals.phones * teamSize;
     const globalGoalOpportunities = goals.opportunities * teamSize;
     const globalGoalClients = goals.clients * teamSize;
+    const globalDailyGoal = dailyContactTarget * teamSize;
 
     const gCPct = Math.min(100, Math.round((globalContacted / Math.max(globalGoalContacted, 1)) * 100));
     const gPPct = Math.min(100, Math.round((globalPhones / Math.max(globalGoalPhones, 1)) * 100));
     const gOPct = Math.min(100, Math.round((globalOpportunities / Math.max(globalGoalOpportunities, 1)) * 100));
     const gClPct = Math.min(100, Math.round((globalClients / Math.max(globalGoalClients, 1)) * 100));
     const globalOverall = Math.round((gCPct * 0.35) + (gPPct * 0.25) + (gOPct * 0.25) + (gClPct * 0.15));
+    const globalTodayPct = Math.min(100, Math.round((globalTodayContacted / Math.max(globalDailyGoal, 1)) * 100));
 
     return NextResponse.json({
       sprint: {
@@ -125,6 +161,7 @@ export async function GET(req: NextRequest) {
         start_date: startDate,
         end_date: endDate,
         goals,
+        daily_goal_target: dailyContactTarget,
         global_totals: {
           contacted_actual: globalContacted,
           contacted_goal: globalGoalContacted,
@@ -135,6 +172,9 @@ export async function GET(req: NextRequest) {
           clients_actual: globalClients,
           clients_goal: globalGoalClients,
           overall_pct: globalOverall,
+          contacted_today_total: globalTodayContacted,
+          contacted_daily_goal_total: globalDailyGoal,
+          today_pct_total: globalTodayPct,
         },
         members_progress: memberProgressList,
       },

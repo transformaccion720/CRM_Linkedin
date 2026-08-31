@@ -64,9 +64,20 @@ export async function PATCH(
     // Automatic Audit Logging
     try {
       if (status && prev && prev.status !== status) {
+        let actionType = 'STATUS_CHANGE';
+        if (status === 'En contacto') {
+          actionType = 'CONTACTED_OUTREACH';
+        } else if (status === 'Oportunidad') {
+          actionType = 'OPPORTUNITY_CREATED';
+        } else if (status === 'Cliente') {
+          actionType = 'CLIENT_WON';
+        } else if (status === 'En pausa') {
+          actionType = 'LEAD_PAUSED';
+        }
+
         await sql`
           INSERT INTO activity_logs (contact_id, contact_name, action_type, description, performed_by)
-          VALUES (${id}, ${contactFullName}, 'STATUS_CHANGE', ${'Cambió estado de "' + prev.status + '" a "' + status + '"'}, ${actor});
+          VALUES (${id}, ${contactFullName}, ${actionType}, ${'Cambió estado de "' + prev.status + '" a "' + status + '"'}, ${actor});
         `;
       } else if (phone && prev && prev.phone !== phone) {
         await sql`
