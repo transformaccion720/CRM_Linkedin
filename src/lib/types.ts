@@ -6,6 +6,16 @@ export type ContactStatus =
   | 'Descartado'
   | 'En pausa';
 
+export interface TeamMember {
+  id: string;
+  name: string;
+  email?: string | null;
+  role: string;
+  color: string;
+  contact_count?: number;
+  created_at?: string;
+}
+
 export interface Contact {
   id: string;
   first_name: string;
@@ -22,6 +32,7 @@ export interface Contact {
   follow_up_date?: string | null;
   tags?: string[];
   assigned_to?: string | null;
+  shared_with?: string[]; // Array of other team members who have this same contact
   created_at?: string;
   updated_at?: string;
 }

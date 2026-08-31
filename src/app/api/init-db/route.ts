@@ -4,13 +4,36 @@ import { DEFAULT_TEMPLATES } from '@/lib/templates';
 
 export async function GET() {
   try {
-    // 1. Table contacts
+    // 1. Table team_members
+    await sql`
+      CREATE TABLE IF NOT EXISTS team_members (
+        id VARCHAR(80) PRIMARY KEY,
+        name VARCHAR(120) NOT NULL,
+        email VARCHAR(255),
+        role VARCHAR(100) DEFAULT 'Comercial',
+        color VARCHAR(50) DEFAULT '#00a870',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `;
+
+    // Seed default admin member Gabino if empty
+    const teamCountRes = await sql`SELECT COUNT(*) as count FROM team_members`;
+    const teamCount = parseInt(teamCountRes[0]?.count || '0', 10);
+    if (teamCount === 0) {
+      await sql`
+        INSERT INTO team_members (id, name, email, role, color)
+        VALUES ('gabino', 'Gabino', 'transformaccion720@gmail.com', 'Director Comercial', '#00a870')
+        ON CONFLICT (id) DO NOTHING;
+      `;
+    }
+
+    // 2. Table contacts (Remove UNIQUE constraint on linkedin_url so multiple members can import their own list, but add composite index)
     await sql`
       CREATE TABLE IF NOT EXISTS contacts (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         first_name VARCHAR(120) NOT NULL,
         last_name VARCHAR(120),
-        linkedin_url TEXT UNIQUE,
+        linkedin_url TEXT,
         email VARCHAR(255),
         phone VARCHAR(50),
         company VARCHAR(255),
@@ -27,11 +50,18 @@ export async function GET() {
       );
     `;
 
-    // Add phone and assigned_to if table already existed
+    // Ensure columns exist if table was created previously
     await sql`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS phone VARCHAR(50);`;
     await sql`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS assigned_to VARCHAR(120) DEFAULT 'Gabino';`;
 
-    // 2. Table message templates in database
+    // Drop unique constraint on linkedin_url if present so each user can have their base
+    try {
+      await sql`ALTER TABLE contacts DROP CONSTRAINT IF EXISTS contacts_linkedin_url_key;`;
+    } catch {
+      // ignore
+    }
+
+    // 3. Table message templates in database
     await sql`
       CREATE TABLE IF NOT EXISTS templates (
         id VARCHAR(80) PRIMARY KEY,
@@ -45,7 +75,7 @@ export async function GET() {
       );
     `;
 
-    // 3. Table general user settings / preferences
+    // 4. Table general user settings / preferences
     await sql`
       CREATE TABLE IF NOT EXISTS settings (
         key VARCHAR(100) PRIMARY KEY,
@@ -68,11 +98,12 @@ export async function GET() {
       }
     }
 
-    // 4. Ensure optimized indexes
+    // 5. Optimized Indexes
     await sql`CREATE INDEX IF NOT EXISTS idx_contacts_status ON contacts(status);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_contacts_company ON contacts(company);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_contacts_position ON contacts(position);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_contacts_email ON contacts(email);`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_contacts_linkedin ON contacts(linkedin_url);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_contacts_priority ON contacts(priority);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_contacts_follow_up ON contacts(follow_up_date);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_contacts_assigned_to ON contacts(assigned_to);`;
@@ -81,7 +112,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      message: 'Base de datos Neon inicializada y migrada con phone y assigned_to.',
+      message: 'Base de datos Neon inicializada con team_members, contacts, templates y settings.',
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);

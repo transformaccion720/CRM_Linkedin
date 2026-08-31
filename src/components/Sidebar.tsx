@@ -1,16 +1,18 @@
 'use client';
 
 import React from 'react';
-import { Users, Mail, MailX, Calendar, BarChart2, PieChart, Filter, Clock, Star, X, UserCheck } from 'lucide-react';
+import { Users, Mail, MailX, Calendar, Filter, Clock, Star, X, UserCheck, AlertTriangle, Plus } from 'lucide-react';
+import { TeamMember } from '@/lib/types';
 
 interface SidebarProps {
-  viewFilter: 'all' | 'email' | 'noemail' | 'recent' | 'follow_up' | 'star3';
-  setViewFilter: (f: 'all' | 'email' | 'noemail' | 'recent' | 'follow_up' | 'star3') => void;
+  viewFilter: 'all' | 'email' | 'noemail' | 'recent' | 'follow_up' | 'star3' | 'shared';
+  setViewFilter: (f: 'all' | 'email' | 'noemail' | 'recent' | 'follow_up' | 'star3' | 'shared') => void;
   statusFilter: string;
   setStatusFilter: (s: string) => void;
   assignedToFilter?: string;
   setAssignedToFilter?: (u: string) => void;
-  usersList?: string[];
+  teamMembers?: TeamMember[];
+  onOpenTeamManager?: () => void;
   onClearFilters: () => void;
   onSwitchTab: (tab: 'contactos' | 'segmentos' | 'funnel' | 'analytics' | 'ejecutivo') => void;
   isMobileOpen?: boolean;
@@ -31,7 +33,8 @@ export default function Sidebar({
   setStatusFilter,
   assignedToFilter,
   setAssignedToFilter,
-  usersList = [],
+  teamMembers = [],
+  onOpenTeamManager,
   onClearFilters,
   onSwitchTab,
   isMobileOpen,
@@ -42,7 +45,7 @@ export default function Sidebar({
     <>
       <div className="flex items-center justify-between px-2 py-2">
         <span className="font-mono text-[9.5px] tracking-wider uppercase text-theme-txt3">
-          Vistas y Prospección
+          Vistas de Prospección
         </span>
         {onCloseMobile && (
           <button
@@ -73,6 +76,24 @@ export default function Sidebar({
         <span className="ml-auto font-mono text-[10px] px-1.5 py-0.5 rounded-full bg-theme-sur2 text-theme-txt2">
           {counts.total.toLocaleString()}
         </span>
+      </div>
+
+      {/* Shared Contacts Cross Filter */}
+      <div
+        onClick={() => {
+          setViewFilter('shared');
+          setStatusFilter('');
+          onSwitchTab('contactos');
+          if (onCloseMobile) onCloseMobile();
+        }}
+        className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all mb-1 ${
+          viewFilter === 'shared'
+            ? 'bg-[#ff6d3b]/15 text-[#ff6d3b] border border-[#ff6d3b]/30 font-medium'
+            : 'text-theme-txt2 hover:bg-theme-sur2 hover:text-theme-txt'
+        }`}
+      >
+        <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-[#ff6d3b]" />
+        <span className="truncate">Contactos Compartidos</span>
       </div>
 
       {/* Follow-up Pending view */}
@@ -174,51 +195,56 @@ export default function Sidebar({
         </span>
       </div>
 
-      {/* Multi-user Assignment Filter */}
-      {usersList.length > 0 && setAssignedToFilter && (
-        <>
-          <div className="font-mono text-[9.5px] tracking-wider uppercase text-theme-txt3 px-2 py-3 mt-2">
-            Equipo Comercial
-          </div>
+      {/* Commercial Team Members Section */}
+      <div className="flex items-center justify-between px-2 py-3 mt-2 border-t border-theme-bor">
+        <span className="font-mono text-[9.5px] tracking-wider uppercase text-theme-txt3">
+          Equipo Comercial
+        </span>
+        {onOpenTeamManager && (
+          <button
+            onClick={onOpenTeamManager}
+            className="p-1 text-theme-txt3 hover:text-[#00a870] rounded transition-colors cursor-pointer"
+            title="Gestionar miembros del equipo"
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
 
+      {teamMembers.map((m) => {
+        const isSelected = assignedToFilter === m.name;
+        return (
           <div
+            key={m.id}
             onClick={() => {
-              setAssignedToFilter('Gabino');
+              if (setAssignedToFilter) {
+                setAssignedToFilter(isSelected ? '' : m.name);
+              }
               onSwitchTab('contactos');
               if (onCloseMobile) onCloseMobile();
             }}
-            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer transition-all mb-1 ${
-              assignedToFilter === 'Gabino'
-                ? 'bg-[#00a870]/15 text-[#00a870] border border-[#00a870]/30 font-medium'
+            className={`flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-pointer transition-all mb-1 group ${
+              isSelected
+                ? 'bg-[#00a870]/15 text-[#00a870] border border-[#00a870]/30 font-semibold'
                 : 'text-theme-txt2 hover:bg-theme-sur2 hover:text-theme-txt'
             }`}
           >
-            <UserCheck className="w-3.5 h-3.5" />
-            <span>Mis Prospectos (Gabino)</span>
-          </div>
-
-          {usersList.filter((u) => u !== 'Gabino').map((u) => (
-            <div
-              key={u}
-              onClick={() => {
-                setAssignedToFilter(u);
-                onSwitchTab('contactos');
-                if (onCloseMobile) onCloseMobile();
-              }}
-              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer transition-all mb-1 ${
-                assignedToFilter === u
-                  ? 'bg-[#2979ff]/15 text-[#2979ff] border border-[#2979ff]/30 font-medium'
-                  : 'text-theme-txt2 hover:bg-theme-sur2 hover:text-theme-txt'
-              }`}
-            >
-              <span className="w-2 h-2 rounded-full bg-[#2979ff]" />
-              <span className="truncate">{u}</span>
+            <span
+              className="w-2.5 h-2.5 rounded-full shrink-0"
+              style={{ backgroundColor: m.color || '#00a870' }}
+            />
+            <div className="min-w-0 flex-1">
+              <span className="truncate block">{m.name}</span>
             </div>
-          ))}
-        </>
-      )}
+            <span className="font-mono text-[10px] px-1.5 py-0.5 rounded-full bg-theme-sur2 text-theme-txt2">
+              {(m.contact_count || 0).toLocaleString()}
+            </span>
+          </div>
+        );
+      })}
 
-      <div className="font-mono text-[9.5px] tracking-wider uppercase text-theme-txt3 px-2 py-3 mt-2">
+      {/* CRM Pipeline Status Filter */}
+      <div className="font-mono text-[9.5px] tracking-wider uppercase text-theme-txt3 px-2 py-3 mt-2 border-t border-theme-bor">
         Estado CRM
       </div>
 
@@ -298,52 +324,18 @@ export default function Sidebar({
         <span>Descartado</span>
       </div>
 
-      <div className="font-mono text-[9.5px] tracking-wider uppercase text-theme-txt3 px-2 py-3 mt-auto border-t border-theme-bor">
-        Módulos
-      </div>
-
-      <div
-        onClick={() => {
-          onSwitchTab('funnel');
-          if (onCloseMobile) onCloseMobile();
-        }}
-        className="flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-pointer text-theme-txt2 hover:bg-theme-sur2 hover:text-theme-txt transition-all mb-1"
-      >
-        <Filter className="w-3.5 h-3.5 text-[#ff6d3b]" />
-        <span>Embudo (Funnel)</span>
-      </div>
-
-      <div
-        onClick={() => {
-          onSwitchTab('analytics');
-          if (onCloseMobile) onCloseMobile();
-        }}
-        className="flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-pointer text-theme-txt2 hover:bg-theme-sur2 hover:text-theme-txt transition-all mb-1"
-      >
-        <BarChart2 className="w-3.5 h-3.5 text-[#2979ff]" />
-        <span>Ver analíticas</span>
-      </div>
-
-      <div
-        onClick={() => {
-          onSwitchTab('ejecutivo');
-          if (onCloseMobile) onCloseMobile();
-        }}
-        className="flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-pointer text-theme-txt2 hover:bg-theme-sur2 hover:text-theme-txt transition-all mb-1"
-      >
-        <PieChart className="w-3.5 h-3.5 text-[#00a870]" />
-        <span>Dashboard ejecutivo</span>
-      </div>
-
-      <div
-        onClick={() => {
-          onClearFilters();
-          if (onCloseMobile) onCloseMobile();
-        }}
-        className="flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-pointer text-theme-txt2 hover:bg-theme-sur2 hover:text-[#00a870] transition-all"
-      >
-        <Filter className="w-3.5 h-3.5" />
-        <span>Limpiar filtros</span>
+      {/* Clear Filters (No redundant navigation links!) */}
+      <div className="mt-auto pt-4 border-t border-theme-bor">
+        <button
+          onClick={() => {
+            onClearFilters();
+            if (onCloseMobile) onCloseMobile();
+          }}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-theme-txt2 hover:text-[#00a870] bg-theme-sur2 hover:bg-theme-sur3 border border-theme-bor transition-all cursor-pointer shadow-xs"
+        >
+          <Filter className="w-3.5 h-3.5" />
+          <span>Limpiar todos los filtros</span>
+        </button>
       </div>
     </>
   );
@@ -351,7 +343,7 @@ export default function Sidebar({
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex w-56 min-w-[224px] bg-theme-sur border-r border-theme-bor flex-col overflow-y-auto p-3 shrink-0 text-xs">
+      <aside className="hidden md:flex w-60 min-w-[240px] bg-theme-sur border-r border-theme-bor flex-col overflow-y-auto p-3 shrink-0 text-xs">
         {content}
       </aside>
 

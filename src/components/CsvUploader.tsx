@@ -1,16 +1,19 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Upload, CheckCircle2, AlertCircle, FileSpreadsheet, Loader2, Sparkles } from 'lucide-react';
+import { X, Upload, CheckCircle2, AlertCircle, FileSpreadsheet, Loader2, Sparkles, UserCheck } from 'lucide-react';
+import { TeamMember } from '@/lib/types';
 
 interface CsvUploaderProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  teamMembers?: TeamMember[];
 }
 
-export default function CsvUploader({ isOpen, onClose, onSuccess }: CsvUploaderProps) {
+export default function CsvUploader({ isOpen, onClose, onSuccess, teamMembers = [] }: CsvUploaderProps) {
   const [file, setFile] = useState<File | null>(null);
+  const [assignedTo, setAssignedTo] = useState<string>('Gabino');
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [stats, setStats] = useState<{ newAdded: number; updatedExisting: number; skipped: number } | null>(null);
@@ -86,7 +89,6 @@ export default function CsvUploader({ isOpen, onClose, onSuccess }: CsvUploaderP
         throw new Error('El archivo CSV está vacío o no contiene filas con contactos válidos.');
       }
 
-      // Check header
       let dataRows = rows;
       const firstRowStr = rows[0].join(' ').toLowerCase();
       if (firstRowStr.includes('first') || firstRowStr.includes('nombre') || firstRowStr.includes('url')) {
@@ -104,7 +106,7 @@ export default function CsvUploader({ isOpen, onClose, onSuccess }: CsvUploaderP
         const res = await fetch('/api/import', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ rows: chunk }),
+          body: JSON.stringify({ rows: chunk, assignedTo }),
         });
 
         const resData = await res.json();
@@ -142,12 +144,12 @@ export default function CsvUploader({ isOpen, onClose, onSuccess }: CsvUploaderP
         {/* Header */}
         <div className="p-4 px-6 border-b border-theme-bor flex items-center justify-between bg-theme-sur">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#00e5a0]/15 flex items-center justify-center text-[#00e5a0]">
+            <div className="w-10 h-10 rounded-xl bg-[#00a870]/15 flex items-center justify-center text-[#00a870]">
               <Upload className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-theme-txt">Importar Base de Contactos LinkedIn</h3>
-              <p className="text-xs text-theme-txt2">Detección inteligente de duplicados automática</p>
+              <h3 className="font-bold text-sm text-theme-txt">Importar Base de Contactos</h3>
+              <p className="text-xs text-theme-txt2">Asigna la base a un miembro comercial de forma aislada</p>
             </div>
           </div>
 
@@ -160,17 +162,40 @@ export default function CsvUploader({ isOpen, onClose, onSuccess }: CsvUploaderP
         </div>
 
         {/* Body */}
-        <div className="p-6 space-y-5">
-          <div className="border-2 border-dashed border-theme-bor hover:border-[#00e5a0]/50 rounded-xl p-6 text-center transition-all bg-theme-sur2/40">
-            <FileSpreadsheet className="w-10 h-10 text-[#00e5a0] mx-auto mb-3 opacity-80" />
+        <div className="p-6 space-y-4">
+          {/* Member assignment selector */}
+          <div className="p-3 bg-theme-sur2 rounded-xl border border-theme-bor">
+            <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 flex items-center gap-1.5 mb-1.5">
+              <UserCheck className="w-3.5 h-3.5 text-[#00a870]" />
+              <span>¿A qué miembro comercial pertenece esta base?</span>
+            </label>
+            <select
+              value={assignedTo}
+              onChange={(e) => setAssignedTo(e.target.value)}
+              className="w-full bg-theme-sur border border-theme-bor rounded-lg px-3 py-1.5 text-xs text-theme-txt font-semibold outline-hidden cursor-pointer"
+            >
+              {teamMembers.length > 0 ? (
+                teamMembers.map((m) => (
+                  <option key={m.id} value={m.name}>
+                    {m.name} ({m.role})
+                  </option>
+                ))
+              ) : (
+                <option value="Gabino">Gabino (Director Comercial)</option>
+              )}
+            </select>
+          </div>
+
+          <div className="border-2 border-dashed border-theme-bor hover:border-[#00a870]/50 rounded-xl p-6 text-center transition-all bg-theme-sur2/40">
+            <FileSpreadsheet className="w-10 h-10 text-[#00a870] mx-auto mb-3 opacity-80" />
             <p className="text-xs font-semibold text-theme-txt mb-1">
               {file ? file.name : 'Selecciona tu archivo Connections.csv de LinkedIn'}
             </p>
             <p className="text-[11px] text-theme-txt2 mb-4">
-              Exportación estándar de LinkedIn o archivo con columnas: Nombre, Apellido, URL, Email, Empresa, Cargo, Teléfono
+              La base se guardará como la lista independiente de <b className="text-theme-txt">{assignedTo}</b>
             </p>
 
-            <label className="inline-flex items-center gap-2 px-4 py-2 bg-[#00e5a0] text-[#00110b] font-bold text-xs rounded-xl shadow-md hover:bg-[#00e5a0]/90 transition-all cursor-pointer">
+            <label className="inline-flex items-center gap-2 px-4 py-2 bg-[#00a870] text-[#00110b] font-bold text-xs rounded-xl shadow-md hover:bg-[#00a870]/90 transition-all cursor-pointer">
               <span>{file ? 'Cambiar archivo' : 'Elegir archivo CSV'}</span>
               <input
                 type="file"
@@ -184,9 +209,9 @@ export default function CsvUploader({ isOpen, onClose, onSuccess }: CsvUploaderP
 
           {/* Duplicates notice */}
           <div className="p-3 rounded-xl bg-theme-sur2 border border-theme-bor text-[11px] text-theme-txt2 flex items-start gap-2">
-            <Sparkles className="w-4 h-4 text-[#00e5a0] shrink-0 mt-0.5" />
+            <Sparkles className="w-4 h-4 text-[#00a870] shrink-0 mt-0.5" />
             <p>
-              <b className="text-theme-txt">Filtro inteligente activo:</b> Si subes una base actualizada, los contactos ya registrados <b className="text-[#00e5a0]">no perderán sus notas ni su estado en el pipeline</b>; solo se añadirán los nuevos prospectos.
+              <b className="text-theme-txt">Detección de cruces activa:</b> Si otro miembro ya tiene el mismo contacto, el sistema lo etiquetará como <b className="text-[#ff6d3b]">"⚠️ Compartido"</b> para evitar duplicar mensajes.
             </p>
           </div>
 
@@ -195,14 +220,14 @@ export default function CsvUploader({ isOpen, onClose, onSuccess }: CsvUploaderP
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs text-theme-txt2">
                 <span className="flex items-center gap-1.5 font-medium text-theme-txt">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-[#00e5a0]" />
-                  Procesando e insertando en Neon DB...
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-[#00a870]" />
+                  Importando base para {assignedTo}...
                 </span>
                 <span className="font-mono">{progress}%</span>
               </div>
               <div className="w-full h-2 bg-theme-sur2 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-[#00e5a0] transition-all duration-300 rounded-full"
+                  className="h-full bg-[#00a870] transition-all duration-300 rounded-full"
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -211,18 +236,18 @@ export default function CsvUploader({ isOpen, onClose, onSuccess }: CsvUploaderP
 
           {/* Success summary */}
           {stats && (
-            <div className="p-4 rounded-xl bg-[#00e5a0]/10 border border-[#00e5a0]/30 text-xs text-theme-txt space-y-2 animate-in fade-in">
-              <div className="flex items-center gap-2 font-bold text-[#00e5a0]">
+            <div className="p-4 rounded-xl bg-[#00a870]/10 border border-[#00a870]/30 text-xs text-theme-txt space-y-2 animate-in fade-in">
+              <div className="flex items-center gap-2 font-bold text-[#00a870]">
                 <CheckCircle2 className="w-4 h-4" />
-                <span>¡Importación finalizada con éxito!</span>
+                <span>¡Base importada para {assignedTo}!</span>
               </div>
               <div className="grid grid-cols-2 gap-2 pt-1 font-mono text-[11px]">
                 <div className="bg-theme-sur p-2 rounded-lg border border-theme-bor">
                   <span className="text-theme-txt2 block">Nuevos agregados:</span>
-                  <span className="text-sm font-bold text-[#00e5a0]">+{stats.newAdded}</span>
+                  <span className="text-sm font-bold text-[#00a870]">+{stats.newAdded}</span>
                 </div>
                 <div className="bg-theme-sur p-2 rounded-lg border border-theme-bor">
-                  <span className="text-theme-txt2 block">Ya existentes (sin alterar):</span>
+                  <span className="text-theme-txt2 block">Omitidos / Actualizados:</span>
                   <span className="text-sm font-bold text-[#2979ff]">{stats.updatedExisting}</span>
                 </div>
               </div>
@@ -251,10 +276,10 @@ export default function CsvUploader({ isOpen, onClose, onSuccess }: CsvUploaderP
             <button
               onClick={handleUpload}
               disabled={!file || loading}
-              className="px-5 py-2.5 rounded-xl text-xs font-bold text-[#00110b] bg-[#00e5a0] hover:bg-[#00e5a0]/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-[#00e5a0]/20 transition-all cursor-pointer"
+              className="px-5 py-2.5 rounded-xl text-xs font-bold text-[#00110b] bg-[#00a870] hover:bg-[#00a870]/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-[#00a870]/20 transition-all cursor-pointer"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-              <span>{loading ? 'Importando...' : 'Iniciar Importación'}</span>
+              <span>{loading ? 'Importando...' : `Importar para ${assignedTo}`}</span>
             </button>
           )}
         </div>

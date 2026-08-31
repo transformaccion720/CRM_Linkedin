@@ -55,6 +55,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const rows = body.rows;
+    const assignedTo = body.assignedTo || 'Gabino';
 
     if (!Array.isArray(rows) || rows.length === 0) {
       return NextResponse.json({ error: 'No se enviaron filas válidas' }, { status: 400 });
@@ -118,11 +119,16 @@ export async function POST(req: NextRequest) {
 
       try {
         if (url) {
-          // Check if contact already exists by linkedin_url
-          const existing = await sql`SELECT id, status, notes FROM contacts WHERE linkedin_url = ${url} LIMIT 1`;
+          // Check if contact already exists specifically FOR THIS ASSIGNED MEMBER
+          const existing = await sql`
+            SELECT id, status, notes 
+            FROM contacts 
+            WHERE linkedin_url = ${url} AND assigned_to = ${assignedTo}
+            LIMIT 1
+          `;
 
           if (existing.length > 0) {
-            // Already exists -> update only missing fields, NEVER overwrite status or notes
+            // Already exists in this member's base -> update only missing fields
             await sql`
               UPDATE contacts
               SET
@@ -134,21 +140,26 @@ export async function POST(req: NextRequest) {
                 position = COALESCE(NULLIF(${position}, ''), position),
                 connected_on = COALESCE(${connectedOn}, connected_on),
                 updated_at = NOW()
-              WHERE linkedin_url = ${url}
+              WHERE id = ${existing[0].id}
             `;
             existingUpdated++;
           } else {
-            // New record
+            // New record for this member
             await sql`
               INSERT INTO contacts (first_name, last_name, linkedin_url, email, phone, company, position, connected_on, status, assigned_to)
-              VALUES (${firstName}, ${lastName || null}, ${url}, ${email || null}, ${phone || null}, ${company || null}, ${position || null}, ${connectedOn || null}, 'Sin contactar', 'Gabino')
+              VALUES (${firstName}, ${lastName || null}, ${url}, ${email || null}, ${phone || null}, ${company || null}, ${position || null}, ${connectedOn || null}, 'Sin contactar', ${assignedTo})
             `;
             newlyInserted++;
           }
         } else {
-          // No URL -> Insert if email not exists
+          // No URL -> check email for this member
           if (email) {
-            const existingEmail = await sql`SELECT id FROM contacts WHERE email = ${email} LIMIT 1`;
+            const existingEmail = await sql`
+              SELECT id 
+              FROM contacts 
+              WHERE email = ${email} AND assigned_to = ${assignedTo}
+              LIMIT 1
+            `;
             if (existingEmail.length > 0) {
               existingUpdated++;
               continue;
@@ -157,7 +168,7 @@ export async function POST(req: NextRequest) {
 
           await sql`
             INSERT INTO contacts (first_name, last_name, linkedin_url, email, phone, company, position, connected_on, status, assigned_to)
-            VALUES (${firstName}, ${lastName || null}, null, ${email || null}, ${phone || null}, ${company || null}, ${position || null}, ${connectedOn || null}, 'Sin contactar', 'Gabino')
+            VALUES (${firstName}, ${lastName || null}, null, ${email || null}, ${phone || null}, ${company || null}, ${position || null}, ${connectedOn || null}, 'Sin contactar', ${assignedTo})
           `;
           newlyInserted++;
         }
@@ -171,7 +182,7 @@ export async function POST(req: NextRequest) {
       newlyInserted,
       existingUpdated,
       skipped,
-      message: `Procesamiento completado: ${newlyInserted} nuevos prospectos agregados, ${existingUpdated} ya existentes omitidos/actualizados sin alterar sus estados.`,
+      message: `Procesamiento completado para ${assignedTo}: ${newlyInserted} nuevos agregados, ${existingUpdated} omitidos/actualizados.`,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);

@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Contact, ContactStatus } from '@/lib/types';
-import { ExternalLink, Mail, Edit3, CheckCircle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageSquare, Star, Clock, Phone } from 'lucide-react';
+import { ExternalLink, Mail, Edit3, CheckCircle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageSquare, Star, Clock, Phone, AlertTriangle } from 'lucide-react';
 
 interface ContactTableProps {
   contacts: Contact[];
@@ -65,7 +65,7 @@ export default function ContactTable({
         <CheckCircle className="w-10 h-10 mb-3 text-theme-txt3" />
         <p className="text-sm font-medium text-theme-txt">No se encontraron contactos</p>
         <p className="text-xs text-theme-txt2 mt-1">
-          Prueba cambiando los filtros o importa un archivo CSV de LinkedIn.
+          Prueba cambiando los filtros de comercial o importa un archivo CSV.
         </p>
       </div>
     );
@@ -82,7 +82,8 @@ export default function ContactTable({
                 <th className="py-3 px-4">Contacto</th>
                 <th className="py-3 px-4">Cargo</th>
                 <th className="py-3 px-4">Empresa</th>
-                <th className="py-3 px-4">Email / Teléfono</th>
+                <th className="py-3 px-4">Email</th>
+                <th className="py-3 px-4">Teléfono / WhatsApp</th>
                 <th className="py-3 px-4">Conexión / Seguimiento</th>
                 <th className="py-3 px-4">Estado CRM</th>
                 <th className="py-3 px-4">Etiquetas</th>
@@ -93,6 +94,7 @@ export default function ContactTable({
               {paginatedContacts.map((c) => {
                 const statusConfig = STATUS_COLORS[c.status] || STATUS_COLORS['Sin contactar'];
                 const isFollowUpDue = c.follow_up_date && new Date(c.follow_up_date) <= new Date();
+                const isShared = c.shared_with && c.shared_with.length > 0;
 
                 return (
                   <tr
@@ -100,8 +102,8 @@ export default function ContactTable({
                     className="hover:bg-theme-sur/70 transition-colors group cursor-pointer"
                     onClick={() => onSelectContact(c)}
                   >
-                    {/* 1. Contact Name & Avatar + Stars */}
-                    <td className="py-3 px-4 min-w-[180px]">
+                    {/* 1. Contact Name & Avatar + Priority + Shared Alert */}
+                    <td className="py-3 px-4 min-w-[190px]">
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-lg bg-theme-sur2 border border-theme-bor2 flex items-center justify-center font-bold text-[#00a870] text-xs shrink-0">
                           {(c.first_name[0] || '') + (c.last_name?.[0] || '')}
@@ -119,55 +121,78 @@ export default function ContactTable({
                               </span>
                             )}
                           </div>
-                          {c.assigned_to && (
-                            <span className="text-[10px] text-theme-txt3 block truncate">
-                              Resp: {c.assigned_to}
-                            </span>
-                          )}
+
+                          <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                            {c.assigned_to && (
+                              <span className="text-[9.5px] text-theme-txt3 truncate font-mono">
+                                Resp: {c.assigned_to}
+                              </span>
+                            )}
+
+                            {/* Shared contact warning */}
+                            {isShared && (
+                              <span
+                                className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-bold bg-[#ff6d3b]/15 text-[#ff6d3b] border border-[#ff6d3b]/30"
+                                title={`También en la base de: ${c.shared_with?.join(', ')}`}
+                              >
+                                <AlertTriangle className="w-2.5 h-2.5" />
+                                <span>Compartido ({c.shared_with?.[0]})</span>
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </td>
 
                     {/* 2. Position (Cargo) */}
-                    <td className="py-3 px-4 max-w-[200px]">
+                    <td className="py-3 px-4 max-w-[190px]">
                       <span className="text-theme-txt font-medium block truncate" title={c.position || '—'}>
                         {c.position || '—'}
                       </span>
                     </td>
 
                     {/* 3. Company (Empresa) */}
-                    <td className="py-3 px-4 max-w-[180px]">
+                    <td className="py-3 px-4 max-w-[170px]">
                       <span className="text-theme-txt2 block truncate" title={c.company || '—'}>
                         {c.company || '—'}
                       </span>
                     </td>
 
-                    {/* 4. Email / Phone */}
-                    <td className="py-3 px-4 min-w-[160px]">
-                      <div className="space-y-0.5">
-                        {c.email ? (
-                          <div className="flex items-center gap-1.5 text-[11px] text-[#00a870] hover:underline">
-                            <Mail className="w-3 h-3 shrink-0" />
-                            <a href={`mailto:${c.email}`} onClick={(e) => e.stopPropagation()} className="truncate max-w-[150px]">
-                              {c.email}
-                            </a>
-                          </div>
-                        ) : (
-                          <span className="text-[10px] text-theme-txt3 block">Sin email</span>
-                        )}
-
-                        {c.phone && (
-                          <div className="flex items-center gap-1.5 text-[11px] text-[#2979ff]">
-                            <Phone className="w-3 h-3 shrink-0" />
-                            <a href={`https://wa.me/${c.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="hover:underline">
-                              {c.phone}
-                            </a>
-                          </div>
-                        )}
-                      </div>
+                    {/* 4. Separate Email Column */}
+                    <td className="py-3 px-4 min-w-[150px]">
+                      {c.email ? (
+                        <div className="flex items-center gap-1.5 text-[11px] text-[#00a870] hover:underline">
+                          <Mail className="w-3 h-3 shrink-0" />
+                          <a href={`mailto:${c.email}`} onClick={(e) => e.stopPropagation()} className="truncate max-w-[140px]">
+                            {c.email}
+                          </a>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-theme-txt3">Sin email</span>
+                      )}
                     </td>
 
-                    {/* 5. Connected Date & Follow-up */}
+                    {/* 5. Separate Phone / WhatsApp Column */}
+                    <td className="py-3 px-4 min-w-[140px]">
+                      {c.phone ? (
+                        <div className="flex items-center gap-1.5 text-[11px] text-[#2979ff]">
+                          <Phone className="w-3 h-3 shrink-0" />
+                          <a
+                            href={`https://wa.me/${c.phone.replace(/\D/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="hover:underline font-mono"
+                          >
+                            {c.phone}
+                          </a>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-theme-txt3">Sin teléfono</span>
+                      )}
+                    </td>
+
+                    {/* 6. Connected Date & Follow-up */}
                     <td className="py-3 px-4 text-theme-txt2 font-mono text-[11px] whitespace-nowrap">
                       <div>{c.connected_on || '—'}</div>
                       {c.follow_up_date && (
@@ -178,7 +203,7 @@ export default function ContactTable({
                       )}
                     </td>
 
-                    {/* 6. Status CRM Dropdown */}
+                    {/* 7. Status CRM Dropdown */}
                     <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                       <select
                         value={c.status}
@@ -193,12 +218,12 @@ export default function ContactTable({
                       </select>
                     </td>
 
-                    {/* 7. Tags preview */}
-                    <td className="py-3 px-4 max-w-[140px]">
+                    {/* 8. Tags preview */}
+                    <td className="py-3 px-4 max-w-[130px]">
                       {c.tags && c.tags.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
                           {c.tags.slice(0, 2).map((t) => (
-                            <span key={t} className="px-1.5 py-0.5 rounded text-[9.5px] bg-[#2979ff]/15 text-[#2979ff] font-medium truncate max-w-[70px]">
+                            <span key={t} className="px-1.5 py-0.5 rounded text-[9.5px] bg-[#2979ff]/15 text-[#2979ff] font-medium truncate max-w-[65px]">
                               {t}
                             </span>
                           ))}
@@ -211,10 +236,9 @@ export default function ContactTable({
                       )}
                     </td>
 
-                    {/* 8. Clear Actions: Message + LinkedIn + Edit */}
+                    {/* 9. Actions */}
                     <td className="py-3 px-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1.5">
-                        {/* Open Templates Modal */}
                         {onOpenTemplates && (
                           <button
                             onClick={() => onOpenTemplates(c)}
@@ -226,7 +250,6 @@ export default function ContactTable({
                           </button>
                         )}
 
-                        {/* Open LinkedIn Profile in new tab */}
                         {c.linkedin_url && (
                           <a
                             href={c.linkedin_url}
@@ -239,7 +262,6 @@ export default function ContactTable({
                           </a>
                         )}
 
-                        {/* Edit Drawer */}
                         <button
                           onClick={() => onSelectContact(c)}
                           className="p-1.5 text-theme-txt2 hover:text-[#00a870] hover:bg-theme-sur2 rounded-lg transition-colors cursor-pointer"
@@ -259,6 +281,7 @@ export default function ContactTable({
           <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {paginatedContacts.map((c) => {
               const statusConfig = STATUS_COLORS[c.status] || STATUS_COLORS['Sin contactar'];
+              const isShared = c.shared_with && c.shared_with.length > 0;
 
               return (
                 <div
@@ -292,6 +315,16 @@ export default function ContactTable({
                     </h4>
                     <p className="text-[11px] text-theme-txt2 truncate mt-0.5 font-medium">{c.position || 'Sin cargo'}</p>
                     <p className="text-[10px] text-theme-txt3 truncate">{c.company || 'Sin empresa'}</p>
+
+                    <div className="flex items-center justify-between text-[10px] mt-1.5">
+                      <span className="text-theme-txt3 font-mono">Resp: {c.assigned_to || 'Gabino'}</span>
+                      {isShared && (
+                        <span className="text-[#ff6d3b] font-bold flex items-center gap-0.5">
+                          <AlertTriangle className="w-2.5 h-2.5" />
+                          <span>Compartido</span>
+                        </span>
+                      )}
+                    </div>
 
                     {c.phone && (
                       <p className="text-[10px] text-[#2979ff] truncate mt-1 flex items-center gap-1">

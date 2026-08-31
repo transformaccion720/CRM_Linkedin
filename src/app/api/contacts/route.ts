@@ -6,7 +6,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search')?.trim() || '';
     const status = searchParams.get('status') || '';
-    const viewFilter = searchParams.get('viewFilter') || 'all'; // all, email, noemail, recent, follow_up, star3, my_leads
+    const viewFilter = searchParams.get('viewFilter') || 'all'; // all, email, noemail, recent, follow_up, star3, shared
     const year = searchParams.get('year') || '';
     const company = searchParams.get('company') || '';
     const position = searchParams.get('position') || '';
@@ -16,42 +16,63 @@ export async function GET(req: NextRequest) {
 
     const searchPattern = search ? `%${search.toLowerCase()}%` : null;
 
+    // Query contacts with detection of shared contacts with other team members
     const rows = await sql`
-      SELECT id, first_name, last_name, linkedin_url, email, phone, company, position, 
-             TO_CHAR(connected_on, 'YYYY-MM-DD') as connected_on,
-             status, notes, priority, 
-             TO_CHAR(follow_up_date, 'YYYY-MM-DD') as follow_up_date,
-             tags, assigned_to, created_at, updated_at
-      FROM contacts
+      SELECT 
+        c.id, c.first_name, c.last_name, c.linkedin_url, c.email, c.phone, c.company, c.position, 
+        TO_CHAR(c.connected_on, 'YYYY-MM-DD') as connected_on,
+        c.status, c.notes, c.priority, 
+        TO_CHAR(c.follow_up_date, 'YYYY-MM-DD') as follow_up_date,
+        c.tags, c.assigned_to, c.created_at, c.updated_at,
+        ARRAY(
+          SELECT DISTINCT c2.assigned_to 
+          FROM contacts c2 
+          WHERE c2.id != c.id 
+            AND (
+              (c.linkedin_url IS NOT NULL AND c.linkedin_url != '' AND c2.linkedin_url = c.linkedin_url)
+              OR (c.email IS NOT NULL AND c.email != '' AND c2.email = c.email)
+            )
+            AND c2.assigned_to != c.assigned_to
+        ) as shared_with
+      FROM contacts c
       WHERE 
         (${searchPattern}::text IS NULL OR (
-          LOWER(first_name) LIKE ${searchPattern} OR 
-          LOWER(COALESCE(last_name, '')) LIKE ${searchPattern} OR 
-          LOWER(COALESCE(company, '')) LIKE ${searchPattern} OR 
-          LOWER(COALESCE(position, '')) LIKE ${searchPattern} OR
-          LOWER(COALESCE(email, '')) LIKE ${searchPattern} OR
-          LOWER(COALESCE(phone, '')) LIKE ${searchPattern}
+          LOWER(c.first_name) LIKE ${searchPattern} OR 
+          LOWER(COALESCE(c.last_name, '')) LIKE ${searchPattern} OR 
+          LOWER(COALESCE(c.company, '')) LIKE ${searchPattern} OR 
+          LOWER(COALESCE(c.position, '')) LIKE ${searchPattern} OR
+          LOWER(COALESCE(c.email, '')) LIKE ${searchPattern} OR
+          LOWER(COALESCE(c.phone, '')) LIKE ${searchPattern}
         ))
-        AND (${status === '' || status === 'all'}::boolean OR status = ${status})
-        AND (${company === '' || company === 'all'}::boolean OR company = ${company})
-        AND (${position === '' || position === 'all'}::boolean OR position = ${position})
-        AND (${year === '' || year === 'all'}::boolean OR TO_CHAR(connected_on, 'YYYY') = ${year})
-        AND (${priority === '' || priority === 'all'}::boolean OR priority = ${parseInt(priority || '1', 10)})
-        AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo})
-        AND (${tag === '' || tag === 'all'}::boolean OR ${tag} = ANY(tags))
+        AND (${status === '' || status === 'all'}::boolean OR c.status = ${status})
+        AND (${company === '' || company === 'all'}::boolean OR c.company = ${company})
+        AND (${position === '' || position === 'all'}::boolean OR c.position = ${position})
+        AND (${year === '' || year === 'all'}::boolean OR TO_CHAR(c.connected_on, 'YYYY') = ${year})
+        AND (${priority === '' || priority === 'all'}::boolean OR c.priority = ${parseInt(priority || '1', 10)})
+        AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR c.assigned_to = ${assignedTo})
+        AND (${tag === '' || tag === 'all'}::boolean OR ${tag} = ANY(c.tags))
         AND (
           ${viewFilter === 'all'}::boolean OR
-          (${viewFilter === 'email'}::boolean AND email IS NOT NULL AND email != '') OR
-          (${viewFilter === 'noemail'}::boolean AND (email IS NULL OR email = '')) OR
-          (${viewFilter === 'recent'}::boolean AND connected_on >= '2025-01-01') OR
-          (${viewFilter === 'follow_up'}::boolean AND follow_up_date IS NOT NULL AND follow_up_date <= CURRENT_DATE + INTERVAL '7 days') OR
-          (${viewFilter === 'star3'}::boolean AND priority = 3)
+          (${viewFilter === 'email'}::boolean AND c.email IS NOT NULL AND c.email != '') OR
+          (${viewFilter === 'noemail'}::boolean AND (c.email IS NULL OR c.email = '')) OR
+          (${viewFilter === 'recent'}::boolean AND c.connected_on >= '2025-01-01') OR
+          (${viewFilter === 'follow_up'}::boolean AND c.follow_up_date IS NOT NULL AND c.follow_up_date <= CURRENT_DATE + INTERVAL '7 days') OR
+          (${viewFilter === 'star3'}::boolean AND c.priority = 3) OR
+          (${viewFilter === 'shared'}::boolean AND (
+            EXISTS (
+              SELECT 1 FROM contacts c3 
+              WHERE c3.id != c.id 
+                AND ((c.linkedin_url IS NOT NULL AND c.linkedin_url != '' AND c3.linkedin_url = c.linkedin_url)
+                  OR (c.email IS NOT NULL AND c.email != '' AND c3.email = c.email))
+                AND c3.assigned_to != c.assigned_to
+            )
+          ))
         )
       ORDER BY 
-        CASE WHEN follow_up_date IS NOT NULL AND follow_up_date <= CURRENT_DATE THEN 0 ELSE 1 END,
-        priority DESC,
-        connected_on DESC NULLS LAST, 
-        created_at DESC
+        CASE WHEN c.follow_up_date IS NOT NULL AND c.follow_up_date <= CURRENT_DATE THEN 0 ELSE 1 END,
+        c.priority DESC,
+        c.connected_on DESC NULLS LAST, 
+        c.created_at DESC
       LIMIT 3500;
     `;
 
@@ -95,15 +116,6 @@ export async function GET(req: NextRequest) {
     `;
     const distinctTags = tagsResult.map((r) => r.tag).filter(Boolean);
 
-    // Distinct assigned users
-    const usersResult = await sql`
-      SELECT DISTINCT assigned_to 
-      FROM contacts 
-      WHERE assigned_to IS NOT NULL AND assigned_to != '' 
-      ORDER BY assigned_to ASC
-    `;
-    const users = usersResult.map((r) => r.assigned_to).filter(Boolean);
-
     return NextResponse.json(
       {
         contacts: rows,
@@ -112,7 +124,6 @@ export async function GET(req: NextRequest) {
           companies: topCompanies,
           positions: topPositions,
           tags: distinctTags,
-          users,
         },
       },
       {

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Contact, ContactStatus } from '@/lib/types';
+import { Contact, ContactStatus, TeamMember } from '@/lib/types';
 import { MessageTemplate, DEFAULT_TEMPLATES } from '@/lib/templates';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
@@ -14,19 +14,20 @@ import ExecutiveDashboard from '@/components/ExecutiveDashboard';
 import ContactDrawer from '@/components/ContactDrawer';
 import CsvUploader from '@/components/CsvUploader';
 import NewContactModal from '@/components/NewContactModal';
+import TeamManagerModal from '@/components/TeamManagerModal';
 import MessageTemplatesModal from '@/components/MessageTemplatesModal';
 import TemplateManagerModal from '@/components/TemplateManagerModal';
-import { Search, ShieldAlert, LayoutGrid, LayoutList, MessageSquare, UserPlus } from 'lucide-react';
+import { Search, ShieldAlert, LayoutGrid, LayoutList, UserCheck } from 'lucide-react';
 
 export default function Home() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [stats, setStats] = useState<any>(null);
-  const [filterOptions, setFilterOptions] = useState<{ years: string[]; companies: string[]; positions: string[]; tags: string[]; users: string[] }>({
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [filterOptions, setFilterOptions] = useState<{ years: string[]; companies: string[]; positions: string[]; tags: string[] }>({
     years: [],
     companies: [],
     positions: [],
     tags: [],
-    users: [],
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,13 +39,13 @@ export default function Home() {
   const [templates, setTemplates] = useState<MessageTemplate[]>(DEFAULT_TEMPLATES);
   const [activeTemplateId, setActiveTemplateId] = useState<string>(DEFAULT_TEMPLATES[0].id);
 
-  // Tabs & Views (includes funnel)
+  // Tabs & Views
   const [activeTab, setActiveTab] = useState<'contactos' | 'segmentos' | 'funnel' | 'analytics' | 'ejecutivo'>('contactos');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
 
   // Filters
   const [search, setSearch] = useState('');
-  const [viewFilter, setViewFilter] = useState<'all' | 'email' | 'noemail' | 'recent' | 'follow_up' | 'star3'>('all');
+  const [viewFilter, setViewFilter] = useState<'all' | 'email' | 'noemail' | 'recent' | 'follow_up' | 'star3' | 'shared'>('all');
   const [statusFilter, setStatusFilter] = useState('');
   const [yearFilter, setYearFilter] = useState('');
   const [companyFilter, setCompanyFilter] = useState('');
@@ -58,12 +59,26 @@ export default function Home() {
   const [templateContact, setTemplateContact] = useState<Contact | null>(null);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isNewContactOpen, setIsNewContactOpen] = useState(false);
+  const [isTeamManagerOpen, setIsTeamManagerOpen] = useState(false);
   const [isTemplateManagerOpen, setIsTemplateManagerOpen] = useState(false);
 
   // Auto detect mobile device to switch default viewMode to 'grid'
   useEffect(() => {
     if (window.innerWidth < 768) {
       setViewMode('grid');
+    }
+  }, []);
+
+  // Fetch team members from Neon DB
+  const fetchTeamMembers = useCallback(async () => {
+    try {
+      const res = await fetch('/api/team');
+      if (res.ok) {
+        const data = await res.json();
+        setTeamMembers(data.members || []);
+      }
+    } catch (e) {
+      console.error('Error fetching team members:', e);
     }
   }, []);
 
@@ -90,7 +105,8 @@ export default function Home() {
 
   useEffect(() => {
     fetchTemplates();
-  }, [fetchTemplates]);
+    fetchTeamMembers();
+  }, [fetchTemplates, fetchTeamMembers]);
 
   const handleSaveTemplates = async (newTemplates: MessageTemplate[]) => {
     setTemplates(newTemplates);
@@ -131,8 +147,6 @@ export default function Home() {
       console.error('Error resetting templates in Neon DB:', e);
     }
   };
-
-  const activeTemplate = templates.find((t) => t.id === activeTemplateId) || templates[0];
 
   const fetchStats = useCallback(async () => {
     try {
@@ -175,7 +189,6 @@ export default function Home() {
           companies: data.filterOptions.companies || [],
           positions: data.filterOptions.positions || [],
           tags: data.filterOptions.tags || [],
-          users: data.filterOptions.users || [],
         });
       }
     } catch (err: unknown) {
@@ -258,7 +271,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col h-screen bg-theme-bg text-theme-txt overflow-hidden">
-      {/* Responsive Header with New Contact Modal Trigger */}
+      {/* Responsive Header */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -270,6 +283,7 @@ export default function Home() {
           fetchContacts();
           fetchStats();
           fetchTemplates();
+          fetchTeamMembers();
         }}
         onExport={handleExportCSV}
         totalContacts={stats?.total || 0}
@@ -277,7 +291,7 @@ export default function Home() {
 
       {/* Main workspace layout */}
       <div className="flex flex-1 overflow-hidden min-h-0">
-        {/* Responsive Sidebar */}
+        {/* Clean Responsive Sidebar without duplicated upper navigation */}
         <Sidebar
           viewFilter={viewFilter}
           setViewFilter={setViewFilter}
@@ -285,7 +299,8 @@ export default function Home() {
           setStatusFilter={setStatusFilter}
           assignedToFilter={assignedToFilter}
           setAssignedToFilter={setAssignedToFilter}
-          usersList={filterOptions.users}
+          teamMembers={teamMembers}
+          onOpenTeamManager={() => setIsTeamManagerOpen(true)}
           onClearFilters={handleClearFilters}
           onSwitchTab={setActiveTab}
           isMobileOpen={isMobileSidebarOpen}
@@ -313,7 +328,7 @@ export default function Home() {
               {/* Stat Strip */}
               <StatsCards stats={stats} showingCount={contacts.length} />
 
-              {/* Toolbar with clean responsive layout */}
+              {/* Toolbar */}
               <div className="px-3 sm:px-5 py-2.5 border-b border-theme-bor bg-theme-sur flex items-center gap-2 flex-wrap shrink-0">
                 <div className="relative flex-1 min-w-[140px] max-w-xs">
                   <Search className="w-3.5 h-3.5 text-theme-txt2 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -325,6 +340,20 @@ export default function Home() {
                     className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-lg pl-8 pr-3 py-1.5 text-xs text-theme-txt placeholder-theme-txt3 outline-hidden transition-all"
                   />
                 </div>
+
+                {/* Team member active filter pill */}
+                {assignedToFilter && (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#00a870]/15 text-[#00a870] border border-[#00a870]/30 text-xs font-semibold">
+                    <UserCheck className="w-3.5 h-3.5" />
+                    <span>Base: {assignedToFilter}</span>
+                    <button
+                      onClick={() => setAssignedToFilter('')}
+                      className="ml-1 hover:text-white cursor-pointer font-bold"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
 
                 {/* Filter by Year */}
                 <select
@@ -472,10 +501,12 @@ export default function Home() {
         onUpdate={(updated) => {
           setContacts((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
           fetchStats();
+          fetchTeamMembers();
         }}
         onDelete={(deletedId) => {
           setContacts((prev) => prev.filter((c) => c.id !== deletedId));
           fetchStats();
+          fetchTeamMembers();
         }}
       />
 
@@ -504,23 +535,35 @@ export default function Home() {
         onClose={() => setIsTemplateManagerOpen(false)}
       />
 
+      {/* Team Management Modal */}
+      <TeamManagerModal
+        isOpen={isTeamManagerOpen}
+        teamMembers={teamMembers}
+        onClose={() => setIsTeamManagerOpen(false)}
+        onRefreshTeam={fetchTeamMembers}
+      />
+
       {/* New Contact Manual Modal */}
       <NewContactModal
         isOpen={isNewContactOpen}
+        teamMembers={teamMembers}
         onClose={() => setIsNewContactOpen(false)}
         onSuccess={(newContact) => {
           setContacts((prev) => [newContact, ...prev]);
           fetchStats();
+          fetchTeamMembers();
         }}
       />
 
       {/* CSV Uploader */}
       <CsvUploader
         isOpen={isImportOpen}
+        teamMembers={teamMembers}
         onClose={() => setIsImportOpen(false)}
         onSuccess={() => {
           fetchContacts();
           fetchStats();
+          fetchTeamMembers();
         }}
       />
     </div>
