@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Upload, CheckCircle2, RefreshCw, Users, Kanban, BarChart2, PieChart, Download, Sun, Moon, Settings, Menu, Filter, UserPlus, UserCog, User } from 'lucide-react';
+import { Upload, CheckCircle2, RefreshCw, Users, Kanban, BarChart2, PieChart, Download, Sun, Moon, Settings, Menu, Filter, UserPlus, UserCog, Target } from 'lucide-react';
 import ActivityBell from '@/components/ActivityBell';
 import { TeamMember } from '@/lib/types';
 
@@ -14,8 +14,8 @@ interface NavbarProps {
   onExport: () => void;
   onOpenTemplateManager?: () => void;
   onToggleMobileSidebar?: () => void;
-  activeTab: 'contactos' | 'segmentos' | 'funnel' | 'analytics' | 'ejecutivo';
-  setActiveTab: (tab: 'contactos' | 'segmentos' | 'funnel' | 'analytics' | 'ejecutivo') => void;
+  activeTab: 'contactos' | 'segmentos' | 'funnel' | 'objetivos' | 'analytics' | 'ejecutivo';
+  setActiveTab: (tab: 'contactos' | 'segmentos' | 'funnel' | 'objetivos' | 'analytics' | 'ejecutivo') => void;
   totalContacts: number;
   currentUser?: TeamMember | null;
 }
@@ -230,6 +230,19 @@ export default function Navbar({
         >
           <Filter className="w-3.5 h-3.5 text-[#ff6d3b]" />
           <span>Embudo (Funnel)</span>
+        </button>
+
+        {/* New Weekly Goals Tab */}
+        <button
+          onClick={() => setActiveTab('objetivos')}
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 text-xs font-medium border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === 'objetivos'
+              ? 'border-[#00a870] text-[#00a870] font-semibold'
+              : 'border-transparent text-theme-txt2 hover:text-theme-txt hover:bg-theme-sur2'
+          }`}
+        >
+          <Target className="w-3.5 h-3.5 text-[#00a870]" />
+          <span>Objetivos Semanales</span>
         </button>
 
         <button

@@ -8,6 +8,7 @@ import Sidebar from '@/components/Sidebar';
 import ContactTable from '@/components/ContactTable';
 import PipelineView from '@/components/PipelineView';
 import FunnelView from '@/components/FunnelView';
+import WeeklyGoalsView from '@/components/WeeklyGoalsView';
 import AnalyticsView from '@/components/AnalyticsView';
 import ExecutiveDashboard from '@/components/ExecutiveDashboard';
 import ContactDrawer from '@/components/ContactDrawer';
@@ -45,7 +46,7 @@ export default function Home() {
   const [activeTemplateId, setActiveTemplateId] = useState<string>(DEFAULT_TEMPLATES[0].id);
 
   // Tabs & Views
-  const [activeTab, setActiveTab] = useState<'contactos' | 'segmentos' | 'funnel' | 'analytics' | 'ejecutivo'>('contactos');
+  const [activeTab, setActiveTab] = useState<'contactos' | 'segmentos' | 'funnel' | 'objetivos' | 'analytics' | 'ejecutivo'>('contactos');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
 
   // Filters
@@ -529,6 +530,8 @@ export default function Home() {
               onOpenTemplates={setTemplateContact}
             />
           )}
+
+          {activeTab === 'objetivos' && <WeeklyGoalsView />}
 
           {activeTab === 'analytics' && <AnalyticsView stats={stats} />}
 

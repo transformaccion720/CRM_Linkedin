@@ -59,6 +59,46 @@ export interface MemberStats {
   paused: number;
 }
 
+export interface WeeklyGoal {
+  contacted: number;
+  phones: number;
+  opportunities: number;
+  clients: number;
+}
+
+export interface WeeklySprintProgress {
+  member_name: string;
+  color: string;
+  contacted_actual: number;
+  contacted_goal: number;
+  phones_actual: number;
+  phones_goal: number;
+  opportunities_actual: number;
+  opportunities_goal: number;
+  clients_actual: number;
+  clients_goal: number;
+  overall_pct: number;
+}
+
+export interface WeeklySprintData {
+  week_label: string;
+  start_date: string;
+  end_date: string;
+  goals: WeeklyGoal;
+  global_totals: {
+    contacted_actual: number;
+    contacted_goal: number;
+    phones_actual: number;
+    phones_goal: number;
+    opportunities_actual: number;
+    opportunities_goal: number;
+    clients_actual: number;
+    clients_goal: number;
+    overall_pct: number;
+  };
+  members_progress: WeeklySprintProgress[];
+}
+
 export interface ContactStats {
   total: number;
   withEmail: number;
@@ -73,4 +113,5 @@ export interface ContactStats {
   topPositions?: { position: string; count: string }[];
   recentContacts?: { id: string; first_name: string; last_name: string; connected_on: string }[];
   byMember?: MemberStats[];
+  weeklySprint?: WeeklySprintData;
 }
