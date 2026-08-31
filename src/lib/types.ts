@@ -21,7 +21,7 @@ export interface ActivityLog {
   id: string;
   contact_id?: string | null;
   contact_name: string;
-  action_type: 'STATUS_CHANGE' | 'DATA_UPDATE' | 'PHONE_ADDED' | 'EMAIL_ADDED' | 'NOTE_ADDED';
+  action_type: 'STATUS_CHANGE' | 'DATA_UPDATE' | 'PHONE_ADDED' | 'EMAIL_ADDED' | 'NOTE_ADDED' | 'CONTACTED_OUTREACH' | 'OPPORTUNITY_CREATED' | 'CLIENT_WON' | 'LEAD_PAUSED';
   description: string;
   performed_by: string;
   created_at: string;
@@ -61,6 +61,7 @@ export interface MemberStats {
 }
 
 export interface WeeklyGoal {
+  daily_contacted: number;
   contacted: number;
   phones: number;
   opportunities: number;
@@ -95,7 +96,6 @@ export interface WeeklySprintData {
   start_date: string;
   end_date: string;
   goals: WeeklyGoal;
-  daily_goal_target: number;
   global_totals: {
     contacted_actual: number;
     contacted_goal: number;

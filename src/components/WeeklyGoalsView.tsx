@@ -15,6 +15,7 @@ export default function WeeklyGoalsView() {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
 
   // Edit goal form state
+  const [dailyContactedGoal, setDailyContactedGoal] = useState<number>(30);
   const [contactedGoal, setContactedGoal] = useState<number>(150);
   const [phonesGoal, setPhonesGoal] = useState<number>(25);
   const [opportunitiesGoal, setOpportunitiesGoal] = useState<number>(8);
@@ -29,6 +30,7 @@ export default function WeeklyGoalsView() {
         const data = await res.json();
         setSprintData(data.sprint);
         if (data.sprint?.goals) {
+          setDailyContactedGoal(data.sprint.goals.daily_contacted || 30);
           setContactedGoal(data.sprint.goals.contacted);
           setPhonesGoal(data.sprint.goals.phones);
           setOpportunitiesGoal(data.sprint.goals.opportunities);
@@ -54,6 +56,7 @@ export default function WeeklyGoalsView() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          daily_contacted: dailyContactedGoal,
           contacted: contactedGoal,
           phones: phonesGoal,
           opportunities: opportunitiesGoal,
@@ -110,7 +113,7 @@ export default function WeeklyGoalsView() {
             {sprintData?.week_label || 'Sprint Semanal'}
           </h2>
           <p className="text-xs text-theme-txt2 mt-0.5">
-            Las metas contabilizan cada prospección realizada sin restar si el contacto pasa a pausa o propuesta
+            Monitoreo en tiempo real de metas diarias y semanales por comercial
           </p>
         </div>
 
@@ -178,29 +181,29 @@ export default function WeeklyGoalsView() {
           </div>
 
           {/* Daily Rhythm Strip (Ritmo Diario de Prospección) */}
-          <div className="p-3 bg-gradient-to-r from-theme-sur2 to-theme-sur border border-theme-bor rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-[#f59e0b]/20 text-[#f59e0b]">
+          <div className="p-3.5 bg-gradient-to-r from-theme-sur2 to-theme-sur border border-theme-bor rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-lg bg-[#f59e0b]/20 text-[#f59e0b]">
                 <Sun className="w-4 h-4" />
               </div>
               <div>
                 <span className="font-bold text-xs text-theme-txt block">
                   Ritmo Diario de Prospección (Hoy)
                 </span>
-                <span className="text-[10.5px] text-theme-txt2 font-mono">
-                  {global.contacted_today_total} de {global.contacted_daily_goal_total} contactos abordados hoy en el equipo
+                <span className="text-[11px] text-theme-txt2 font-mono">
+                  <b className="text-theme-txt font-bold">{global.contacted_today_total}</b> de {global.contacted_daily_goal_total} contactos abordados hoy en el equipo
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="w-28 sm:w-36 h-2 bg-theme-sur border border-theme-bor rounded-full overflow-hidden">
+            <div className="flex items-center gap-2.5">
+              <div className="w-28 sm:w-40 h-2.5 bg-theme-sur border border-theme-bor rounded-full overflow-hidden">
                 <div
                   className="h-full bg-[#f59e0b] rounded-full transition-all duration-500"
                   style={{ width: `${Math.min(100, Math.max(global.today_pct_total, 2))}%` }}
                 />
               </div>
-              <span className="font-mono text-xs font-bold text-[#f59e0b]">
+              <span className="font-mono text-xs font-extrabold text-[#f59e0b]">
                 {global.today_pct_total}% hoy
               </span>
             </div>
@@ -407,7 +410,7 @@ export default function WeeklyGoalsView() {
             <div className="p-4 px-6 border-b border-theme-bor flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Target className="w-5 h-5 text-[#00a870]" />
-                <h3 className="font-bold text-sm text-theme-txt">Definir Metas Comerciales</h3>
+                <h3 className="font-bold text-sm text-theme-txt">Definir Metas Diarias & Semanales</h3>
               </div>
               <button
                 onClick={() => setIsConfigOpen(false)}
@@ -419,12 +422,27 @@ export default function WeeklyGoalsView() {
 
             <form onSubmit={handleSaveGoals} className="p-6 space-y-4 text-xs">
               <p className="text-theme-txt2 text-xs">
-                Ajusta los objetivos semanales esperados para cada comercial. El ritmo diario se calcula dividiendo la meta semanal entre 5 días hábiles.
+                Ajusta las metas diarias y semanales esperadas para cada comercial. El progreso se actualiza en tiempo real.
               </p>
 
               <div>
+                <label className="text-[11px] font-mono uppercase text-[#f59e0b] font-bold block mb-1">
+                  ⚡ Meta Diaria de Contactados (Por día)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  required
+                  value={dailyContactedGoal}
+                  onChange={(e) => setDailyContactedGoal(Number(e.target.value))}
+                  placeholder="Ej. 30"
+                  className="w-full bg-theme-sur2 border border-[#f59e0b]/40 focus:border-[#f59e0b] rounded-xl px-3.5 py-2 text-xs text-theme-txt font-mono outline-hidden font-bold"
+                />
+              </div>
+
+              <div>
                 <label className="text-[11px] font-mono uppercase text-theme-txt2 block mb-1">
-                  💬 Contactados por semana (Mensajes enviados)
+                  💬 Meta Semanal de Contactados (Lunes a Viernes)
                 </label>
                 <input
                   type="number"
@@ -432,13 +450,14 @@ export default function WeeklyGoalsView() {
                   required
                   value={contactedGoal}
                   onChange={(e) => setContactedGoal(Number(e.target.value))}
+                  placeholder="Ej. 150"
                   className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3.5 py-2 text-xs text-theme-txt font-mono outline-hidden"
                 />
               </div>
 
               <div>
                 <label className="text-[11px] font-mono uppercase text-theme-txt2 block mb-1">
-                  📱 Teléfonos / WhatsApp conseguidos
+                  📱 Teléfonos / WhatsApp conseguidos en la semana
                 </label>
                 <input
                   type="number"
@@ -452,7 +471,7 @@ export default function WeeklyGoalsView() {
 
               <div>
                 <label className="text-[11px] font-mono uppercase text-theme-txt2 block mb-1">
-                  🔥 Oportunidades calificadas
+                  🔥 Oportunidades calificadas en la semana
                 </label>
                 <input
                   type="number"
