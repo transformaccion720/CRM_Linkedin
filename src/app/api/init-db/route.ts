@@ -27,7 +27,7 @@ export async function GET() {
       `;
     }
 
-    // 2. Table contacts (Remove UNIQUE constraint on linkedin_url so multiple members can import their own list, but add composite index)
+    // 2. Table contacts
     await sql`
       CREATE TABLE IF NOT EXISTS contacts (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -50,16 +50,20 @@ export async function GET() {
       );
     `;
 
-    // Ensure columns exist if table was created previously
     await sql`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS phone VARCHAR(50);`;
     await sql`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS assigned_to VARCHAR(120) DEFAULT 'Gabino';`;
 
-    // Drop unique constraint on linkedin_url if present so each user can have their base
+    // Clean duplicate old constraints
     try {
       await sql`ALTER TABLE contacts DROP CONSTRAINT IF EXISTS contacts_linkedin_url_key;`;
-    } catch {
-      // ignore
-    }
+    } catch {}
+
+    // Unique index on (linkedin_url, assigned_to) to enable instant atomic Batch UPSERT
+    await sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_linkedin_assigned 
+      ON contacts (linkedin_url, assigned_to) 
+      WHERE linkedin_url IS NOT NULL AND linkedin_url != '';
+    `;
 
     // 3. Table message templates in database
     await sql`
@@ -98,21 +102,18 @@ export async function GET() {
       }
     }
 
-    // 5. Optimized Indexes
+    // 5. High-performance B-Tree indexes
     await sql`CREATE INDEX IF NOT EXISTS idx_contacts_status ON contacts(status);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_contacts_company ON contacts(company);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_contacts_position ON contacts(position);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_contacts_email ON contacts(email);`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_contacts_linkedin ON contacts(linkedin_url);`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_contacts_priority ON contacts(priority);`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_contacts_follow_up ON contacts(follow_up_date);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_contacts_assigned_to ON contacts(assigned_to);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_contacts_connected_on ON contacts(connected_on DESC NULLS LAST);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_contacts_created_at ON contacts(created_at DESC);`;
 
     return NextResponse.json({
       success: true,
-      message: 'Base de datos Neon inicializada con team_members, contacts, templates y settings.',
+      message: 'Base de datos Neon optimizada con índice compuesto para Batch Upsert ultra rápido.',
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);

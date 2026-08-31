@@ -6,7 +6,6 @@ function parseLinkedInDate(dateStr?: string | null): string | null {
   let clean = dateStr.trim().replace(/;+$/, '').replace(/["']/g, '');
   if (!clean) return null;
 
-  // Format: "09 Mar 2026" or "9 Mar 2026"
   const parts = clean.split(' ');
   if (parts.length === 3) {
     const day = parts[0].replace(/\D/g, '').padStart(2, '0');
@@ -34,12 +33,10 @@ function parseLinkedInDate(dateStr?: string | null): string | null {
     }
   }
 
-  // Format: "YYYY-MM-DD"
   if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) {
     return clean;
   }
 
-  // Format: "DD/MM/YYYY" or "MM/DD/YYYY"
   const slashParts = clean.split('/');
   if (slashParts.length === 3) {
     const y = slashParts[2];
@@ -51,18 +48,28 @@ function parseLinkedInDate(dateStr?: string | null): string | null {
   return null;
 }
 
+interface ParsedContact {
+  firstName: string;
+  lastName: string | null;
+  url: string | null;
+  email: string | null;
+  phone: string | null;
+  company: string | null;
+  position: string | null;
+  connectedOn: string | null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const rows = body.rows;
-    const assignedTo = body.assignedTo || 'Gabino';
+    const assignedTo = (body.assignedTo || 'Gabino').trim();
 
     if (!Array.isArray(rows) || rows.length === 0) {
       return NextResponse.json({ error: 'No se enviaron filas válidas' }, { status: 400 });
     }
 
-    let newlyInserted = 0;
-    let existingUpdated = 0;
+    const validContacts: ParsedContact[] = [];
     let skipped = 0;
 
     for (const raw of rows) {
@@ -115,66 +122,138 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      const connectedOn = parseLinkedInDate(dateRaw);
+      validContacts.push({
+        firstName,
+        lastName: lastName || null,
+        url: url || null,
+        email: email || null,
+        phone: phone || null,
+        company: company || null,
+        position: position || null,
+        connectedOn: parseLinkedInDate(dateRaw),
+      });
+    }
 
-      try {
-        if (url) {
-          // Check if contact already exists specifically FOR THIS ASSIGNED MEMBER
-          const existing = await sql`
-            SELECT id, status, notes 
-            FROM contacts 
-            WHERE linkedin_url = ${url} AND assigned_to = ${assignedTo}
-            LIMIT 1
-          `;
+    if (validContacts.length === 0) {
+      return NextResponse.json({
+        success: true,
+        newlyInserted: 0,
+        existingUpdated: 0,
+        skipped,
+        message: 'No hubo contactos válidos para procesar.',
+      });
+    }
 
-          if (existing.length > 0) {
-            // Already exists in this member's base -> update only missing fields
-            await sql`
-              UPDATE contacts
-              SET
-                first_name = COALESCE(NULLIF(${firstName}, ''), first_name),
-                last_name = COALESCE(NULLIF(${lastName}, ''), last_name),
-                email = COALESCE(NULLIF(${email}, ''), email),
-                phone = COALESCE(NULLIF(${phone}, ''), phone),
-                company = COALESCE(NULLIF(${company}, ''), company),
-                position = COALESCE(NULLIF(${position}, ''), position),
-                connected_on = COALESCE(${connectedOn}, connected_on),
-                updated_at = NOW()
-              WHERE id = ${existing[0].id}
-            `;
-            existingUpdated++;
-          } else {
-            // New record for this member
-            await sql`
-              INSERT INTO contacts (first_name, last_name, linkedin_url, email, phone, company, position, connected_on, status, assigned_to)
-              VALUES (${firstName}, ${lastName || null}, ${url}, ${email || null}, ${phone || null}, ${company || null}, ${position || null}, ${connectedOn || null}, 'Sin contactar', ${assignedTo})
-            `;
-            newlyInserted++;
-          }
-        } else {
-          // No URL -> check email for this member
-          if (email) {
-            const existingEmail = await sql`
-              SELECT id 
-              FROM contacts 
-              WHERE email = ${email} AND assigned_to = ${assignedTo}
-              LIMIT 1
-            `;
-            if (existingEmail.length > 0) {
-              existingUpdated++;
-              continue;
-            }
-          }
+    // High Performance Batch Operation:
+    // 1. Fetch all existing linkedin_urls for this member in ONE single SQL query
+    const urlsWithContact = validContacts.map((c) => c.url).filter(Boolean) as string[];
+    const existingUrlMap = new Set<string>();
 
-          await sql`
-            INSERT INTO contacts (first_name, last_name, linkedin_url, email, phone, company, position, connected_on, status, assigned_to)
-            VALUES (${firstName}, ${lastName || null}, null, ${email || null}, ${phone || null}, ${company || null}, ${position || null}, ${connectedOn || null}, 'Sin contactar', ${assignedTo})
-          `;
-          newlyInserted++;
-        }
-      } catch (err: unknown) {
-        skipped++;
+    if (urlsWithContact.length > 0) {
+      const existingRows = await sql`
+        SELECT linkedin_url 
+        FROM contacts 
+        WHERE assigned_to = ${assignedTo} 
+          AND linkedin_url = ANY(${urlsWithContact})
+      `;
+      existingRows.forEach((r) => {
+        if (r.linkedin_url) existingUrlMap.add(r.linkedin_url);
+      });
+    }
+
+    // 2. Separate into toInsert and toUpdate
+    const toInsert: ParsedContact[] = [];
+    const toUpdate: ParsedContact[] = [];
+
+    for (const c of validContacts) {
+      if (c.url && existingUrlMap.has(c.url)) {
+        toUpdate.push(c);
+      } else {
+        toInsert.push(c);
       }
+    }
+
+    // 3. Batch INSERT via unnest (1 single lightning fast query for all inserts)
+    let newlyInserted = 0;
+    if (toInsert.length > 0) {
+      const firstNames = toInsert.map((c) => c.firstName);
+      const lastNames = toInsert.map((c) => c.lastName);
+      const urls = toInsert.map((c) => c.url);
+      const emails = toInsert.map((c) => c.email);
+      const phones = toInsert.map((c) => c.phone);
+      const companies = toInsert.map((c) => c.company);
+      const positions = toInsert.map((c) => c.position);
+      const connectedOns = toInsert.map((c) => c.connectedOn);
+
+      const insertResult = await sql`
+        INSERT INTO contacts (
+          first_name, last_name, linkedin_url, email, phone, 
+          company, position, connected_on, status, assigned_to
+        )
+        SELECT 
+          fn, ln, u, em, ph, comp, pos, 
+          CASE WHEN con IS NOT NULL AND con != '' THEN con::date ELSE NULL END,
+          'Sin contactar',
+          ${assignedTo}
+        FROM UNNEST(
+          ${firstNames}::text[],
+          ${lastNames}::text[],
+          ${urls}::text[],
+          ${emails}::text[],
+          ${phones}::text[],
+          ${companies}::text[],
+          ${positions}::text[],
+          ${connectedOns}::text[]
+        ) AS t(fn, ln, u, em, ph, comp, pos, con)
+        ON CONFLICT DO NOTHING
+        RETURNING id;
+      `;
+      newlyInserted = insertResult.length;
+    }
+
+    // 4. Batch UPDATE via UNNEST (1 single fast query for all updates, preserving status and notes)
+    let existingUpdated = toUpdate.length;
+    if (toUpdate.length > 0) {
+      const firstNames = toUpdate.map((c) => c.firstName);
+      const lastNames = toUpdate.map((c) => c.lastName);
+      const urls = toUpdate.map((c) => c.url);
+      const emails = toUpdate.map((c) => c.email);
+      const phones = toUpdate.map((c) => c.phone);
+      const companies = toUpdate.map((c) => c.company);
+      const positions = toUpdate.map((c) => c.position);
+      const connectedOns = toUpdate.map((c) => c.connectedOn);
+
+      await sql`
+        UPDATE contacts c
+        SET
+          first_name = COALESCE(NULLIF(t.fn, ''), c.first_name),
+          last_name = COALESCE(NULLIF(t.ln, ''), c.last_name),
+          email = COALESCE(NULLIF(t.em, ''), c.email),
+          phone = COALESCE(NULLIF(t.ph, ''), c.phone),
+          company = COALESCE(NULLIF(t.comp, ''), c.company),
+          position = COALESCE(NULLIF(t.pos, ''), c.position),
+          connected_on = CASE 
+            WHEN t.con IS NOT NULL AND t.con != '' THEN t.con::date 
+            ELSE c.connected_on 
+          END,
+          updated_at = NOW()
+        FROM (
+          SELECT 
+            fn, ln, u, em, ph, comp, pos, con
+          FROM UNNEST(
+            ${firstNames}::text[],
+            ${lastNames}::text[],
+            ${urls}::text[],
+            ${emails}::text[],
+            ${phones}::text[],
+            ${companies}::text[],
+            ${positions}::text[],
+            ${connectedOns}::text[]
+          ) AS u(fn, ln, u, em, ph, comp, pos, con)
+        ) t
+        WHERE c.linkedin_url = t.u 
+          AND c.assigned_to = ${assignedTo};
+      `;
     }
 
     return NextResponse.json({
@@ -182,7 +261,7 @@ export async function POST(req: NextRequest) {
       newlyInserted,
       existingUpdated,
       skipped,
-      message: `Procesamiento completado para ${assignedTo}: ${newlyInserted} nuevos agregados, ${existingUpdated} omitidos/actualizados.`,
+      message: `Procesamiento ultra-rápido para ${assignedTo}: ${newlyInserted} nuevos agregados, ${existingUpdated} omitidos/actualizados sin alterar notas.`,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
