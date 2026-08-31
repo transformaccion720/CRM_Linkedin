@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
+import { X, UserPlus, Building2, Briefcase, Mail, Phone, Link2, Star, Calendar, Tag, Check, Loader2, UserCheck, Globe } from 'lucide-react';
 import { Contact, ContactStatus, TeamMember } from '@/lib/types';
-import { X, UserPlus, Save, Loader2, Star, UserCheck } from 'lucide-react';
 
 interface NewContactModalProps {
   isOpen: boolean;
@@ -11,22 +11,43 @@ interface NewContactModalProps {
   teamMembers?: TeamMember[];
 }
 
-export default function NewContactModal({ isOpen, onClose, onSuccess, teamMembers = [] }: NewContactModalProps) {
+export default function NewContactModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  teamMembers = [],
+}: NewContactModalProps) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [linkedinUrl, setLinkedinUrl] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
   const [company, setCompany] = useState('');
   const [position, setPosition] = useState('');
+  const [country, setCountry] = useState('Perú');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [linkedinUrl, setLinkedinUrl] = useState('');
   const [status, setStatus] = useState<ContactStatus>('Sin contactar');
   const [priority, setPriority] = useState<number>(1);
   const [notes, setNotes] = useState('');
+  const [followUpDate, setFollowUpDate] = useState('');
   const [assignedTo, setAssignedTo] = useState('Gabino');
+  const [tagInput, setTagInput] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const handleAddTag = () => {
+    const trimmed = tagInput.trim();
+    if (trimmed && !tags.includes(trimmed)) {
+      setTags([...tags, trimmed]);
+      setTagInput('');
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setTags(tags.filter((t) => t !== tagToRemove));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,43 +60,58 @@ export default function NewContactModal({ isOpen, onClose, onSuccess, teamMember
     setError(null);
 
     try {
+      let finalTags = [...tags];
+      const pending = tagInput.trim();
+      if (pending && !finalTags.includes(pending)) {
+        finalTags.push(pending);
+      }
+
       const res = await fetch('/api/contacts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           first_name: firstName.trim(),
           last_name: lastName.trim() || null,
-          linkedin_url: linkedinUrl.trim() || null,
-          email: email.trim() || null,
-          phone: phone.trim() || null,
           company: company.trim() || null,
           position: position.trim() || null,
-          connected_on: new Date().toISOString().split('T')[0],
+          country: country.trim() || 'Perú',
+          email: email.trim() || null,
+          phone: phone.trim() || null,
+          linkedin_url: linkedinUrl.trim() || null,
           status,
           priority,
           notes: notes.trim() || null,
-          assigned_to: assignedTo,
+          follow_up_date: followUpDate || null,
+          tags: finalTags,
+          assigned_to: assignedTo.trim() || 'Gabino',
         }),
       });
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Error al crear prospecto');
+        throw new Error(data.error || 'Error al guardar');
       }
 
       onSuccess(data.contact);
       onClose();
+
+      // Reset form
       setFirstName('');
       setLastName('');
-      setLinkedinUrl('');
-      setEmail('');
-      setPhone('');
       setCompany('');
       setPosition('');
-      setNotes('');
+      setCountry('Perú');
+      setEmail('');
+      setPhone('');
+      setLinkedinUrl('');
+      setStatus('Sin contactar');
       setPriority(1);
+      setNotes('');
+      setFollowUpDate('');
+      setTags([]);
+      setTagInput('');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error al guardar';
+      const msg = err instanceof Error ? err.message : 'Error al crear contacto';
       setError(msg);
     } finally {
       setLoading(false);
@@ -83,10 +119,10 @@ export default function NewContactModal({ isOpen, onClose, onSuccess, teamMember
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-theme-sur border border-theme-bor rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col text-theme-txt animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+      <div className="bg-theme-sur border border-theme-bor rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col text-theme-txt animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
-        <div className="p-4 px-6 border-b border-theme-bor flex items-center justify-between bg-theme-sur">
+        <div className="p-4 px-6 border-b border-theme-bor flex items-center justify-between bg-theme-sur shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[#00a870]/15 flex items-center justify-center text-[#00a870]">
               <UserPlus className="w-5 h-5" />
@@ -196,13 +232,13 @@ export default function NewContactModal({ isOpen, onClose, onSuccess, teamMember
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 block mb-1">
-                Correo Electrónico
+                País
               </label>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Ej. cmendoza@empresa.com"
+                type="text"
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                placeholder="Ej. Perú, Colombia, México..."
                 className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-lg px-3 py-1.5 text-xs text-theme-txt outline-hidden"
               />
             </div>
@@ -219,6 +255,19 @@ export default function NewContactModal({ isOpen, onClose, onSuccess, teamMember
                 className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-lg px-3 py-1.5 text-xs text-theme-txt outline-hidden"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 block mb-1">
+              Correo Electrónico
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Ej. cmendoza@empresa.com"
+              className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-lg px-3 py-1.5 text-xs text-theme-txt outline-hidden"
+            />
           </div>
 
           <div>
@@ -242,14 +291,13 @@ export default function NewContactModal({ isOpen, onClose, onSuccess, teamMember
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as ContactStatus)}
-                className="w-full bg-theme-sur2 border border-theme-bor rounded-lg px-2.5 py-1.5 text-xs text-theme-txt outline-hidden cursor-pointer"
+                className="w-full bg-theme-sur2 border border-theme-bor rounded-lg px-3 py-1.5 text-xs text-theme-txt outline-hidden cursor-pointer"
               >
                 <option value="Sin contactar">Sin contactar</option>
                 <option value="En contacto">En contacto</option>
                 <option value="Oportunidad">Oportunidad</option>
                 <option value="Cliente">Cliente</option>
                 <option value="En pausa">En pausa</option>
-                <option value="Descartado">Descartado</option>
               </select>
             </div>
 
@@ -257,54 +305,90 @@ export default function NewContactModal({ isOpen, onClose, onSuccess, teamMember
               <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 block mb-1">
                 Prioridad
               </label>
-              <div className="flex items-center gap-1 h-[34px] px-2 bg-theme-sur2 border border-theme-bor rounded-lg">
-                {[1, 2, 3].map((star) => (
-                  <button
-                    type="button"
-                    key={star}
-                    onClick={() => setPriority(star)}
-                    className="p-1 cursor-pointer"
-                  >
-                    <Star
-                      className={`w-4 h-4 ${
-                        star <= priority ? 'text-[#f59e0b] fill-[#f59e0b]' : 'text-theme-txt3'
-                      }`}
-                    />
-                  </button>
-                ))}
-              </div>
+              <select
+                value={priority}
+                onChange={(e) => setPriority(Number(e.target.value))}
+                className="w-full bg-theme-sur2 border border-theme-bor rounded-lg px-3 py-1.5 text-xs text-theme-txt outline-hidden cursor-pointer"
+              >
+                <option value={1}>⭐ 1 Estrella (Normal)</option>
+                <option value={2}>⭐⭐ 2 Estrellas (Media)</option>
+                <option value={3}>⭐⭐⭐ 3 Estrellas (Alta)</option>
+              </select>
             </div>
           </div>
 
+          {/* Tags */}
+          <div>
+            <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 block mb-1">
+              Etiquetas
+            </label>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {tags.map((t) => (
+                <span
+                  key={t}
+                  className="px-2 py-0.5 rounded text-[11px] bg-[#2979ff]/15 text-[#2979ff] border border-[#2979ff]/30 flex items-center gap-1"
+                >
+                  <span>{t}</span>
+                  <button type="button" onClick={() => handleRemoveTag(t)}>
+                    ✕
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddTag();
+                  }
+                }}
+                placeholder="Ej. Minería, Director..."
+                className="flex-1 bg-theme-sur2 border border-theme-bor rounded-lg px-3 py-1.5 text-xs text-theme-txt outline-hidden"
+              />
+              <button
+                type="button"
+                onClick={handleAddTag}
+                className="px-3 py-1.5 bg-theme-sur2 border border-theme-bor hover:bg-theme-sur rounded-lg text-xs font-semibold"
+              >
+                Añadir
+              </button>
+            </div>
+          </div>
+
+          {/* Notes */}
           <div>
             <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 block mb-1">
               Notas iniciales
             </label>
             <textarea
-              rows={3}
+              rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Acuerdos, contexto o motivos de contacto..."
-              className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl p-3 text-xs text-theme-txt outline-hidden resize-none font-sans"
+              placeholder="Notas sobre el prospecto..."
+              className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-lg p-2.5 text-xs text-theme-txt outline-hidden resize-none"
             />
           </div>
 
-          <div className="pt-3 border-t border-theme-bor flex items-center justify-end gap-2">
+          {/* Submit */}
+          <div className="pt-2 flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg text-xs font-medium text-theme-txt2 hover:text-theme-txt bg-theme-sur2 hover:bg-theme-sur3 transition-all cursor-pointer"
+              className="px-4 py-2 rounded-lg text-xs text-theme-txt2 hover:bg-theme-sur2 border border-theme-bor cursor-pointer"
             >
               Cancelar
             </button>
-
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2 rounded-xl text-xs font-bold text-[#00110b] bg-[#00a870] hover:bg-[#00a870]/90 disabled:opacity-50 flex items-center gap-1.5 shadow-md shadow-[#00a870]/20 transition-all cursor-pointer"
+              className="px-4 py-2 rounded-lg text-xs font-bold text-[#00110b] bg-[#00a870] hover:bg-[#00a870]/90 disabled:opacity-50 flex items-center gap-1.5 shadow-md shadow-[#00a870]/20 cursor-pointer"
             >
-              {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-              <span>{loading ? 'Guardando...' : 'Guardar Prospecto'}</span>
+              {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+              <span>Guardar Prospecto</span>
             </button>
           </div>
         </form>

@@ -36,6 +36,7 @@ export interface Contact {
   phone?: string | null;
   company: string | null;
   position: string | null;
+  country?: string | null;
   connected_on: string | null;
   status: ContactStatus;
   notes?: string | null;
@@ -109,6 +110,7 @@ export interface ContactStats {
   pendingFollowUps?: number;
   byStatus: Record<string, number>;
   topCompanies?: { company: string; count: string }[];
+  topCountries?: { country: string; count: string }[];
   byYear?: { yr: string; count: string }[];
   topPositions?: { position: string; count: string }[];
   recentContacts?: { id: string; first_name: string; last_name: string; connected_on: string }[];

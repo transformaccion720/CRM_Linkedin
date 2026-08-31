@@ -4,7 +4,7 @@ import { DEFAULT_TEMPLATES } from '@/lib/templates';
 
 export async function GET() {
   try {
-    // 1. Table team_members with password support
+    // 1. Table team_members
     await sql`
       CREATE TABLE IF NOT EXISTS team_members (
         id VARCHAR(80) PRIMARY KEY,
@@ -17,19 +17,7 @@ export async function GET() {
       );
     `;
 
-    // Ensure password column exists if table was created previously
     await sql`ALTER TABLE team_members ADD COLUMN IF NOT EXISTS password VARCHAR(255) DEFAULT '123456';`;
-
-    // Seed default admin member Gabino if empty
-    const teamCountRes = await sql`SELECT COUNT(*) as count FROM team_members`;
-    const teamCount = parseInt(teamCountRes[0]?.count || '0', 10);
-    if (teamCount === 0) {
-      await sql`
-        INSERT INTO team_members (id, name, email, role, color, password)
-        VALUES ('gabino', 'Gabino', 'transformaccion720@gmail.com', 'Director Comercial', '#00a870', '123456')
-        ON CONFLICT (id) DO NOTHING;
-      `;
-    }
 
     // 2. Table contacts
     await sql`
@@ -42,6 +30,7 @@ export async function GET() {
         phone VARCHAR(50),
         company VARCHAR(255),
         position VARCHAR(255),
+        country VARCHAR(100) DEFAULT 'Perú',
         connected_on DATE,
         status VARCHAR(50) DEFAULT 'Sin contactar',
         notes TEXT,
@@ -55,16 +44,17 @@ export async function GET() {
     `;
 
     await sql`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS phone VARCHAR(50);`;
+    await sql`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS country VARCHAR(100) DEFAULT 'Perú';`;
     await sql`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS assigned_to VARCHAR(120) DEFAULT 'Gabino';`;
 
-    // Unique index on (linkedin_url, assigned_to) to enable instant atomic Batch UPSERT
+    // Unique index on (linkedin_url, assigned_to)
     await sql`
       CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_linkedin_assigned 
       ON contacts (linkedin_url, assigned_to) 
       WHERE linkedin_url IS NOT NULL AND linkedin_url != '';
     `;
 
-    // 3. Table activity_logs for audit
+    // 3. Table activity_logs
     await sql`
       CREATE TABLE IF NOT EXISTS activity_logs (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -102,24 +92,11 @@ export async function GET() {
       );
     `;
 
-    // Seed default templates if empty
-    const countResult = await sql`SELECT COUNT(*) as count FROM templates`;
-    const count = parseInt(countResult[0]?.count || '0', 10);
-    if (count === 0) {
-      for (let i = 0; i < DEFAULT_TEMPLATES.length; i++) {
-        const t = DEFAULT_TEMPLATES[i];
-        await sql`
-          INSERT INTO templates (id, name, category, target_audience, text, is_active)
-          VALUES (${t.id}, ${t.name}, ${t.category}, ${t.targetAudience}, ${t.text}, ${i === 0})
-          ON CONFLICT (id) DO NOTHING;
-        `;
-      }
-    }
-
-    // 6. High-performance B-Tree indexes
+    // Indexes
     await sql`CREATE INDEX IF NOT EXISTS idx_contacts_status ON contacts(status);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_contacts_company ON contacts(company);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_contacts_position ON contacts(position);`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_contacts_country ON contacts(country);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_contacts_email ON contacts(email);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_contacts_assigned_to ON contacts(assigned_to);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_contacts_connected_on ON contacts(connected_on DESC NULLS LAST);`;
@@ -127,7 +104,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      message: 'Base de datos Neon inicializada con soporte de contraseñas de usuario.',
+      message: 'Base de datos Neon inicializada con soporte de país y optimizaciones.',
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);

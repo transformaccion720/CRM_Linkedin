@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Contact, ContactStatus, TeamMember } from '@/lib/types';
-import { X, ExternalLink, Mail, Building2, Briefcase, Calendar, Trash2, CheckCircle2, Save, Star, Tag, Clock, MessageSquare, Plus, Phone, UserCheck } from 'lucide-react';
+import { X, ExternalLink, Mail, Building2, Briefcase, Calendar, Trash2, CheckCircle2, Save, Star, Tag, Clock, MessageSquare, Plus, Phone, UserCheck, Globe } from 'lucide-react';
 
 interface ContactDrawerProps {
   contact: Contact | null;
@@ -37,6 +37,7 @@ export default function ContactDrawer({
   const [lastName, setLastName] = useState<string>('');
   const [company, setCompany] = useState<string>('');
   const [position, setPosition] = useState<string>('');
+  const [country, setCountry] = useState<string>('Perú');
   const [email, setEmail] = useState<string>('');
   const [phone, setPhone] = useState<string>('');
   const [status, setStatus] = useState<ContactStatus>('Sin contactar');
@@ -55,15 +56,16 @@ export default function ContactDrawer({
       setLastName(contact.last_name || '');
       setCompany(contact.company || '');
       setPosition(contact.position || '');
+      setCountry(contact.country || 'Perú');
       setEmail(contact.email || '');
       setPhone(contact.phone || '');
       setStatus(contact.status);
       setNotes(contact.notes || '');
       setPriority(contact.priority || 1);
       setFollowUpDate(contact.follow_up_date || '');
-      // Recognize the exact assigned_to from the contact record
       setAssignedTo(contact.assigned_to || (teamMembers[0]?.name) || 'Gabino');
       setTags(contact.tags || []);
+      setNewTagInput('');
       setSaveSuccess(false);
     }
   }, [contact, teamMembers]);
@@ -73,6 +75,15 @@ export default function ContactDrawer({
   const handleSave = async () => {
     setSaving(true);
     try {
+      // Auto-include pending tag in input if user typed but didn't click Add
+      let currentTags = [...tags];
+      const pendingTag = newTagInput.trim();
+      if (pendingTag && !currentTags.includes(pendingTag)) {
+        currentTags.push(pendingTag);
+        setTags(currentTags);
+        setNewTagInput('');
+      }
+
       const res = await fetch(`/api/contacts/${contact.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -81,6 +92,7 @@ export default function ContactDrawer({
           last_name: lastName.trim() || null,
           company: company.trim() || null,
           position: position.trim() || null,
+          country: country.trim() || 'Perú',
           email: email.trim() || null,
           phone: phone.trim() || null,
           status,
@@ -89,14 +101,14 @@ export default function ContactDrawer({
           follow_up_date: followUpDate || null,
           assigned_to: assignedTo.trim() || contact.assigned_to || 'Gabino',
           performed_by: assignedTo.trim() || 'Comercial',
-          tags,
+          tags: currentTags,
         }),
       });
       const data = await res.json();
       if (res.ok && data.contact) {
         onUpdate(data.contact);
         setSaveSuccess(true);
-        setTimeout(() => setSaveSuccess(false), 2000);
+        setTimeout(() => setSaveSuccess(false), 2500);
       }
     } catch (e) {
       console.error('Error guardando:', e);
@@ -165,7 +177,7 @@ export default function ContactDrawer({
         <div className="p-3 bg-theme-sur2/60 border-b border-theme-bor flex gap-2">
           {onOpenTemplates && (
             <button
-              onClick={() => onOpenTemplates({ ...contact, first_name: firstName, last_name: lastName, company, position })}
+              onClick={() => onOpenTemplates({ ...contact, first_name: firstName, last_name: lastName, company, position, country })}
               className="flex-1 py-2 px-3 rounded-lg text-xs font-bold text-[#00110b] bg-[#00a870] hover:bg-[#00a870]/90 flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
             >
               <MessageSquare className="w-4 h-4" />
@@ -211,7 +223,6 @@ export default function ContactDrawer({
                 onChange={(e) => setAssignedTo(e.target.value)}
                 className="w-full bg-theme-sur border border-theme-bor rounded-md px-2 py-1 text-xs text-theme-txt font-semibold outline-hidden cursor-pointer"
               >
-                {/* Dynamically show members and preserve the current contact assignment */}
                 {teamMembers.length > 0 ? (
                   teamMembers.map((m) => (
                     <option key={m.id} value={m.name}>
@@ -221,7 +232,6 @@ export default function ContactDrawer({
                 ) : (
                   <option value={assignedTo}>{assignedTo}</option>
                 )}
-                {/* Fallback if contact has a custom assigned name not in team list yet */}
                 {teamMembers.length > 0 && !teamMembers.some((m) => m.name === assignedTo) && (
                   <option value={assignedTo}>{assignedTo}</option>
                 )}
@@ -229,7 +239,7 @@ export default function ContactDrawer({
             </div>
           </div>
 
-          {/* Editable Contact Details: Cargo, Empresa, Email, Teléfono */}
+          {/* Editable Contact Details: Cargo, Empresa, País, Email, Teléfono */}
           <div className="space-y-3 bg-theme-sur2 p-4 rounded-xl border border-theme-bor">
             <span className="text-[10.5px] font-mono uppercase tracking-wider text-theme-txt3 block font-bold">
               Datos Profesionales Editables
@@ -250,19 +260,35 @@ export default function ContactDrawer({
               />
             </div>
 
-            {/* Empresa editable */}
-            <div>
-              <label className="text-[10px] font-mono uppercase tracking-wider text-theme-txt2 flex items-center gap-1 mb-1">
-                <Building2 className="w-3 h-3 text-[#00a870]" />
-                <span>Empresa / Organización</span>
-              </label>
-              <input
-                type="text"
-                value={company}
-                onChange={(e) => setCompany(e.target.value)}
-                placeholder="Ej. Minera Chinalco, BBVA..."
-                className="w-full bg-theme-sur border border-theme-bor focus:border-[#00a870] rounded-lg px-2.5 py-1.5 text-xs text-theme-txt outline-hidden font-medium"
-              />
+            {/* Empresa y País editable */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label className="text-[10px] font-mono uppercase tracking-wider text-theme-txt2 flex items-center gap-1 mb-1">
+                  <Building2 className="w-3 h-3 text-[#00a870]" />
+                  <span>Empresa</span>
+                </label>
+                <input
+                  type="text"
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                  placeholder="Ej. Minera Chinalco..."
+                  className="w-full bg-theme-sur border border-theme-bor focus:border-[#00a870] rounded-lg px-2.5 py-1.5 text-xs text-theme-txt outline-hidden font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-mono uppercase tracking-wider text-theme-txt2 flex items-center gap-1 mb-1">
+                  <Globe className="w-3 h-3 text-[#f59e0b]" />
+                  <span>País</span>
+                </label>
+                <input
+                  type="text"
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  placeholder="Ej. Perú, Colombia, México..."
+                  className="w-full bg-theme-sur border border-theme-bor focus:border-[#f59e0b] rounded-lg px-2.5 py-1.5 text-xs text-theme-txt outline-hidden font-medium"
+                />
+              </div>
             </div>
 
             {/* Email editable */}
@@ -423,6 +449,7 @@ export default function ContactDrawer({
                 className="flex-1 bg-theme-sur2 border border-theme-bor rounded-lg px-3 py-1.5 text-xs text-theme-txt outline-hidden focus:border-[#00a870]"
               />
               <button
+                type="button"
                 onClick={handleAddTag}
                 className="px-3 py-1.5 bg-theme-sur2 hover:bg-theme-sur3 border border-theme-bor rounded-lg text-xs font-semibold text-theme-txt cursor-pointer flex items-center gap-1"
               >
@@ -459,7 +486,7 @@ export default function ContactDrawer({
 
           <div className="flex items-center gap-2">
             {saveSuccess && (
-              <span className="text-xs text-[#00a870] flex items-center gap-1 font-bold">
+              <span className="text-xs text-[#00a870] flex items-center gap-1 font-bold animate-in fade-in">
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>¡Actualizado!</span>
               </span>

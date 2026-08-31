@@ -18,6 +18,7 @@ export async function PATCH(
       last_name,
       company,
       position,
+      country,
       email,
       phone, 
       assigned_to,
@@ -25,8 +26,11 @@ export async function PATCH(
     } = body;
 
     // Get current state before update for audit log
-    const prevRows = await sql`SELECT first_name, last_name, status, email, phone, company, position, assigned_to FROM contacts WHERE id = ${id} LIMIT 1`;
+    const prevRows = await sql`SELECT first_name, last_name, status, email, phone, company, position, country, assigned_to, tags, notes FROM contacts WHERE id = ${id} LIMIT 1`;
     const prev = prevRows[0];
+
+    // Ensure tags is handled safely as an array
+    const safeTags: string[] = Array.isArray(tags) ? tags : (prev?.tags || []);
 
     const result = await sql`
       UPDATE contacts
@@ -36,13 +40,14 @@ export async function PATCH(
         last_name = CASE WHEN ${last_name !== undefined} THEN ${last_name} ELSE last_name END,
         company = CASE WHEN ${company !== undefined} THEN ${company} ELSE company END,
         position = CASE WHEN ${position !== undefined} THEN ${position} ELSE position END,
+        country = CASE WHEN ${country !== undefined} THEN ${country} ELSE country END,
         email = CASE WHEN ${email !== undefined} THEN ${email} ELSE email END,
         phone = CASE WHEN ${phone !== undefined} THEN ${phone} ELSE phone END,
         assigned_to = CASE WHEN ${assigned_to !== undefined} THEN ${assigned_to} ELSE assigned_to END,
         notes = CASE WHEN ${notes !== undefined} THEN ${notes} ELSE notes END,
         priority = CASE WHEN ${priority !== undefined} THEN ${priority} ELSE priority END,
         follow_up_date = CASE WHEN ${follow_up_date !== undefined} THEN ${follow_up_date} ELSE follow_up_date END,
-        tags = CASE WHEN ${tags !== undefined} THEN ${tags} ELSE tags END,
+        tags = ${safeTags}::text[],
         updated_at = NOW()
       WHERE id = ${id}
       RETURNING *;
@@ -78,7 +83,7 @@ export async function PATCH(
           INSERT INTO activity_logs (contact_id, contact_name, action_type, description, performed_by)
           VALUES (${id}, ${contactFullName}, 'DATA_UPDATE', ${'Actualizó cargo a: ' + position}, ${actor});
         `;
-      } else if (notes && prev && prev.notes !== notes) {
+      } else if (notes !== undefined && prev && prev.notes !== notes && notes.trim() !== '') {
         await sql`
           INSERT INTO activity_logs (contact_id, contact_name, action_type, description, performed_by)
           VALUES (${id}, ${contactFullName}, 'NOTE_ADDED', ${'Registró nuevos acuerdos/notas de conversación'}, ${actor});

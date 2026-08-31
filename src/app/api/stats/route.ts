@@ -33,7 +33,7 @@ export async function GET() {
       byStatus[r.status] = parseInt(r.count, 10);
     });
 
-    // 3. Breakdown by Team Member (Performance KPIs per member)
+    // 3. Breakdown by Team Member
     const memberStatsResult = await sql`
       SELECT 
         COALESCE(assigned_to, 'Sin asignar') as member_name,
@@ -60,7 +60,20 @@ export async function GET() {
       paused: r.paused,
     }));
 
-    // 4. Top companies
+    // 4. Breakdown by Countries (Top Countries)
+    const countriesResult = await sql`
+      SELECT COALESCE(country, 'Perú') as country, COUNT(*) as count 
+      FROM contacts 
+      GROUP BY COALESCE(country, 'Perú') 
+      ORDER BY count DESC 
+      LIMIT 8
+    `;
+    const topCountries = countriesResult.map((r) => ({
+      country: r.country,
+      count: String(r.count),
+    }));
+
+    // 5. Top companies
     const topCompanies = await sql`
       SELECT company, COUNT(*) as count 
       FROM contacts 
@@ -70,7 +83,7 @@ export async function GET() {
       LIMIT 6
     `;
 
-    // 5. By year
+    // 6. By year
     const byYear = await sql`
       SELECT TO_CHAR(connected_on, 'YYYY') as yr, COUNT(*) as count 
       FROM contacts 
@@ -80,7 +93,7 @@ export async function GET() {
       LIMIT 8
     `;
 
-    // 6. Top positions
+    // 7. Top positions
     const topPositions = await sql`
       SELECT position, COUNT(*) as count 
       FROM contacts 
@@ -102,6 +115,7 @@ export async function GET() {
           pendingFollowUps,
           byStatus,
           byMember,
+          topCountries,
           topCompanies,
           byYear,
           topPositions,

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { ContactStats } from '@/lib/types';
-import { Users, Mail, Building2, Calendar, Target, Award, Clock, ArrowUpRight, Phone, CheckCircle2, TrendingUp, UserCheck, Shield } from 'lucide-react';
+import { Users, Mail, Building2, Calendar, Target, Award, Clock, ArrowUpRight, Phone, CheckCircle2, TrendingUp, UserCheck, Shield, Globe } from 'lucide-react';
 
 interface ExecutiveDashboardProps {
   stats: ContactStats | null;
@@ -24,7 +24,6 @@ export default function ExecutiveDashboard({ stats }: ExecutiveDashboardProps) {
   const withEmail = stats.withEmail || 0;
   const withPhone = stats.withPhone || 0;
   const companiesCount = stats.companiesCount || 0;
-  const recentCount = stats.recentCount || 0;
 
   const inContact = stats.byStatus['En contacto'] || stats.byStatus['Contactado'] || 0;
   const opportunity = stats.byStatus['Oportunidad'] || 0;
@@ -51,7 +50,7 @@ export default function ExecutiveDashboard({ stats }: ExecutiveDashboardProps) {
             Panel de Control Global y Desempeño Comercial
           </h2>
           <p className="text-xs text-theme-txt2 mt-0.5">
-            Métricas estratégicas consolidadas y rendimiento por miembro del equipo
+            Métricas estratégicas consolidadas, distribución geográfica y rendimiento por comercial
           </p>
         </div>
 
@@ -195,8 +194,8 @@ export default function ExecutiveDashboard({ stats }: ExecutiveDashboardProps) {
         </div>
       )}
 
-      {/* Conversion Funnel Breakdown Global */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Grid: Global Pipeline + Geographic Distribution (Countries) + Top Companies */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Global Pipeline Conversion */}
         <div className="bg-theme-sur border border-theme-bor rounded-2xl p-5 shadow-xs space-y-3.5">
           <h3 className="font-bold text-sm text-theme-txt flex items-center gap-2">
@@ -247,6 +246,44 @@ export default function ExecutiveDashboard({ stats }: ExecutiveDashboardProps) {
           </div>
         </div>
 
+        {/* Geographic Distribution: Top Countries */}
+        <div className="bg-theme-sur border border-theme-bor rounded-2xl p-5 shadow-xs space-y-3.5">
+          <h3 className="font-bold text-sm text-theme-txt flex items-center gap-2">
+            <Globe className="w-4 h-4 text-[#f59e0b]" />
+            <span>Distribución por País</span>
+          </h3>
+
+          <div className="space-y-2 pt-1">
+            {stats.topCountries && stats.topCountries.length > 0 ? (
+              stats.topCountries.map((c) => {
+                const count = parseInt(c.count, 10);
+                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+
+                return (
+                  <div key={c.country} className="p-2 rounded-lg bg-theme-sur2 border border-theme-bor space-y-1 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-theme-txt font-semibold flex items-center gap-1.5 truncate max-w-[170px]">
+                        <span>🌎</span>
+                        <span>{c.country}</span>
+                      </span>
+                      <span className="font-mono font-bold text-[#f59e0b]">
+                        {count.toLocaleString()} ({pct}%)
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-theme-sur rounded-full overflow-hidden">
+                      <div className="h-full bg-[#f59e0b]" style={{ width: `${Math.max(pct, 2)}%` }} />
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="p-6 text-center text-xs text-theme-txt2">
+                Sin datos de país registrados
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Top Companies */}
         <div className="bg-theme-sur border border-theme-bor rounded-2xl p-5 shadow-xs space-y-3.5">
           <h3 className="font-bold text-sm text-theme-txt flex items-center gap-2">
@@ -257,9 +294,9 @@ export default function ExecutiveDashboard({ stats }: ExecutiveDashboardProps) {
           <div className="space-y-2 pt-1">
             {stats.topCompanies && stats.topCompanies.map((c) => (
               <div key={c.company} className="flex items-center justify-between p-2 rounded-lg bg-theme-sur2 border border-theme-bor text-xs">
-                <span className="text-theme-txt font-medium truncate max-w-[240px]">{c.company}</span>
+                <span className="text-theme-txt font-medium truncate max-w-[180px]">{c.company}</span>
                 <span className="font-mono font-bold text-[#00a870] px-2 py-0.5 bg-theme-sur rounded border border-theme-bor">
-                  {c.count} contactos
+                  {c.count}
                 </span>
               </div>
             ))}
