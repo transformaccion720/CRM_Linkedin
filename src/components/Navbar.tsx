@@ -1,11 +1,12 @@
 'use client';
 
 import React from 'react';
-import { Upload, CheckCircle2, RefreshCw, Users, Kanban, BarChart2, PieChart, Download, Sun, Moon, Settings, Menu, Filter, UserPlus } from 'lucide-react';
+import { Upload, CheckCircle2, RefreshCw, Users, Kanban, BarChart2, PieChart, Download, Sun, Moon, Settings, Menu, Filter, UserPlus, UserCog } from 'lucide-react';
 
 interface NavbarProps {
   onOpenImport: () => void;
   onOpenNewContact: () => void;
+  onOpenTeamManager?: () => void;
   onRefresh: () => void;
   onExport: () => void;
   onOpenTemplateManager?: () => void;
@@ -18,6 +19,7 @@ interface NavbarProps {
 export default function Navbar({
   onOpenImport,
   onOpenNewContact,
+  onOpenTeamManager,
   onRefresh,
   onExport,
   onOpenTemplateManager,
@@ -77,6 +79,18 @@ export default function Navbar({
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>{initStatus}</span>
             </div>
+          )}
+
+          {/* Manage Team Members button */}
+          {onOpenTeamManager && (
+            <button
+              onClick={onOpenTeamManager}
+              className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold text-theme-txt hover:text-[#00a870] bg-theme-sur2 hover:bg-theme-sur3 border border-theme-bor flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+              title="Crear y Gestionar Miembros del Equipo"
+            >
+              <UserCog className="w-3.5 h-3.5 text-[#2979ff]" />
+              <span className="hidden md:inline">Equipo</span>
+            </button>
           )}
 
           {/* New Contact button */}
@@ -149,7 +163,7 @@ export default function Navbar({
         </div>
       </header>
 
-      {/* Navigation tabs with Funnel included */}
+      {/* Navigation tabs */}
       <nav className="flex gap-1 bg-theme-sur border-b border-theme-bor px-3 sm:px-6 shrink-0 overflow-x-auto no-scrollbar">
         <button
           onClick={() => setActiveTab('contactos')}

@@ -277,6 +277,7 @@ export default function Home() {
         setActiveTab={setActiveTab}
         onOpenImport={() => setIsImportOpen(true)}
         onOpenNewContact={() => setIsNewContactOpen(true)}
+        onOpenTeamManager={() => setIsTeamManagerOpen(true)}
         onOpenTemplateManager={() => setIsTemplateManagerOpen(true)}
         onToggleMobileSidebar={() => setIsMobileSidebarOpen(true)}
         onRefresh={() => {
@@ -291,7 +292,7 @@ export default function Home() {
 
       {/* Main workspace layout */}
       <div className="flex flex-1 overflow-hidden min-h-0">
-        {/* Clean Responsive Sidebar without duplicated upper navigation */}
+        {/* Clean Responsive Sidebar */}
         <Sidebar
           viewFilter={viewFilter}
           setViewFilter={setViewFilter}
