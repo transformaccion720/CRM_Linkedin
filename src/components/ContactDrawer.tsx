@@ -173,15 +173,15 @@ export default function ContactDrawer({
           </button>
         </div>
 
-        {/* Action Button: LinkedIn Message Templates */}
+        {/* Action Button: LinkedIn Message & Zernio Assistant */}
         <div className="p-3 bg-theme-sur2/60 border-b border-theme-bor flex gap-2">
           {onOpenTemplates && (
             <button
-              onClick={() => onOpenTemplates({ ...contact, first_name: firstName, last_name: lastName, company, position, country })}
-              className="flex-1 py-2 px-3 rounded-lg text-xs font-bold text-[#00110b] bg-[#00a870] hover:bg-[#00a870]/90 flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
+              onClick={() => onOpenTemplates({ ...contact, first_name: firstName, last_name: lastName, company, position, country, assigned_to: assignedTo })}
+              className="flex-1 py-2 px-3 rounded-lg text-xs font-bold text-white bg-[#0a66c2] hover:bg-[#084e96] flex items-center justify-center gap-2 shadow-md shadow-[#0a66c2]/20 transition-all cursor-pointer"
             >
               <MessageSquare className="w-4 h-4" />
-              <span>Plantillas de Mensaje LinkedIn</span>
+              <span>Gestionar Mensaje LinkedIn (Zernio)</span>
             </button>
           )}
         </div>

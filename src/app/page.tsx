@@ -15,7 +15,7 @@ import ContactDrawer from '@/components/ContactDrawer';
 import CsvUploader from '@/components/CsvUploader';
 import NewContactModal from '@/components/NewContactModal';
 import TeamManagerModal from '@/components/TeamManagerModal';
-import MessageTemplatesModal from '@/components/MessageTemplatesModal';
+import ZernioLinkedInModal from '@/components/ZernioLinkedInModal';
 import TemplateManagerModal from '@/components/TemplateManagerModal';
 import ProfileModal from '@/components/ProfileModal';
 import LoginScreen from '@/components/LoginScreen';
@@ -568,17 +568,13 @@ export default function Home() {
         onLogout={handleLogout}
       />
 
-      {/* Message Templates Modal */}
-      <MessageTemplatesModal
+      {/* Zernio & LinkedIn Messaging Assistant Modal */}
+      <ZernioLinkedInModal
         contact={templateContact}
         isOpen={Boolean(templateContact)}
+        currentUser={currentUser}
         templates={templates}
-        activeTemplateId={activeTemplateId}
         onClose={() => setTemplateContact(null)}
-        onOpenTemplateManager={() => {
-          setTemplateContact(null);
-          setIsTemplateManagerOpen(true);
-        }}
         onMarkContacted={(id) => handleQuickStatusChange(id, 'En contacto')}
       />
 
