@@ -84,9 +84,9 @@ function FilterCombobox({
         )}
       </button>
 
-      {/* Dropdown with Micro Search Bar */}
+      {/* Dropdown with Micro Search Bar (Positioned strictly in front with high z-index and elevation) */}
       {isOpen && (
-        <div className="absolute left-0 top-full mt-1.5 w-72 bg-theme-sur border border-theme-bor rounded-2xl shadow-2xl z-50 p-2 space-y-1.5 animate-in fade-in zoom-in-95 duration-150">
+        <div className="absolute left-0 top-full mt-1.5 w-72 bg-theme-sur border border-theme-bor2 rounded-2xl shadow-2xl z-50 p-2.5 space-y-2 animate-in fade-in zoom-in-95 duration-150 ring-1 ring-black/20 backdrop-blur-md">
           {/* Micro Search Input */}
           <div className="relative">
             <Search className="w-3.5 h-3.5 text-theme-txt3 absolute left-2.5 top-1/2 -translate-y-1/2" />
@@ -102,15 +102,15 @@ function FilterCombobox({
               <button
                 type="button"
                 onClick={() => setQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-theme-txt3 hover:text-theme-txt"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-theme-txt3 hover:text-theme-txt cursor-pointer"
               >
                 <X className="w-3 h-3" />
               </button>
             )}
           </div>
 
-          {/* Options List */}
-          <div className="max-h-56 overflow-y-auto space-y-0.5 pt-1 custom-scrollbar">
+          {/* Options List with comfortable scrolling (max 64 units) */}
+          <div className="max-h-64 overflow-y-auto space-y-0.5 pt-1 pr-1 overscroll-contain">
             <button
               type="button"
               onClick={() => {
@@ -265,9 +265,9 @@ export default function ContactTable({
   }, [contacts.length, positionFilter, companyFilter, tagFilter]);
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-theme-bg overflow-hidden">
-      {/* Column Filter Bar (Quick Column Combobox Filters with Micro Search) */}
-      <div className="px-3 py-2 bg-theme-sur border-b border-theme-bor flex items-center gap-2.5 overflow-x-auto shrink-0 text-xs">
+    <div className="flex-1 flex flex-col min-h-0 bg-theme-bg overflow-hidden relative">
+      {/* Column Filter Bar (Quick Column Combobox Filters with Micro Search - elevated with z-30) */}
+      <div className="px-3 py-2 bg-theme-sur border-b border-theme-bor flex items-center gap-2.5 overflow-visible shrink-0 text-xs relative z-30">
         <div className="flex items-center gap-1.5 text-theme-txt2 font-bold shrink-0">
           <Filter className="w-3.5 h-3.5 text-[#00a870]" />
           <span>Filtros Rápidos:</span>
@@ -334,8 +334,8 @@ export default function ContactTable({
           </p>
         </div>
       ) : (
-        /* View Content */
-        <div className="flex-1 overflow-x-auto overflow-y-auto">
+        /* View Content (z-0 relative) */
+        <div className="flex-1 overflow-x-auto overflow-y-auto relative z-0">
           {viewMode === 'table' ? (
             <table className="w-full text-left border-collapse text-xs table-fixed min-w-[950px]">
               <thead className="sticky top-0 bg-theme-sur border-b border-theme-bor z-10 text-theme-txt2 font-mono uppercase text-[10px] tracking-wider">
