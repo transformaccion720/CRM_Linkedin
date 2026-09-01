@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { 
   X, ExternalLink, Calendar, Star, Building2, Briefcase, Mail, Phone, 
   Tag, Clock, Save, Edit3, MessageSquare, Check, User, Globe, AlertTriangle,
-  UserCheck, Plus
+  UserCheck, Plus, ChevronDown, Sparkles
 } from 'lucide-react';
 import { Contact, ContactStatus, TeamMember } from '@/lib/types';
 
@@ -15,6 +15,7 @@ interface ContactDrawerProps {
   onUpdate: (updatedContact: Contact) => void;
   onOpenTemplates?: (contact: Contact) => void;
   teamMembers?: TeamMember[];
+  availableTags?: string[];
 }
 
 export default function ContactDrawer({
@@ -24,6 +25,7 @@ export default function ContactDrawer({
   onUpdate,
   onOpenTemplates,
   teamMembers = [],
+  availableTags = [],
 }: ContactDrawerProps) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -41,13 +43,28 @@ export default function ContactDrawer({
   const [assignedTo, setAssignedTo] = useState('Gabino');
   const [tags, setTags] = useState<string[]>([]);
   const [newTagInput, setNewTagInput] = useState('');
+  const [isTagDropdownOpen, setIsTagDropdownOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Track currently loaded contact ID to only reset form when opening a DIFFERENT contact
-  const loadedContactIdRef = React.useRef<string | null>(null);
+  const tagDropdownRef = useRef<HTMLDivElement>(null);
+  const loadedContactIdRef = useRef<string | null>(null);
 
-  React.useEffect(() => {
+  // Close tag suggestions on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (tagDropdownRef.current && !tagDropdownRef.current.contains(e.target as Node)) {
+        setIsTagDropdownOpen(false);
+      }
+    }
+    if (isTagDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isTagDropdownOpen]);
+
+  // Sync form data ONLY when switching to a different contact or opening fresh
+  useEffect(() => {
     if (contact && contact.id !== loadedContactIdRef.current) {
       loadedContactIdRef.current = contact.id;
       setFirstName(contact.first_name || '');
@@ -70,13 +87,31 @@ export default function ContactDrawer({
     }
   }, [contact, teamMembers]);
 
+  // Clean save feedback when closing modal
+  const handleClose = () => {
+    setSaveSuccess(false);
+    setIsTagDropdownOpen(false);
+    loadedContactIdRef.current = null;
+    onClose();
+  };
+
   if (!isOpen || !contact) return null;
 
-  const handleAddTag = () => {
-    const trimmed = newTagInput.trim();
+  // Filter available tags that are not already added to this contact
+  const tagSuggestions = availableTags.filter((t) => {
+    if (!t) return false;
+    const cleanT = t.trim();
+    if (tags.includes(cleanT)) return false;
+    if (!newTagInput.trim()) return true;
+    return cleanT.toLowerCase().includes(newTagInput.toLowerCase().trim());
+  });
+
+  const handleAddTag = (tagToAdd?: string) => {
+    const trimmed = (tagToAdd || newTagInput).trim();
     if (trimmed && !tags.includes(trimmed)) {
       setTags([...tags, trimmed]);
       setNewTagInput('');
+      setIsTagDropdownOpen(false);
     }
   };
 
@@ -163,23 +198,12 @@ export default function ContactDrawer({
           </div>
 
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-1.5 rounded-lg text-theme-txt2 hover:text-theme-txt hover:bg-theme-sur2 transition-all cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
-
-        {/* Save Confirmation Toast Banner (Top of Drawer) */}
-        {saveSuccess && (
-          <div className="bg-[#00a870] text-[#00110b] font-bold px-6 py-2.5 flex items-center justify-between text-xs animate-in slide-in-from-top duration-200 shadow-md">
-            <div className="flex items-center gap-2">
-              <Check className="w-4 h-4 stroke-[3]" />
-              <span>¡Cambios guardados con éxito en la base de datos!</span>
-            </div>
-            <span className="text-[10.5px] opacity-80 font-mono">Actualizado</span>
-          </div>
-        )}
 
         {/* Content Body */}
         <div className="p-4 sm:p-6 space-y-5 flex-1">
@@ -317,51 +341,96 @@ export default function ContactDrawer({
             </div>
           </div>
 
-          {/* Tags (Etiquetas del Prospecto) */}
-          <div>
-            <label className="text-[11px] font-medium text-theme-txt2 mb-1.5 flex items-center gap-1">
+          {/* Tags (Etiquetas del Prospecto con Combobox y Sugerencias) */}
+          <div className="space-y-1.5" ref={tagDropdownRef}>
+            <label className="text-[11px] font-medium text-theme-txt2 flex items-center gap-1">
               <Tag className="w-3 h-3 text-theme-txt3" />
               <span>Etiquetas de Segmentación</span>
             </label>
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {tags.map((t) => (
-                <span
-                  key={t}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-mono bg-[#2979ff]/15 text-[#2979ff] border border-[#2979ff]/30 font-semibold"
-                >
-                  <span>{t}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveTag(t)}
-                    className="hover:text-red-400 cursor-pointer"
+
+            {/* Selected Tags Chips */}
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pb-1">
+                {tags.map((t) => (
+                  <span
+                    key={t}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-mono bg-[#2979ff]/15 text-[#2979ff] border border-[#2979ff]/30 font-semibold"
                   >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              ))}
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={newTagInput}
-                onChange={(e) => setNewTagInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleAddTag();
-                  }
-                }}
-                placeholder="Añadir etiqueta (ej. Agile, Decisor, Interesado) y presiona Enter..."
-                className="flex-1 bg-theme-sur2 border border-theme-bor focus:border-[#2979ff] rounded-xl px-3 py-1.5 text-xs text-theme-txt outline-hidden"
-              />
-              <button
-                type="button"
-                onClick={handleAddTag}
-                className="px-3 py-1.5 rounded-xl bg-theme-sur2 hover:bg-theme-sur3 border border-theme-bor text-xs font-semibold text-theme-txt cursor-pointer flex items-center gap-1"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Añadir</span>
-              </button>
+                    <span>{t}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveTag(t)}
+                      className="hover:text-red-400 cursor-pointer"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Input with Tag Combobox Dropdown */}
+            <div className="relative">
+              <div className="flex items-center gap-1.5">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    value={newTagInput}
+                    onChange={(e) => {
+                      setNewTagInput(e.target.value);
+                      setIsTagDropdownOpen(true);
+                    }}
+                    onFocus={() => setIsTagDropdownOpen(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddTag();
+                      }
+                    }}
+                    placeholder="Escribe o selecciona una etiqueta..."
+                    className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#2979ff] rounded-xl pl-3 pr-8 py-1.5 text-xs text-theme-txt outline-hidden"
+                  />
+                  {tagSuggestions.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setIsTagDropdownOpen(!isTagDropdownOpen)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-theme-txt3 hover:text-theme-txt cursor-pointer"
+                      title="Ver etiquetas existentes"
+                    >
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleAddTag()}
+                  className="px-3.5 py-1.5 rounded-xl bg-theme-sur2 hover:bg-theme-sur3 border border-theme-bor text-xs font-semibold text-theme-txt cursor-pointer flex items-center gap-1 shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Añadir</span>
+                </button>
+              </div>
+
+              {/* Tag Dropdown Menu with Existing Suggestions */}
+              {isTagDropdownOpen && tagSuggestions.length > 0 && (
+                <div className="absolute left-0 top-full mt-1 w-full bg-theme-sur border border-theme-bor2 rounded-xl shadow-xl z-30 p-1.5 max-h-48 overflow-y-auto space-y-0.5 animate-in fade-in zoom-in-95 duration-100">
+                  <div className="px-2 py-1 text-[10px] font-mono text-theme-txt3 uppercase tracking-wider">
+                    Etiquetas existentes en tu base:
+                  </div>
+                  {tagSuggestions.map((st) => (
+                    <button
+                      key={st}
+                      type="button"
+                      onClick={() => handleAddTag(st)}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between text-theme-txt hover:bg-theme-sur2 transition-colors cursor-pointer"
+                    >
+                      <span className="font-mono text-xs">{st}</span>
+                      <Plus className="w-3 h-3 text-[#00a870]" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -372,7 +441,7 @@ export default function ContactDrawer({
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as ContactStatus)}
-                className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3 py-1.5 text-xs text-theme-txt outline-hidden"
+                className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3 py-1.5 text-xs text-theme-txt outline-hidden cursor-pointer"
               >
                 <option value="Sin contactar">Sin contactar</option>
                 <option value="En contacto">En contacto</option>
@@ -414,7 +483,7 @@ export default function ContactDrawer({
               <select
                 value={assignedTo}
                 onChange={(e) => setAssignedTo(e.target.value)}
-                className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3 py-1.5 text-xs text-theme-txt outline-hidden"
+                className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3 py-1.5 text-xs text-theme-txt outline-hidden cursor-pointer"
               >
                 {teamMembers.map((m) => (
                   <option key={m.id} value={m.name}>
@@ -491,7 +560,7 @@ export default function ContactDrawer({
 
           <div className="flex items-center gap-2">
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="px-4 py-2 rounded-xl text-xs font-semibold text-theme-txt2 hover:text-theme-txt bg-theme-sur2 hover:bg-theme-sur3 border border-theme-bor transition-all cursor-pointer"
             >
               Cerrar

@@ -103,17 +103,37 @@ export default function ZernioLinkedInModal({
   };
 
   const handleCopy = async () => {
+    // 1. Immediately trigger the status change to 'En contacto'
+    if (autoMark && onMarkContacted && contact?.id) {
+      onMarkContacted(contact.id);
+    }
+
+    // 2. Copy text to clipboard with fallback
     try {
-      await navigator.clipboard.writeText(customMessage);
-      setCopied(true);
-      if (autoMark && onMarkContacted) {
-        onMarkContacted(contact.id);
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(customMessage);
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = customMessage;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        textArea.remove();
       }
-      saveMessageToInbox(customMessage);
+      setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     } catch (e) {
       console.error('Error copying text:', e);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
     }
+
+    // 3. Save message log to inbox
+    saveMessageToInbox(customMessage);
   };
 
   const handleOpenDirectChat = () => {

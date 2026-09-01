@@ -494,6 +494,7 @@ export default function Home() {
       <ContactDrawer
         contact={selectedContact}
         teamMembers={teamMembers}
+        availableTags={filterOptions.tags}
         isOpen={Boolean(selectedContact)}
         onClose={() => setSelectedContact(null)}
         onOpenTemplates={(c) => {
