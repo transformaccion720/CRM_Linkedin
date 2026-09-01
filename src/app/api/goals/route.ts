@@ -11,6 +11,9 @@ const DEFAULT_GOALS = {
 
 const DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -34,15 +37,20 @@ export async function GET(req: NextRequest) {
       SELECT id, name, role, color FROM team_members ORDER BY name ASC;
     `;
 
-    // 3. Compute date range (Monday to Sunday) for current or selected week
+    // 3. Compute date range (Monday to Sunday) using Peru Timezone (America/Lima)
     const dateRangeRows = await sql`
+      WITH ref_date AS (
+        SELECT ((CURRENT_TIMESTAMP AT TIME ZONE 'America/Lima')::date + (${weekOffset} * INTERVAL '7 days'))::date as curr_d,
+               (CURRENT_TIMESTAMP AT TIME ZONE 'America/Lima')::date as today_d
+      )
       SELECT 
-        TO_CHAR(DATE_TRUNC('week', CURRENT_DATE + (${weekOffset} * INTERVAL '7 days')), 'YYYY-MM-DD') as start_date,
-        TO_CHAR(DATE_TRUNC('week', CURRENT_DATE + (${weekOffset} * INTERVAL '7 days')) + INTERVAL '6 days', 'YYYY-MM-DD') as end_date,
-        TO_CHAR(DATE_TRUNC('week', CURRENT_DATE + (${weekOffset} * INTERVAL '7 days')), 'DD Mon') as start_label,
-        TO_CHAR(DATE_TRUNC('week', CURRENT_DATE + (${weekOffset} * INTERVAL '7 days')) + INTERVAL '6 days', 'DD Mon YYYY') as end_label,
-        EXTRACT(WEEK FROM CURRENT_DATE + (${weekOffset} * INTERVAL '7 days')) as week_num,
-        TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') as today_date;
+        TO_CHAR(DATE_TRUNC('week', curr_d), 'YYYY-MM-DD') as start_date,
+        TO_CHAR(DATE_TRUNC('week', curr_d) + INTERVAL '6 days', 'YYYY-MM-DD') as end_date,
+        TO_CHAR(DATE_TRUNC('week', curr_d), 'DD Mon') as start_label,
+        TO_CHAR(DATE_TRUNC('week', curr_d) + INTERVAL '6 days', 'DD Mon YYYY') as end_label,
+        EXTRACT(WEEK FROM curr_d) as week_num,
+        TO_CHAR(today_d, 'YYYY-MM-DD') as today_date
+      FROM ref_date;
     `;
     const dateRange = dateRangeRows[0];
     const startDate = dateRange.start_date;
@@ -72,7 +80,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // 4. Compute actual activities per member and per day
+    // 4. Compute actual activities per member and per day in America/Lima
     const memberProgressList = [];
     let globalContacted = 0;
     let globalPhones = 0;
@@ -86,7 +94,7 @@ export async function GET(req: NextRequest) {
     });
 
     for (const m of members) {
-      // Activity queries for this member in this week
+      // Activity queries for this member in this week (America/Lima)
       const acts = await sql`
         SELECT 
           COUNT(DISTINCT contact_id)::int as distinct_contacts_touched,
@@ -95,22 +103,22 @@ export async function GET(req: NextRequest) {
           COUNT(CASE WHEN action_type = 'CLIENT_WON' OR (action_type = 'STATUS_CHANGE' AND description LIKE '%Cliente%') THEN 1 END)::int as client_count
         FROM activity_logs
         WHERE (performed_by = ${m.name} OR performed_by = ${m.id})
-          AND created_at::date >= ${startDate}::date
-          AND created_at::date <= (${endDate}::date + INTERVAL '1 day');
+          AND (created_at AT TIME ZONE 'America/Lima')::date >= ${startDate}::date
+          AND (created_at AT TIME ZONE 'America/Lima')::date <= ${endDate}::date;
       `;
 
-      // Group activities day by day for this member
+      // Group activities day by day for this member (America/Lima)
       const dayActs = await sql`
         SELECT 
-          TO_CHAR(created_at::date, 'YYYY-MM-DD') as act_date,
+          TO_CHAR((created_at AT TIME ZONE 'America/Lima')::date, 'YYYY-MM-DD') as act_date,
           COUNT(DISTINCT contact_id)::int as contacts_count,
           COUNT(CASE WHEN action_type = 'PHONE_ADDED' THEN 1 END)::int as phones_count,
           COUNT(CASE WHEN action_type = 'OPPORTUNITY_CREATED' OR (action_type = 'STATUS_CHANGE' AND description LIKE '%Oportunidad%') THEN 1 END)::int as opps_count
         FROM activity_logs
         WHERE (performed_by = ${m.name} OR performed_by = ${m.id})
-          AND created_at::date >= ${startDate}::date
-          AND created_at::date <= (${endDate}::date + INTERVAL '1 day')
-        GROUP BY created_at::date;
+          AND (created_at AT TIME ZONE 'America/Lima')::date >= ${startDate}::date
+          AND (created_at AT TIME ZONE 'America/Lima')::date <= ${endDate}::date
+        GROUP BY (created_at AT TIME ZONE 'America/Lima')::date;
       `;
 
       const dayMap: Record<string, { contacts: number; phones: number; opps: number }> = {};
@@ -126,7 +134,7 @@ export async function GET(req: NextRequest) {
       const contactSummary = await sql`
         SELECT 
           COUNT(CASE WHEN status != 'Sin contactar' THEN 1 END)::int as all_managed_contacts,
-          COUNT(CASE WHEN status != 'Sin contactar' AND (updated_at::date = ${todayDate}::date OR created_at::date = ${todayDate}::date) THEN 1 END)::int as contacts_managed_today,
+          COUNT(CASE WHEN status != 'Sin contactar' AND ((updated_at AT TIME ZONE 'America/Lima')::date = ${todayDate}::date OR (created_at AT TIME ZONE 'America/Lima')::date = ${todayDate}::date) THEN 1 END)::int as contacts_managed_today,
           COUNT(CASE WHEN phone IS NOT NULL AND phone != '' THEN 1 END)::int as curr_phones,
           COUNT(CASE WHEN status = 'Oportunidad' THEN 1 END)::int as curr_opportunities,
           COUNT(CASE WHEN status = 'Cliente' THEN 1 END)::int as curr_clients
