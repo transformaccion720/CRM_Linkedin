@@ -3,12 +3,12 @@
 import React from 'react';
 import { 
   Users, Kanban, Filter, Calendar, BarChart3, LineChart, 
-  UserPlus, RefreshCw, Moon, Sun, Menu, CheckCircle2, MessageSquare, FolderGit2,
-  CalendarDays, Settings
+  UserPlus, RefreshCw, Moon, Sun, Menu, CheckCircle2,
+  CalendarDays
 } from 'lucide-react';
 import ActivityBell from '@/components/ActivityBell';
 import FollowUpBell from '@/components/FollowUpBell';
-import { TeamMember, Contact } from '@/lib/types';
+import { TeamMember } from '@/lib/types';
 
 interface NavbarProps {
   totalContacts: number;
@@ -101,16 +101,22 @@ export default function Navbar({
             <span className="sm:hidden">Nuevo</span>
           </button>
 
-          {/* Theme Toggle Button */}
+          {/* Theme Toggle Button (Light & Dark mode) */}
           <button
             onClick={toggleTheme}
             className="p-1.5 sm:p-2 rounded-xl text-theme-txt2 hover:text-[#00a870] bg-theme-sur2 hover:bg-theme-sur3 border border-theme-bor transition-all cursor-pointer flex items-center gap-1.5 text-xs"
             title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
           >
             {theme === 'dark' ? (
-              <Sun className="w-4 h-4 text-[#00a870]" />
+              <>
+                <Sun className="w-4 h-4 text-[#00a870]" />
+                <span className="hidden lg:inline font-medium">Claro</span>
+              </>
             ) : (
-              <Moon className="w-4 h-4 text-[#2979ff]" />
+              <>
+                <Moon className="w-4 h-4 text-[#2979ff]" />
+                <span className="hidden lg:inline font-medium">Oscuro</span>
+              </>
             )}
           </button>
 
@@ -125,7 +131,7 @@ export default function Navbar({
         </div>
       </header>
 
-      {/* Navigation tabs */}
+      {/* Navigation tabs (Streamlined core views) */}
       <nav className="flex gap-1 bg-theme-sur border-b border-theme-bor px-3 sm:px-6 shrink-0 overflow-x-auto no-scrollbar">
         <button
           onClick={() => setActiveTab('contactos')}
@@ -192,32 +198,6 @@ export default function Navbar({
           <span>Seguimientos (Agenda)</span>
         </button>
 
-        {/* Messaging & Conversations Hub Tab */}
-        <button
-          onClick={() => setActiveTab('mensajeria')}
-          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 text-xs font-medium border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-            activeTab === 'mensajeria'
-              ? 'border-[#2979ff] text-[#2979ff] font-semibold'
-              : 'border-transparent text-theme-txt2 hover:text-theme-txt hover:bg-theme-sur2'
-          }`}
-        >
-          <MessageSquare className="w-3.5 h-3.5 text-[#2979ff]" />
-          <span>Mensajería & Chats</span>
-        </button>
-
-        {/* Commercial Resources Directory Tab */}
-        <button
-          onClick={() => setActiveTab('recursos')}
-          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 text-xs font-medium border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-            activeTab === 'recursos'
-              ? 'border-[#a855f7] text-[#a855f7] font-semibold'
-              : 'border-transparent text-theme-txt2 hover:text-theme-txt hover:bg-theme-sur2'
-          }`}
-        >
-          <FolderGit2 className="w-3.5 h-3.5 text-[#a855f7]" />
-          <span>Directorio de Recursos</span>
-        </button>
-
         {/* Analytics Tab */}
         <button
           onClick={() => setActiveTab('analytics')}
@@ -242,19 +222,6 @@ export default function Navbar({
         >
           <LineChart className="w-3.5 h-3.5 text-[#a855f7]" />
           <span>Dashboard</span>
-        </button>
-
-        {/* Settings Tab */}
-        <button
-          onClick={() => setActiveTab('configuracion')}
-          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 text-xs font-medium border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-            activeTab === 'configuracion'
-              ? 'border-[#00a870] text-[#00a870] font-semibold'
-              : 'border-transparent text-theme-txt2 hover:text-theme-txt hover:bg-theme-sur2'
-          }`}
-        >
-          <Settings className="w-3.5 h-3.5 text-[#00a870]" />
-          <span>Configuración</span>
         </button>
       </nav>
     </div>

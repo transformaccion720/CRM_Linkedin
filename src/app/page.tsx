@@ -261,23 +261,24 @@ export default function Home() {
     return templates.find((t) => t.id === activeTemplateId) || templates[0];
   }, [templates, activeTemplateId]);
 
-  // Clean Theme Toggle State
+  // Clean Theme Toggle State (supports data-theme and class)
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   useEffect(() => {
-    const isDark = document.documentElement.classList.contains('dark') || !document.documentElement.classList.contains('light');
-    setTheme(isDark ? 'dark' : 'light');
+    const saved = localStorage.getItem('crm_theme') as 'dark' | 'light' | null;
+    const initialTheme = saved || (document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark');
+    setTheme(initialTheme);
+    document.documentElement.setAttribute('data-theme', initialTheme);
+    document.documentElement.classList.remove('dark', 'light');
+    document.documentElement.classList.add(initialTheme);
   }, []);
 
   const toggleTheme = () => {
-    if (theme === 'dark') {
-      document.documentElement.classList.remove('dark');
-      document.documentElement.classList.add('light');
-      setTheme('light');
-    } else {
-      document.documentElement.classList.remove('light');
-      document.documentElement.classList.add('dark');
-      setTheme('dark');
-    }
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    localStorage.setItem('crm_theme', next);
+    document.documentElement.setAttribute('data-theme', next);
+    document.documentElement.classList.remove('dark', 'light');
+    document.documentElement.classList.add(next);
   };
 
   if (!authChecked) {
@@ -327,6 +328,7 @@ export default function Home() {
           setAssignedToFilter={setAssignedToFilter}
           teamMembers={teamMembers}
           currentUser={currentUser}
+          activeTab={activeTab}
           onOpenProfile={() => setIsProfileOpen(true)}
           onSwitchTab={setActiveTab}
           isMobileOpen={isMobileSidebarOpen}
@@ -456,6 +458,7 @@ export default function Home() {
               onOpenImport={() => setIsImportOpen(true)}
               onExport={handleExportCSV}
               onOpenProfile={() => setIsProfileOpen(true)}
+              onOpenResources={() => setActiveTab('recursos')}
             />
           )}
         </main>

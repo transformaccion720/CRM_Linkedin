@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { 
   Users, UserCog, FileSpreadsheet, MessageSquare, Download, Upload, 
-  Settings, KeyRound, Shield, Check, RefreshCw, Layers, Sparkles
+  Settings, KeyRound, Shield, Check, RefreshCw, Layers, Sparkles, FolderGit2
 } from 'lucide-react';
 import { TeamMember } from '@/lib/types';
 
@@ -15,6 +15,7 @@ interface SettingsCenterViewProps {
   onOpenImport: () => void;
   onExport: () => void;
   onOpenProfile: () => void;
+  onOpenResources: () => void;
 }
 
 export default function SettingsCenterView({
@@ -25,6 +26,7 @@ export default function SettingsCenterView({
   onOpenImport,
   onExport,
   onOpenProfile,
+  onOpenResources,
 }: SettingsCenterViewProps) {
   return (
     <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-theme-bg">
@@ -37,35 +39,35 @@ export default function SettingsCenterView({
           </span>
         </div>
         <h1 className="text-xl sm:text-2xl font-extrabold text-theme-txt">
-          Ajustes del CRM & Herramientas
+          Ajustes del CRM, Recursos & Herramientas
         </h1>
         <p className="text-xs sm:text-sm text-theme-txt2 mt-1">
-          Administra de forma unificada tu equipo comercial, plantillas de mensajes, importación y exportación de datos.
+          Administra de forma unificada tu equipo comercial, directorio de recursos, plantillas de mensajes, importación y exportación.
         </p>
       </div>
 
       {/* Grid of Settings Modules */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* 1. Mi Perfil & Contraseña */}
-        <div className="bg-theme-sur border border-theme-bor rounded-2xl p-5 flex flex-col justify-between space-y-4 hover:border-[#00a870]/50 transition-all shadow-xs group">
+        {/* 1. Directorio de Recursos Comerciales (Flyers, PDFs, Videos, Links) */}
+        <div className="bg-theme-sur border border-theme-bor rounded-2xl p-5 flex flex-col justify-between space-y-4 hover:border-[#a855f7]/50 transition-all shadow-xs group">
           <div className="space-y-2.5">
-            <div className="w-10 h-10 rounded-xl bg-[#00a870]/10 text-[#00a870] flex items-center justify-center font-bold">
-              <KeyRound className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-[#a855f7]/10 text-[#a855f7] flex items-center justify-center font-bold">
+              <FolderGit2 className="w-5 h-5" />
             </div>
-            <h3 className="font-bold text-base text-theme-txt group-hover:text-[#00a870] transition-colors">
-              Mi Perfil & Seguridad
+            <h3 className="font-bold text-base text-theme-txt group-hover:text-[#a855f7] transition-colors">
+              Directorio de Recursos
             </h3>
             <p className="text-xs text-theme-txt2 leading-relaxed">
-              Cambia tu contraseña personal, edita tu nombre comercial y visualiza tu rol actual ({currentUser?.role || 'Comercial'}).
+              Biblioteca de archivos de hasta 20 MB (PDFs, brochures, flyers) y enlaces externos de videos para enviar a prospectos.
             </p>
           </div>
 
           <button
-            onClick={onOpenProfile}
-            className="w-full py-2.5 rounded-xl text-xs font-semibold bg-[#00a870]/15 text-[#00a870] hover:bg-[#00a870] hover:text-[#00110b] border border-[#00a870]/30 transition-all cursor-pointer flex items-center justify-center gap-2"
+            onClick={onOpenResources}
+            className="w-full py-2.5 rounded-xl text-xs font-semibold bg-[#a855f7]/15 text-[#a855f7] hover:bg-[#a855f7] hover:text-white border border-[#a855f7]/30 transition-all cursor-pointer flex items-center justify-center gap-2"
           >
-            <KeyRound className="w-4 h-4" />
-            <span>Editar Mi Contraseña</span>
+            <FolderGit2 className="w-4 h-4" />
+            <span>Abrir Directorio de Archivos</span>
           </button>
         </div>
 
@@ -98,12 +100,12 @@ export default function SettingsCenterView({
         </div>
 
         {/* 3. Plantillas de Mensajes */}
-        <div className="bg-theme-sur border border-theme-bor rounded-2xl p-5 flex flex-col justify-between space-y-4 hover:border-[#a855f7]/50 transition-all shadow-xs group">
+        <div className="bg-theme-sur border border-theme-bor rounded-2xl p-5 flex flex-col justify-between space-y-4 hover:border-[#00a870]/50 transition-all shadow-xs group">
           <div className="space-y-2.5">
-            <div className="w-10 h-10 rounded-xl bg-[#a855f7]/10 text-[#a855f7] flex items-center justify-center font-bold">
+            <div className="w-10 h-10 rounded-xl bg-[#00a870]/10 text-[#00a870] flex items-center justify-center font-bold">
               <MessageSquare className="w-5 h-5" />
             </div>
-            <h3 className="font-bold text-base text-theme-txt group-hover:text-[#a855f7] transition-colors">
+            <h3 className="font-bold text-base text-theme-txt group-hover:text-[#00a870] transition-colors">
               Plantillas de Prospección
             </h3>
             <p className="text-xs text-theme-txt2 leading-relaxed">
@@ -113,7 +115,7 @@ export default function SettingsCenterView({
 
           <button
             onClick={onOpenTemplateManager}
-            className="w-full py-2.5 rounded-xl text-xs font-semibold bg-[#a855f7]/15 text-[#a855f7] hover:bg-[#a855f7] hover:text-white border border-[#a855f7]/30 transition-all cursor-pointer flex items-center justify-center gap-2"
+            className="w-full py-2.5 rounded-xl text-xs font-semibold bg-[#00a870]/15 text-[#00a870] hover:bg-[#00a870] hover:text-[#00110b] border border-[#00a870]/30 transition-all cursor-pointer flex items-center justify-center gap-2"
           >
             <MessageSquare className="w-4 h-4" />
             <span>Configurar Plantillas</span>
@@ -163,6 +165,29 @@ export default function SettingsCenterView({
           >
             <Download className="w-4 h-4" />
             <span>Descargar Backup CSV</span>
+          </button>
+        </div>
+
+        {/* 6. Mi Perfil & Contraseña */}
+        <div className="bg-theme-sur border border-theme-bor rounded-2xl p-5 flex flex-col justify-between space-y-4 hover:border-[#2979ff]/50 transition-all shadow-xs group">
+          <div className="space-y-2.5">
+            <div className="w-10 h-10 rounded-xl bg-[#2979ff]/10 text-[#2979ff] flex items-center justify-center font-bold">
+              <KeyRound className="w-5 h-5" />
+            </div>
+            <h3 className="font-bold text-base text-theme-txt group-hover:text-[#2979ff] transition-colors">
+              Mi Perfil & Seguridad
+            </h3>
+            <p className="text-xs text-theme-txt2 leading-relaxed">
+              Cambia tu contraseña personal, edita tu nombre comercial y visualiza tu rol actual ({currentUser?.role || 'Comercial'}).
+            </p>
+          </div>
+
+          <button
+            onClick={onOpenProfile}
+            className="w-full py-2.5 rounded-xl text-xs font-semibold bg-[#2979ff]/15 text-[#2979ff] hover:bg-[#2979ff] hover:text-white border border-[#2979ff]/30 transition-all cursor-pointer flex items-center justify-center gap-2"
+          >
+            <KeyRound className="w-4 h-4" />
+            <span>Editar Mi Contraseña</span>
           </button>
         </div>
       </div>

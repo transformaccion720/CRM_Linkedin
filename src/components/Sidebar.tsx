@@ -3,7 +3,7 @@
 import React from 'react';
 import { 
   Users, Mail, MailX, Calendar, Filter, Clock, Star, X, UserCheck, 
-  AlertTriangle, Plus, Flame, Settings, KeyRound, ChevronRight
+  AlertTriangle, Plus, Flame, Settings, KeyRound, ChevronRight, MessageSquare
 } from 'lucide-react';
 import { TeamMember } from '@/lib/types';
 
@@ -16,6 +16,7 @@ interface SidebarProps {
   setAssignedToFilter?: (u: string) => void;
   teamMembers?: TeamMember[];
   currentUser?: TeamMember | null;
+  activeTab?: string;
   onOpenProfile?: () => void;
   onSwitchTab: (tab: 'contactos' | 'segmentos' | 'funnel' | 'objetivos' | 'seguimientos' | 'mensajeria' | 'recursos' | 'analytics' | 'ejecutivo' | 'configuracion') => void;
   isMobileOpen?: boolean;
@@ -39,6 +40,7 @@ export default function Sidebar({
   setAssignedToFilter,
   teamMembers = [],
   currentUser,
+  activeTab,
   onOpenProfile,
   onSwitchTab,
   isMobileOpen,
@@ -70,7 +72,7 @@ export default function Sidebar({
           if (onCloseMobile) onCloseMobile();
         }}
         className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all mb-1 ${
-          viewFilter === 'active_search'
+          activeTab === 'contactos' && viewFilter === 'active_search'
             ? 'bg-[#ff6d3b]/15 text-[#ff6d3b] border border-[#ff6d3b]/30 font-bold shadow-xs'
             : 'text-theme-txt2 hover:bg-theme-sur2 hover:text-[#ff6d3b]'
         }`}
@@ -82,7 +84,26 @@ export default function Sidebar({
         </span>
       </div>
 
-      {/* 2. Todos los Contactos (Base General) */}
+      {/* 2. Mensajería & Chats (Conversations Hub en Sidebar) */}
+      <div
+        onClick={() => {
+          onSwitchTab('mensajeria');
+          if (onCloseMobile) onCloseMobile();
+        }}
+        className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all mb-1 ${
+          activeTab === 'mensajeria'
+            ? 'bg-[#2979ff]/15 text-[#2979ff] border border-[#2979ff]/30 font-bold shadow-xs'
+            : 'text-theme-txt2 hover:bg-theme-sur2 hover:text-[#2979ff]'
+        }`}
+      >
+        <MessageSquare className="w-4 h-4 shrink-0 text-[#2979ff]" />
+        <span className="truncate">Mensajería & Chats</span>
+        <span className="ml-auto font-mono text-[9px] px-1.5 py-0.5 rounded-full bg-[#2979ff]/20 text-[#2979ff] font-bold">
+          LIVE
+        </span>
+      </div>
+
+      {/* 3. Todos los Contactos (Base General) */}
       <div
         onClick={() => {
           setViewFilter('all');
@@ -92,7 +113,7 @@ export default function Sidebar({
           if (onCloseMobile) onCloseMobile();
         }}
         className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all mb-1 ${
-          viewFilter === 'all' && !statusFilter && !assignedToFilter
+          activeTab === 'contactos' && viewFilter === 'all' && !statusFilter && !assignedToFilter
             ? 'bg-[#00a870]/15 text-[#00a870] border border-[#00a870]/30 font-medium'
             : 'text-theme-txt2 hover:bg-theme-sur2 hover:text-theme-txt'
         }`}
@@ -113,7 +134,7 @@ export default function Sidebar({
           if (onCloseMobile) onCloseMobile();
         }}
         className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all mb-1 ${
-          viewFilter === 'follow_up'
+          activeTab === 'contactos' && viewFilter === 'follow_up'
             ? 'bg-[#ff6d3b]/15 text-[#ff6d3b] border border-[#ff6d3b]/30 font-medium'
             : 'text-theme-txt2 hover:bg-theme-sur2 hover:text-theme-txt'
         }`}
@@ -134,7 +155,7 @@ export default function Sidebar({
           if (onCloseMobile) onCloseMobile();
         }}
         className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all mb-1 ${
-          viewFilter === 'star3'
+          activeTab === 'contactos' && viewFilter === 'star3'
             ? 'bg-[#f59e0b]/15 text-[#f59e0b] border border-[#f59e0b]/30 font-medium'
             : 'text-theme-txt2 hover:bg-theme-sur2 hover:text-theme-txt'
         }`}
@@ -152,7 +173,7 @@ export default function Sidebar({
           if (onCloseMobile) onCloseMobile();
         }}
         className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all mb-1 ${
-          viewFilter === 'email'
+          activeTab === 'contactos' && viewFilter === 'email'
             ? 'bg-[#00a870]/15 text-[#00a870] border border-[#00a870]/30 font-medium'
             : 'text-theme-txt2 hover:bg-theme-sur2 hover:text-theme-txt'
         }`}
@@ -173,7 +194,7 @@ export default function Sidebar({
           if (onCloseMobile) onCloseMobile();
         }}
         className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all mb-1 ${
-          viewFilter === 'noemail'
+          activeTab === 'contactos' && viewFilter === 'noemail'
             ? 'bg-[#00a870]/15 text-[#00a870] border border-[#00a870]/30 font-medium'
             : 'text-theme-txt2 hover:bg-theme-sur2 hover:text-theme-txt'
         }`}
@@ -194,7 +215,7 @@ export default function Sidebar({
           if (onCloseMobile) onCloseMobile();
         }}
         className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all mb-1 ${
-          viewFilter === 'recent'
+          activeTab === 'contactos' && viewFilter === 'recent'
             ? 'bg-[#00a870]/15 text-[#00a870] border border-[#00a870]/30 font-medium'
             : 'text-theme-txt2 hover:bg-theme-sur2 hover:text-theme-txt'
         }`}
@@ -247,21 +268,25 @@ export default function Sidebar({
         );
       })}
 
-      {/* Bottom Actions: Settings & Profile (Clean UX) */}
+      {/* Bottom Actions: Settings & Profile (Clean UX - Only in Sidebar) */}
       <div className="mt-auto pt-4 border-t border-theme-bor space-y-2">
-        {/* 1. Centro de Configuración */}
+        {/* 1. Centro de Configuración (Exclusivo en el Sidebar) */}
         <button
           onClick={() => {
             onSwitchTab('configuracion');
             if (onCloseMobile) onCloseMobile();
           }}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-theme-txt hover:text-[#00a870] bg-theme-sur2 hover:bg-theme-sur3 border border-theme-bor transition-all cursor-pointer shadow-xs"
+          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-xs ${
+            activeTab === 'configuracion'
+              ? 'bg-[#00a870] text-[#00110b] font-bold border border-[#00a870]'
+              : 'text-theme-txt hover:text-[#00a870] bg-theme-sur2 hover:bg-theme-sur3 border border-theme-bor'
+          }`}
         >
           <div className="flex items-center gap-2">
-            <Settings className="w-4 h-4 text-[#00a870]" />
+            <Settings className={`w-4 h-4 ${activeTab === 'configuracion' ? 'text-[#00110b]' : 'text-[#00a870]'}`} />
             <span>Configuración</span>
           </div>
-          <ChevronRight className="w-3.5 h-3.5 text-theme-txt3" />
+          <ChevronRight className={`w-3.5 h-3.5 ${activeTab === 'configuracion' ? 'text-[#00110b]' : 'text-theme-txt3'}`} />
         </button>
 
         {/* 2. Mi Perfil & Contraseña */}

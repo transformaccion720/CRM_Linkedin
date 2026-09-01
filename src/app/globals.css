@@ -2,7 +2,9 @@
 
 @layer base {
   :root,
-  html[data-theme="dark"] {
+  html,
+  html[data-theme="dark"],
+  html.dark {
     --bg: #07090d;
     --sur: #0f1117;
     --sur2: #161b24;
@@ -17,7 +19,8 @@
     --txt3: #3e4c63;
   }
 
-  html[data-theme="light"] {
+  html[data-theme="light"],
+  html.light {
     --bg: #f4f6f9;
     --sur: #ffffff;
     --sur2: #f0f2f6;
