@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { 
   X, UserPlus, Building2, Briefcase, Mail, Phone, Link2, Star, Calendar, 
-  Tag, Check, Loader2, UserCheck, Globe, Flame, ExternalLink, HelpCircle
+  Tag, Check, Loader2, UserCheck, Globe, ExternalLink, HelpCircle
 } from 'lucide-react';
 import { Contact, ContactStatus, ContactSource, TeamMember } from '@/lib/types';
 
@@ -29,8 +29,7 @@ export default function NewContactModal({
   const [phone, setPhone] = useState('');
   const [linkedinUrl, setLinkedinUrl] = useState('');
   const [status, setStatus] = useState<ContactStatus>('Sin contactar');
-  const [priority, setPriority] = useState<number>(3); // 3 stars by default for active search
-  const [source, setSource] = useState<ContactSource>('BUSQUEDA_ACTIVA');
+  const [priority, setPriority] = useState<number>(3); // 1, 2, or 3 stars
   const [postUrl, setPostUrl] = useState('');
   const [serviceNeeded, setServiceNeeded] = useState('');
   const [notes, setNotes] = useState('');
@@ -86,7 +85,7 @@ export default function NewContactModal({
           linkedin_url: linkedinUrl.trim() || null,
           status,
           priority,
-          source,
+          source: 'BUSQUEDA_ACTIVA', // Automatically marked as Nuevo Prospecto agregado recientemente
           post_url: postUrl.trim() || null,
           service_needed: serviceNeeded.trim() || null,
           notes: notes.trim() || null,
@@ -115,7 +114,6 @@ export default function NewContactModal({
       setLinkedinUrl('');
       setStatus('Sin contactar');
       setPriority(3);
-      setSource('BUSQUEDA_ACTIVA');
       setPostUrl('');
       setServiceNeeded('');
       setNotes('');
@@ -144,7 +142,7 @@ export default function NewContactModal({
                 Registrar Nuevo Prospecto
               </h2>
               <p className="text-xs text-theme-txt2">
-                Agrega un contacto manual o con señal de búsqueda activa en LinkedIn
+                Agrega un nuevo prospecto para prospección o seguimiento comercial
               </p>
             </div>
           </div>
@@ -164,89 +162,56 @@ export default function NewContactModal({
             </div>
           )}
 
-          {/* Lead Source Selector (Señal de Búsqueda vs Directo) */}
-          <div className="p-3.5 rounded-2xl bg-theme-sur2/70 border border-theme-bor space-y-2.5">
-            <label className="text-xs font-bold text-theme-txt flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <Flame className="w-4 h-4 text-[#ff6d3b]" />
-                <span>Origen / Señal de Compra</span>
-              </span>
-              <span className="text-[10px] font-mono text-theme-txt3 font-normal">
-                {source === 'BUSQUEDA_ACTIVA' ? '🔥 Lead Caliente' : '👤 Prospección'}
-              </span>
-            </label>
-
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setSource('BUSQUEDA_ACTIVA');
-                  setPriority(3);
-                }}
-                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2 ${
-                  source === 'BUSQUEDA_ACTIVA'
-                    ? 'bg-[#ff6d3b]/15 border-[#ff6d3b] text-[#ff6d3b] shadow-xs font-bold'
-                    : 'bg-theme-sur border-theme-bor text-theme-txt2 hover:text-theme-txt'
-                }`}
-              >
-                <Flame className="w-4 h-4 shrink-0 text-[#ff6d3b]" />
-                <div>
-                  <div className="text-xs">Búsqueda Activa</div>
-                  <div className="text-[10px] text-theme-txt3 font-normal">Publicó necesidad</div>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setSource('PROSPECCION_DIRECTA');
-                  setPriority(2);
-                }}
-                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2 ${
-                  source === 'PROSPECCION_DIRECTA'
-                    ? 'bg-[#00a870]/15 border-[#00a870] text-[#00a870] shadow-xs font-bold'
-                    : 'bg-theme-sur border-theme-bor text-theme-txt2 hover:text-theme-txt'
-                }`}
-              >
-                <UserCheck className="w-4 h-4 shrink-0 text-[#00a870]" />
-                <div>
-                  <div className="text-xs">Prospección Directa</div>
-                  <div className="text-[10px] text-theme-txt3 font-normal">Añadido manual</div>
-                </div>
-              </button>
+          {/* Priority Star Level & Assigned Member */}
+          <div className="p-3.5 rounded-2xl bg-theme-sur2/70 border border-theme-bor flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <label className="text-xs font-bold text-theme-txt block mb-1">
+                Nivel de Prioridad Comercial
+              </label>
+              <div className="flex items-center gap-1.5">
+                {[1, 2, 3].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setPriority(star)}
+                    className="p-1.5 rounded-lg bg-theme-sur hover:bg-theme-sur3 border border-theme-bor transition-all cursor-pointer flex items-center gap-1"
+                  >
+                    <Star
+                      className={`w-4 h-4 ${
+                        priority >= star ? 'text-[#f59e0b] fill-[#f59e0b]' : 'text-theme-txt3'
+                      }`}
+                    />
+                    <span className="text-[11px] font-mono text-theme-txt font-semibold">
+                      {star === 3 ? 'Alta (3⭐)' : star === 2 ? 'Media (2⭐)' : 'Normal (1⭐)'}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* If BUSQUEDA_ACTIVA: show Post URL and Service Needed */}
-            {source === 'BUSQUEDA_ACTIVA' && (
-              <div className="pt-2.5 border-t border-theme-bor space-y-2 animate-in fade-in duration-150">
-                <div>
-                  <label className="text-[11px] font-medium text-theme-txt2 mb-1 flex items-center gap-1">
-                    <ExternalLink className="w-3 h-3 text-[#ff6d3b]" />
-                    <span>Link de la Publicación / Post de LinkedIn (Opcional):</span>
-                  </label>
-                  <input
-                    type="url"
-                    value={postUrl}
-                    onChange={(e) => setPostUrl(e.target.value)}
-                    placeholder="https://www.linkedin.com/posts/..."
-                    className="w-full bg-theme-sur border border-theme-bor focus:border-[#ff6d3b] rounded-xl px-3 py-1.5 text-xs text-theme-txt outline-hidden"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[11px] font-medium text-theme-txt2 mb-1 block">
-                    Servicio / Necesidad que busca en su post:
-                  </label>
-                  <input
-                    type="text"
-                    value={serviceNeeded}
-                    onChange={(e) => setServiceNeeded(e.target.value)}
-                    placeholder="Ej. Busca taller de liderazgo / consultoría ágil..."
-                    className="w-full bg-theme-sur border border-theme-bor focus:border-[#ff6d3b] rounded-xl px-3 py-1.5 text-xs text-theme-txt outline-hidden"
-                  />
-                </div>
-              </div>
-            )}
+            <div>
+              <label className="text-xs font-bold text-theme-txt block mb-1">
+                Asignado a:
+              </label>
+              <select
+                value={assignedTo}
+                onChange={(e) => setAssignedTo(e.target.value)}
+                className="bg-theme-sur border border-theme-bor focus:border-[#00a870] rounded-xl px-3 py-1.5 text-xs text-theme-txt outline-hidden font-medium"
+              >
+                {teamMembers.length > 0 ? (
+                  teamMembers.map((m) => (
+                    <option key={m.id} value={m.name}>
+                      {m.name}
+                    </option>
+                  ))
+                ) : (
+                  <>
+                    <option value="Gabino">Gabino</option>
+                    <option value="Kiara Zavala Peralta">Kiara Zavala Peralta</option>
+                  </>
+                )}
+              </select>
+            </div>
           </div>
 
           {/* Contact Details */}
@@ -348,57 +313,48 @@ export default function NewContactModal({
               />
             </div>
 
-            <div>
+            <div className="sm:col-span-2">
               <label className="text-xs font-semibold text-theme-txt mb-1 flex items-center gap-1">
-                <UserCheck className="w-3.5 h-3.5 text-theme-txt3" />
-                <span>Responsable Comercial</span>
-              </label>
-              <select
-                value={assignedTo}
-                onChange={(e) => setAssignedTo(e.target.value)}
-                className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3 py-2 text-xs text-theme-txt outline-hidden"
-              >
-                {teamMembers.length > 0 ? (
-                  teamMembers.map((m) => (
-                    <option key={m.id} value={m.name}>
-                      {m.name} ({m.role})
-                    </option>
-                  ))
-                ) : (
-                  <>
-                    <option value="Gabino">Gabino</option>
-                    <option value="Kiara Zavala Peralta">Kiara Zavala Peralta</option>
-                  </>
-                )}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-theme-txt mb-1 flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-theme-txt3" />
-                <span>Fecha de Seguimiento</span>
+                <Calendar className="w-3.5 h-3.5 text-[#ff6d3b]" />
+                <span>Fecha de Seguimiento (Opcional)</span>
               </label>
               <input
                 type="date"
                 value={followUpDate}
                 onChange={(e) => setFollowUpDate(e.target.value)}
-                className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3 py-1.5 text-xs text-theme-txt outline-hidden"
+                className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#ff6d3b] rounded-xl px-3 py-1.5 text-xs text-theme-txt outline-hidden"
               />
             </div>
           </div>
 
-          {/* Notes */}
-          <div>
-            <label className="text-xs font-semibold text-theme-txt mb-1 block">
-              Notas iniciales / Contexto de la oportunidad
-            </label>
-            <textarea
-              rows={2}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Detalles sobre lo que busca o cómo abordarlo..."
-              className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl p-3 text-xs text-theme-txt outline-hidden resize-none"
-            />
+          {/* Optional Post URL / Need context */}
+          <div className="p-3 rounded-xl bg-theme-sur2/50 border border-theme-bor space-y-2">
+            <div>
+              <label className="text-[11px] font-medium text-theme-txt2 mb-1 flex items-center gap-1">
+                <ExternalLink className="w-3 h-3 text-[#0a66c2]" />
+                <span>Link de Publicación / Post de LinkedIn (Opcional):</span>
+              </label>
+              <input
+                type="url"
+                value={postUrl}
+                onChange={(e) => setPostUrl(e.target.value)}
+                placeholder="https://www.linkedin.com/posts/..."
+                className="w-full bg-theme-sur border border-theme-bor focus:border-[#00a870] rounded-xl px-3 py-1.5 text-xs text-theme-txt outline-hidden"
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-medium text-theme-txt2 mb-1 block">
+                Notas / Servicio que busca o contexto:
+              </label>
+              <textarea
+                rows={2}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Detalles sobre la necesidad, conversación o acuerdos..."
+                className="w-full bg-theme-sur border border-theme-bor focus:border-[#00a870] rounded-xl p-2.5 text-xs text-theme-txt outline-hidden resize-none"
+              />
+            </div>
           </div>
 
           {/* Footer Submit Buttons */}

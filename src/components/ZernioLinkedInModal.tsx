@@ -266,18 +266,10 @@ export default function ZernioLinkedInModal({
           <div className="flex items-center gap-2.5">
             <button
               onClick={handleCopy}
-              className="px-4 py-2.5 rounded-xl text-xs font-bold text-theme-txt bg-theme-sur2 hover:bg-theme-sur3 border border-theme-bor hover:border-[#00a870] flex items-center gap-1.5 transition-all cursor-pointer"
+              className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-[#00a870] hover:bg-[#008f5f] flex items-center gap-2 shadow-lg shadow-[#00a870]/20 transition-all cursor-pointer"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-[#00a870]" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copied ? '¡Texto Copiado!' : 'Copiar Mensaje'}</span>
-            </button>
-
-            <button
-              onClick={handleOpenDirectChat}
-              className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-[#0a66c2] hover:bg-[#084e96] flex items-center gap-2 shadow-lg shadow-[#0a66c2]/30 transition-all cursor-pointer"
-            >
-              <Send className="w-3.5 h-3.5" />
-              <span>Abrir Chat en LinkedIn</span>
+              {copied ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
+              <span>{copied ? '¡Texto Copiado al Portapapeles!' : 'Copiar Mensaje'}</span>
             </button>
           </div>
         </div>

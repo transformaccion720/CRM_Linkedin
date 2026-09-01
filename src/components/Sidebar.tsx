@@ -3,7 +3,7 @@
 import React from 'react';
 import { 
   Users, Mail, MailX, Calendar, Filter, Clock, Star, X, UserCheck, 
-  AlertTriangle, Plus, Flame, Settings, KeyRound, ChevronRight, MessageSquare
+  AlertTriangle, Plus, Flame, Settings, KeyRound, ChevronRight, MessageSquare, UserPlus
 } from 'lucide-react';
 import { TeamMember } from '@/lib/types';
 
@@ -63,7 +63,7 @@ export default function Sidebar({
         )}
       </div>
 
-      {/* 1. Búsqueda Activa (Signal Leads / Calientes) */}
+      {/* 1. Nuevos Prospectos (Agregados recientemente) */}
       <div
         onClick={() => {
           setViewFilter('active_search');
@@ -73,13 +73,13 @@ export default function Sidebar({
         }}
         className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-all mb-1 ${
           activeTab === 'contactos' && viewFilter === 'active_search'
-            ? 'bg-[#ff6d3b]/15 text-[#ff6d3b] border border-[#ff6d3b]/30 font-bold shadow-xs'
-            : 'text-theme-txt2 hover:bg-theme-sur2 hover:text-[#ff6d3b]'
+            ? 'bg-[#00a870]/15 text-[#00a870] border border-[#00a870]/30 font-bold shadow-xs'
+            : 'text-theme-txt2 hover:bg-theme-sur2 hover:text-[#00a870]'
         }`}
       >
-        <Flame className="w-4 h-4 shrink-0 text-[#ff6d3b]" />
-        <span className="truncate">🎯 Búsqueda Activa</span>
-        <span className="ml-auto font-mono text-[10px] px-1.5 py-0.5 rounded-full bg-[#ff6d3b]/20 text-[#ff6d3b] font-bold">
+        <UserPlus className="w-4 h-4 shrink-0 text-[#00a870]" />
+        <span className="truncate">✨ Nuevos Prospectos</span>
+        <span className="ml-auto font-mono text-[10px] px-1.5 py-0.5 rounded-full bg-[#00a870]/20 text-[#00a870] font-bold">
           {(counts.activeSearchCount || 0).toLocaleString()}
         </span>
       </div>

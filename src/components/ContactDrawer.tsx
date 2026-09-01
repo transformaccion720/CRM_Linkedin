@@ -4,9 +4,9 @@ import React, { useState } from 'react';
 import { 
   X, ExternalLink, Calendar, Star, Building2, Briefcase, Mail, Phone, 
   Tag, Clock, Save, Edit3, MessageSquare, Check, User, Globe, AlertTriangle,
-  UserCheck, Flame, Plus
+  UserCheck, Plus
 } from 'lucide-react';
-import { Contact, ContactStatus, ContactSource, TeamMember } from '@/lib/types';
+import { Contact, ContactStatus, TeamMember } from '@/lib/types';
 
 interface ContactDrawerProps {
   contact: Contact | null;
@@ -16,15 +16,6 @@ interface ContactDrawerProps {
   onOpenTemplates?: (contact: Contact) => void;
   teamMembers?: TeamMember[];
 }
-
-const STATUS_COLORS: Record<ContactStatus, { bg: string; text: string; border: string }> = {
-  'Sin contactar': { bg: 'bg-theme-sur2', text: 'text-theme-txt2', border: 'border-theme-bor' },
-  'En contacto': { bg: 'bg-[#2979ff]/15', text: 'text-[#2979ff]', border: 'border-[#2979ff]/30' },
-  'Oportunidad': { bg: 'bg-[#00a870]/15', text: 'text-[#00a870]', border: 'border-[#00a870]/30' },
-  'Cliente': { bg: 'bg-[#a855f7]/15', text: 'text-[#a855f7]', border: 'border-[#a855f7]/30' },
-  'Descartado': { bg: 'bg-[#ff6d3b]/15', text: 'text-[#ff6d3b]', border: 'border-[#ff6d3b]/30' },
-  'En pausa': { bg: 'bg-amber-500/15', text: 'text-amber-500', border: 'border-amber-500/30' },
-};
 
 export default function ContactDrawer({
   contact,
@@ -43,7 +34,6 @@ export default function ContactDrawer({
   const [phone, setPhone] = useState('');
   const [status, setStatus] = useState<ContactStatus>('Sin contactar');
   const [priority, setPriority] = useState<number>(1);
-  const [source, setSource] = useState<ContactSource>('BASE_IMPORTADA');
   const [postUrl, setPostUrl] = useState('');
   const [serviceNeeded, setServiceNeeded] = useState('');
   const [notes, setNotes] = useState('');
@@ -65,7 +55,6 @@ export default function ContactDrawer({
       setPhone(contact.phone || '');
       setStatus(contact.status);
       setPriority(contact.priority || 1);
-      setSource(contact.source || 'BASE_IMPORTADA');
       setPostUrl(contact.post_url || '');
       setServiceNeeded(contact.service_needed || '');
       setNotes(contact.notes || '');
@@ -103,7 +92,6 @@ export default function ContactDrawer({
           phone: phone.trim() || null,
           status,
           priority,
-          source,
           post_url: postUrl.trim() || null,
           service_needed: serviceNeeded.trim() || null,
           notes,
@@ -126,18 +114,6 @@ export default function ContactDrawer({
     }
   };
 
-  const handleAddTag = () => {
-    const trimmed = newTagInput.trim();
-    if (trimmed && !tags.includes(trimmed)) {
-      setTags([...tags, trimmed]);
-      setNewTagInput('');
-    }
-  };
-
-  const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter((t) => t !== tagToRemove));
-  };
-
   const setQuickFollowUp = (daysAhead: number) => {
     const d = new Date();
     d.setDate(d.getDate() + daysAhead);
@@ -148,42 +124,34 @@ export default function ContactDrawer({
   };
 
   const isShared = contact.shared_with && contact.shared_with.length > 0;
+  const isManuallyAdded = contact.source === 'BUSQUEDA_ACTIVA' || contact.source === 'PROSPECCION_DIRECTA';
+  const ownerLabel = isManuallyAdded
+    ? `Prospecto agregado por ${contact.assigned_to || 'el equipo'}`
+    : `BD de ${contact.assigned_to || 'Kiara / Gabino'}`;
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden bg-black/50 backdrop-blur-xs flex justify-end animate-in fade-in duration-200">
       <div className="w-full max-w-lg bg-theme-sur border-l border-theme-bor h-full flex flex-col shadow-2xl animate-in slide-in-from-right duration-200 overflow-y-auto">
         {/* Header */}
         <div className="p-4 px-6 border-b border-theme-bor flex items-center justify-between bg-theme-sur sticky top-0 z-10 shrink-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-[#00a870]/10 text-[#00a870] flex items-center justify-center font-bold text-xs">
               {(firstName[0] || '') + (lastName[0] || '')}
             </div>
             <div>
               <h2 className="font-bold text-sm text-theme-txt">Ficha del Prospecto</h2>
-              <span className="text-[10px] text-theme-txt3 font-mono">ID: {contact.id.slice(0, 8)}</span>
+              <span className="text-[10.5px] text-theme-txt3 font-medium">
+                {ownerLabel}
+              </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {contact.linkedin_url && (
-              <a
-                href={contact.linkedin_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-1.5 rounded-lg bg-theme-sur2 text-theme-txt2 hover:text-[#0a66c2] hover:bg-[#0a66c2]/10 border border-theme-bor transition-all"
-                title="Abrir perfil de LinkedIn"
-              >
-                <ExternalLink className="w-4 h-4" />
-              </a>
-            )}
-
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded-lg text-theme-txt2 hover:text-theme-txt hover:bg-theme-sur2 transition-all cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-theme-txt2 hover:text-theme-txt hover:bg-theme-sur2 transition-all cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
         {/* Content Body */}
@@ -202,76 +170,31 @@ export default function ContactDrawer({
             </div>
           )}
 
-          {/* Lead Source Badge & Signal Info */}
-          <div className="p-3.5 rounded-2xl bg-theme-sur2/70 border border-theme-bor space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-theme-txt flex items-center gap-1.5">
-                <Flame className="w-4 h-4 text-[#ff6d3b]" />
-                <span>Origen / Señal Comercial</span>
-              </label>
-              <select
-                value={source}
-                onChange={(e) => setSource(e.target.value as ContactSource)}
-                className="text-xs bg-theme-sur border border-theme-bor focus:border-[#ff6d3b] rounded-lg px-2.5 py-1 text-theme-txt outline-hidden font-medium"
+          {/* Action Buttons: Abrir Asistente de Mensajes + Ver LinkedIn */}
+          <div className="flex items-center gap-2.5">
+            {onOpenTemplates && (
+              <button
+                onClick={() => onOpenTemplates(contact)}
+                className="flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold bg-[#0a66c2]/15 text-[#0a66c2] hover:bg-[#0a66c2] hover:text-white border border-[#0a66c2]/30 flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
               >
-                <option value="BUSQUEDA_ACTIVA">🎯 Búsqueda Activa</option>
-                <option value="PROSPECCION_DIRECTA">👤 Prospección Directa</option>
-                <option value="BASE_IMPORTADA">🗄️ Base Importada CSV</option>
-              </select>
-            </div>
+                <MessageSquare className="w-4 h-4" />
+                <span>Abrir Asistente de Mensajes</span>
+              </button>
+            )}
 
-            {source === 'BUSQUEDA_ACTIVA' && (
-              <div className="space-y-2 pt-2 border-t border-theme-bor animate-in fade-in duration-150">
-                {postUrl ? (
-                  <div className="flex items-center justify-between text-xs p-2 rounded-xl bg-theme-sur border border-theme-bor">
-                    <span className="text-theme-txt2 truncate max-w-[260px] text-[11px]">{postUrl}</span>
-                    <a
-                      href={postUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-2 py-0.5 rounded bg-[#ff6d3b]/15 text-[#ff6d3b] hover:bg-[#ff6d3b]/25 font-semibold text-[10px] flex items-center gap-1 shrink-0"
-                    >
-                      <span>Ver Post</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </div>
-                ) : (
-                  <div>
-                    <label className="text-[10.5px] text-theme-txt2 mb-1 block">Link de la Publicación:</label>
-                    <input
-                      type="url"
-                      value={postUrl}
-                      onChange={(e) => setPostUrl(e.target.value)}
-                      placeholder="https://www.linkedin.com/posts/..."
-                      className="w-full bg-theme-sur border border-theme-bor focus:border-[#ff6d3b] rounded-lg px-2.5 py-1 text-xs text-theme-txt outline-hidden"
-                    />
-                  </div>
-                )}
-
-                <div>
-                  <label className="text-[10.5px] text-theme-txt2 mb-1 block">Servicio / Necesidad que busca:</label>
-                  <input
-                    type="text"
-                    value={serviceNeeded}
-                    onChange={(e) => setServiceNeeded(e.target.value)}
-                    placeholder="Ej. Taller de liderazgo para mandos medios..."
-                    className="w-full bg-theme-sur border border-theme-bor focus:border-[#ff6d3b] rounded-lg px-2.5 py-1 text-xs text-theme-txt outline-hidden"
-                  />
-                </div>
-              </div>
+            {contact.linkedin_url && (
+              <a
+                href={contact.linkedin_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="py-2.5 px-4 rounded-xl text-xs font-semibold text-theme-txt hover:text-[#0a66c2] bg-theme-sur2 hover:bg-theme-sur3 border border-theme-bor flex items-center gap-1.5 transition-all"
+                title="Abrir perfil de LinkedIn en una nueva pestaña"
+              >
+                <ExternalLink className="w-3.5 h-3.5 text-[#0a66c2]" />
+                <span>Ver LinkedIn</span>
+              </a>
             )}
           </div>
-
-          {/* Quick Message Assistant Button */}
-          {onOpenTemplates && (
-            <button
-              onClick={() => onOpenTemplates(contact)}
-              className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold bg-[#0a66c2]/15 text-[#0a66c2] hover:bg-[#0a66c2] hover:text-white border border-[#0a66c2]/30 flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
-            >
-              <MessageSquare className="w-4 h-4" />
-              <span>Abrir Asistente de Mensajes LinkedIn</span>
-            </button>
-          )}
 
           {/* Editable Personal & Company Info */}
           <div className="space-y-3">
@@ -352,7 +275,7 @@ export default function ContactDrawer({
             </div>
           </div>
 
-          {/* Status & Priority */}
+          {/* Status & Priority Stars */}
           <div className="grid grid-cols-2 gap-2.5">
             <div>
               <label className="text-[11px] font-medium text-theme-txt2 mb-1 block">Estado del Lead</label>
@@ -450,7 +373,7 @@ export default function ContactDrawer({
             </div>
           </div>
 
-          {/* Notes */}
+          {/* Context Notes */}
           <div>
             <label className="text-[11px] font-medium text-theme-txt2 mb-1 block">Notas de Gestión Comercial</label>
             <textarea

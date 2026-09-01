@@ -196,8 +196,8 @@ export default function PipelineView({
                               {c.first_name} {c.last_name || ''}
                             </div>
                             {c.source === 'BUSQUEDA_ACTIVA' && (
-                              <span className="text-[8px] font-bold px-1.5 py-0.2 rounded bg-[#ff6d3b]/15 text-[#ff6d3b] border border-[#ff6d3b]/30 shrink-0">
-                                🎯 Activo
+                              <span className="text-[8px] font-bold px-1.5 py-0.2 rounded bg-[#00a870]/15 text-[#00a870] border border-[#00a870]/30 shrink-0">
+                                ✨ Nuevo
                               </span>
                             )}
                             {c.priority && c.priority > 1 && (
