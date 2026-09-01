@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, memo } from 'react';
 import { Contact, ContactStatus } from '@/lib/types';
 import { 
   ExternalLink, Mail, Edit3, CheckCircle, ChevronLeft, ChevronRight, 
@@ -18,7 +18,7 @@ interface FilterComboboxProps {
   themeColor?: string;
 }
 
-function FilterCombobox({
+const FilterCombobox = memo(function FilterCombobox({
   label,
   icon,
   value,
@@ -159,7 +159,7 @@ function FilterCombobox({
       )}
     </div>
   );
-}
+});
 
 interface ContactTableProps {
   contacts: Contact[];
@@ -207,7 +207,7 @@ const ALL_STATUSES: ContactStatus[] = [
   'Descartado',
 ];
 
-export default function ContactTable({
+function ContactTableInner({
   contacts,
   onSelectContact,
   onQuickStatusChange,
@@ -636,3 +636,7 @@ export default function ContactTable({
     </div>
   );
 }
+
+const ContactTable = memo(ContactTableInner);
+export default ContactTable;
+

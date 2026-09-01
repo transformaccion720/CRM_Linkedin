@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { Contact, ContactStatus, TeamMember } from '@/lib/types';
 import { MessageTemplate, DEFAULT_TEMPLATES } from '@/lib/templates';
 import Navbar from '@/components/Navbar';
@@ -236,7 +236,7 @@ export default function Home() {
   }, [fetchContacts]);
 
   // Handle Quick Status Change
-  const handleQuickStatusChange = async (contactId: string, newStatus: ContactStatus) => {
+  const handleQuickStatusChange = useCallback(async (contactId: string, newStatus: ContactStatus) => {
     try {
       setContacts((prev) =>
         prev.map((c) => (c.id === contactId ? { ...c, status: newStatus } : c))
@@ -260,15 +260,43 @@ export default function Home() {
       console.error('Error changing status:', e);
       fetchContacts();
     }
-  };
+  }, [currentUser?.name, fetchContacts, fetchStats]);
 
-  const handleExportCSV = () => {
+  const handleExportCSV = useCallback(() => {
     window.open('/api/contacts?export=csv', '_blank');
-  };
+  }, []);
 
   const activeTemplate = useMemo(() => {
     return templates.find((t) => t.id === activeTemplateId) || templates[0];
   }, [templates, activeTemplateId]);
+
+  // Stabilized callbacks for modals to prevent parent re-renders from propagating
+  const handleCloseDrawer = useCallback(() => setSelectedContact(null), []);
+  const handleDrawerOpenTemplates = useCallback((c: Contact) => {
+    setSelectedContact(null);
+    setTemplateContact(c);
+  }, []);
+  const handleDrawerUpdate = useCallback((updated: Contact) => {
+    setSelectedContact(updated);
+    setContacts((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+    fetchStats();
+  }, [fetchStats]);
+  const handleCloseProfile = useCallback(() => setIsProfileOpen(false), []);
+  const handleCloseZernio = useCallback(() => setTemplateContact(null), []);
+  const handleZernioMarkContacted = useCallback((id: string) => handleQuickStatusChange(id, 'En contacto'), [handleQuickStatusChange]);
+  const handleCloseTemplateManager = useCallback(() => setIsTemplateManagerOpen(false), []);
+  const handleCloseTeamManager = useCallback(() => setIsTeamManagerOpen(false), []);
+  const handleCloseNewContact = useCallback(() => setIsNewContactOpen(false), []);
+  const handleNewContactSuccess = useCallback((newContact: Contact) => {
+    setContacts((prev) => [newContact, ...prev]);
+    fetchStats();
+  }, [fetchStats]);
+  const handleCloseImport = useCallback(() => setIsImportOpen(false), []);
+  const handleImportSuccess = useCallback(() => {
+    fetchContacts();
+    fetchStats();
+    fetchTeamMembers();
+  }, [fetchContacts, fetchStats, fetchTeamMembers]);
 
   // Clean Theme Toggle State (supports data-theme and class)
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
@@ -496,22 +524,15 @@ export default function Home() {
         teamMembers={teamMembers}
         availableTags={filterOptions.tags}
         isOpen={Boolean(selectedContact)}
-        onClose={() => setSelectedContact(null)}
-        onOpenTemplates={(c) => {
-          setSelectedContact(null);
-          setTemplateContact(c);
-        }}
-        onUpdate={(updated) => {
-          setSelectedContact(updated);
-          setContacts((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-          fetchStats();
-        }}
+        onClose={handleCloseDrawer}
+        onOpenTemplates={handleDrawerOpenTemplates}
+        onUpdate={handleDrawerUpdate}
       />
 
       {/* Profile & Security Modal */}
       <ProfileModal
         isOpen={isProfileOpen}
-        onClose={() => setIsProfileOpen(false)}
+        onClose={handleCloseProfile}
         currentUser={currentUser}
         onUpdateUser={setCurrentUser}
         onLogout={handleLogout}
@@ -523,8 +544,8 @@ export default function Home() {
         isOpen={Boolean(templateContact)}
         currentUser={currentUser}
         templates={templates}
-        onClose={() => setTemplateContact(null)}
-        onMarkContacted={(id) => handleQuickStatusChange(id, 'En contacto')}
+        onClose={handleCloseZernio}
+        onMarkContacted={handleZernioMarkContacted}
       />
 
       {/* Template Manager Configuration Modal */}
@@ -535,14 +556,14 @@ export default function Home() {
         onSelectActiveTemplate={handleSelectActiveTemplate}
         onSaveTemplates={handleSaveTemplates}
         onResetTemplates={handleResetTemplates}
-        onClose={() => setIsTemplateManagerOpen(false)}
+        onClose={handleCloseTemplateManager}
       />
 
       {/* Team Management Modal */}
       <TeamManagerModal
         isOpen={isTeamManagerOpen}
         teamMembers={teamMembers}
-        onClose={() => setIsTeamManagerOpen(false)}
+        onClose={handleCloseTeamManager}
         onRefreshTeam={fetchTeamMembers}
       />
 
@@ -550,23 +571,16 @@ export default function Home() {
       <NewContactModal
         isOpen={isNewContactOpen}
         teamMembers={teamMembers}
-        onClose={() => setIsNewContactOpen(false)}
-        onSuccess={(newContact) => {
-          setContacts((prev) => [newContact, ...prev]);
-          fetchStats();
-        }}
+        onClose={handleCloseNewContact}
+        onSuccess={handleNewContactSuccess}
       />
 
       {/* CSV Uploader */}
       <CsvUploader
         isOpen={isImportOpen}
         teamMembers={teamMembers}
-        onClose={() => setIsImportOpen(false)}
-        onSuccess={() => {
-          fetchContacts();
-          fetchStats();
-          fetchTeamMembers();
-        }}
+        onClose={handleCloseImport}
+        onSuccess={handleImportSuccess}
       />
     </div>
   );

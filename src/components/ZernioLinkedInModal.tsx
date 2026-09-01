@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { X, Globe, User, ExternalLink, Check, Copy, MessageSquare, Send, ShieldCheck, Zap, AlertCircle, RefreshCw } from 'lucide-react';
 import { Contact, TeamMember } from '@/lib/types';
 import { MessageTemplate } from '@/lib/templates';
@@ -14,7 +14,7 @@ interface ZernioLinkedInModalProps {
   onMarkContacted?: (id: string) => void;
 }
 
-export default function ZernioLinkedInModal({
+function ZernioLinkedInModalInner({
   contact,
   isOpen,
   onClose,
@@ -297,3 +297,6 @@ export default function ZernioLinkedInModal({
     </div>
   );
 }
+
+const ZernioLinkedInModal = memo(ZernioLinkedInModalInner);
+export default ZernioLinkedInModal;

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { X, Users, UserPlus, Trash2, Shield, Mail, Check, AlertCircle } from 'lucide-react';
 import { TeamMember } from '@/lib/types';
 
@@ -13,7 +13,7 @@ interface TeamManagerModalProps {
 
 const PRESET_COLORS = ['#00a870', '#2979ff', '#ff6d3b', '#a855f7', '#ec4899', '#f59e0b'];
 
-export default function TeamManagerModal({
+function TeamManagerModalInner({
   isOpen,
   onClose,
   teamMembers,
@@ -266,3 +266,7 @@ export default function TeamManagerModal({
     </div>
   );
 }
+
+const TeamManagerModal = memo(TeamManagerModalInner);
+export default TeamManagerModal;
+

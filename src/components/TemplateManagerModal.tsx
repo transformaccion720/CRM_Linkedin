@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { MessageTemplate } from '@/lib/templates';
 import { X, Plus, Trash2, Edit3, Save, RotateCcw, Check, Sparkles, FolderKanban } from 'lucide-react';
 
@@ -14,7 +14,7 @@ interface TemplateManagerModalProps {
   onResetTemplates: () => void;
 }
 
-export default function TemplateManagerModal({
+function TemplateManagerModalInner({
   isOpen,
   onClose,
   templates,
@@ -358,3 +358,6 @@ export default function TemplateManagerModal({
     </div>
   );
 }
+
+const TemplateManagerModal = memo(TemplateManagerModalInner);
+export default TemplateManagerModal;

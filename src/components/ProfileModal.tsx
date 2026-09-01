@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { X, User, Lock, KeyRound, Check, AlertCircle, Loader2, LogOut, Shield } from 'lucide-react';
 import { TeamMember } from '@/lib/types';
 
@@ -12,7 +12,7 @@ interface ProfileModalProps {
   onLogout: () => void;
 }
 
-export default function ProfileModal({
+function ProfileModalInner({
   isOpen,
   onClose,
   currentUser,
@@ -220,3 +220,7 @@ export default function ProfileModal({
     </div>
   );
 }
+
+const ProfileModal = memo(ProfileModalInner);
+export default ProfileModal;
+

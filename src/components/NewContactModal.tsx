@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { 
   X, UserPlus, Building2, Briefcase, Mail, Phone, Link2, Star, Calendar, 
   Tag, Check, Loader2, UserCheck, Globe, ExternalLink, HelpCircle
@@ -14,7 +14,7 @@ interface NewContactModalProps {
   teamMembers?: TeamMember[];
 }
 
-export default function NewContactModal({
+function NewContactModalInner({
   isOpen,
   onClose,
   onSuccess,
@@ -414,3 +414,6 @@ export default function NewContactModal({
     </div>
   );
 }
+
+const NewContactModal = memo(NewContactModalInner);
+export default NewContactModal;

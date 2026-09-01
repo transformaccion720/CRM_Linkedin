@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, memo } from 'react';
 import { 
   X, ExternalLink, Calendar, Star, Building2, Briefcase, Mail, Phone, 
   Tag, Clock, Save, Edit3, MessageSquare, Check, User, Globe, AlertTriangle,
@@ -18,7 +18,7 @@ interface ContactDrawerProps {
   availableTags?: string[];
 }
 
-export default function ContactDrawer({
+function ContactDrawerInner({
   contact,
   isOpen,
   onClose,
@@ -579,3 +579,6 @@ export default function ContactDrawer({
     </div>
   );
 }
+
+const ContactDrawer = memo(ContactDrawerInner);
+export default ContactDrawer;

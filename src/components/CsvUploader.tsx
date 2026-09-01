@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { X, Upload, CheckCircle2, AlertCircle, FileSpreadsheet, Loader2, Sparkles, UserCheck } from 'lucide-react';
 import { TeamMember } from '@/lib/types';
 
@@ -11,7 +11,7 @@ interface CsvUploaderProps {
   teamMembers?: TeamMember[];
 }
 
-export default function CsvUploader({ isOpen, onClose, onSuccess, teamMembers = [] }: CsvUploaderProps) {
+function CsvUploaderInner({ isOpen, onClose, onSuccess, teamMembers = [] }: CsvUploaderProps) {
   const [file, setFile] = useState<File | null>(null);
   const [assignedTo, setAssignedTo] = useState<string>('Gabino');
   const [loading, setLoading] = useState(false);
@@ -288,3 +288,7 @@ export default function CsvUploader({ isOpen, onClose, onSuccess, teamMembers = 
     </div>
   );
 }
+
+const CsvUploader = memo(CsvUploaderInner);
+export default CsvUploader;
+

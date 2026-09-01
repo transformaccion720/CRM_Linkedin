@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { memo } from 'react';
 import { 
   Users, Mail, MailX, Calendar, Filter, Clock, Star, X, UserCheck, 
   AlertTriangle, Plus, Flame, Settings, KeyRound, ChevronRight, MessageSquare, UserPlus
@@ -31,7 +31,7 @@ interface SidebarProps {
   };
 }
 
-export default function Sidebar({
+function SidebarInner({
   viewFilter,
   setViewFilter,
   statusFilter,
@@ -333,3 +333,7 @@ export default function Sidebar({
     </>
   );
 }
+
+const Sidebar = memo(SidebarInner);
+export default Sidebar;
+
