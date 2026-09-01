@@ -24,7 +24,25 @@ export async function GET(req: NextRequest) {
         c.status, c.notes, c.priority, 
         TO_CHAR(c.follow_up_date, 'YYYY-MM-DD') as follow_up_date,
         c.tags, c.assigned_to, c.source, c.post_url, c.service_needed,
-        c.created_at, c.updated_at
+        c.created_at, c.updated_at,
+        ARRAY(
+          SELECT DISTINCT c2.assigned_to 
+          FROM contacts c2 
+          WHERE c2.id != c.id 
+            AND c2.assigned_to IS NOT NULL
+            AND c2.assigned_to != c.assigned_to
+            AND (
+              (c.linkedin_url IS NOT NULL AND c.linkedin_url != '' AND c2.linkedin_url = c.linkedin_url)
+              OR (
+                LOWER(TRIM(c2.first_name)) = LOWER(TRIM(c.first_name))
+                AND LOWER(TRIM(COALESCE(c2.last_name, ''))) = LOWER(TRIM(COALESCE(c.last_name, '')))
+                AND (
+                  (c.email IS NOT NULL AND c.email != '' AND LOWER(c2.email) = LOWER(c.email))
+                  OR (c.company IS NOT NULL AND c.company != '' AND LOWER(c2.company) = LOWER(c.company))
+                )
+              )
+            )
+        ) as shared_with
       FROM contacts c
       WHERE 
         (${searchPattern}::text IS NULL OR (

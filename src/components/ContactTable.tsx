@@ -394,11 +394,11 @@ export default function ContactTable({
                               )}
                               {isShared && (
                                 <span
-                                  className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[8.5px] font-bold bg-[#ff6d3b]/15 text-[#ff6d3b] border border-[#ff6d3b]/30"
-                                  title={`También en la base de: ${c.shared_with?.join(', ')}`}
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#ff6d3b]/20 text-[#ff6d3b] border border-[#ff6d3b]/40 animate-in fade-in"
+                                  title={`⚠️ Coincide también en la base de: ${c.shared_with?.join(', ')}`}
                                 >
-                                  <AlertTriangle className="w-2.5 h-2.5" />
-                                  <span>Compartido</span>
+                                  <AlertTriangle className="w-3 h-3 text-[#ff6d3b] shrink-0" />
+                                  <span>Compartido ({c.shared_with?.join(', ')})</span>
                                 </span>
                               )}
                             </div>
