@@ -56,7 +56,13 @@ export async function PATCH(
         tags = ${safeTags}::text[],
         updated_at = NOW()
       WHERE id = ${id}
-      RETURNING *;
+      RETURNING 
+        id, first_name, last_name, linkedin_url, email, phone, company, position, country,
+        TO_CHAR(connected_on, 'YYYY-MM-DD') as connected_on,
+        status, notes, priority,
+        TO_CHAR(follow_up_date, 'YYYY-MM-DD') as follow_up_date,
+        tags, assigned_to, source, post_url, service_needed,
+        created_at, updated_at;
     `;
 
     if (result.length === 0) {

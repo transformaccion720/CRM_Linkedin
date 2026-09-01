@@ -167,6 +167,17 @@ export default function ContactDrawer({
           </button>
         </div>
 
+        {/* Save Confirmation Toast Banner (Top of Drawer) */}
+        {saveSuccess && (
+          <div className="bg-[#00a870] text-[#00110b] font-bold px-6 py-2.5 flex items-center justify-between text-xs animate-in slide-in-from-top duration-200 shadow-md">
+            <div className="flex items-center gap-2">
+              <Check className="w-4 h-4 stroke-[3]" />
+              <span>¡Cambios guardados con éxito en la base de datos!</span>
+            </div>
+            <span className="text-[10.5px] opacity-80 font-mono">Actualizado</span>
+          </div>
+        )}
+
         {/* Content Body */}
         <div className="p-4 sm:p-6 space-y-5 flex-1">
           {/* Shared Contact Warning Alert */}
@@ -466,12 +477,12 @@ export default function ContactDrawer({
         <div className="p-4 px-6 border-t border-theme-bor bg-theme-sur sticky bottom-0 z-10 flex items-center justify-between shrink-0">
           <div>
             {saveSuccess ? (
-              <span className="text-xs text-[#00a870] font-bold flex items-center gap-1 animate-in fade-in bg-[#00a870]/10 px-2.5 py-1 rounded-lg border border-[#00a870]/20">
-                <Check className="w-4 h-4" />
-                <span>¡Se guardó correctamente!</span>
+              <span className="text-xs text-[#00a870] font-bold flex items-center gap-1.5 animate-in fade-in bg-[#00a870]/15 px-3 py-1.5 rounded-xl border border-[#00a870]/30 shadow-xs">
+                <Check className="w-4 h-4 stroke-[3]" />
+                <span>¡Guardado correctamente!</span>
               </span>
             ) : (
-              <span className="text-[11px] text-theme-txt3">Cambios pendientes por guardar</span>
+              <span className="text-[11px] text-theme-txt3">Edición de contacto</span>
             )}
           </div>
 
