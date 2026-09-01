@@ -148,14 +148,14 @@ export async function GET(req: NextRequest) {
       const oAct = Math.max(acts[0]?.opportunity_count || 0, contactSummary[0]?.curr_opportunities || 0);
       const clAct = Math.max(acts[0]?.client_count || 0, contactSummary[0]?.curr_clients || 0);
 
-      // Build daily breakdown for this member
+      // Build daily breakdown for this member strictly based on logs and contact updates per day
       const daysBreakdown = weekDays.map((wd) => {
         const fromLog = dayMap[wd.date_str];
         let dContacted = fromLog ? fromLog.contacts : 0;
 
-        // If today and active contacts exist, ensure today is recognized accurately
+        // If today and contacts were updated today in Lima timezone
         if (wd.is_today && weekOffset === 0) {
-          dContacted = Math.max(dContacted, contactSummary[0]?.contacts_managed_today || 0, contactSummary[0]?.all_managed_contacts || 0);
+          dContacted = Math.max(dContacted, contactSummary[0]?.contacts_managed_today || 0);
         }
 
         const dOpps = fromLog ? fromLog.opps : 0;
