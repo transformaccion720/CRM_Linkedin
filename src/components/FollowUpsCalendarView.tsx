@@ -77,7 +77,7 @@ export default function FollowUpsCalendarView({
     if (activeSegment === 'today' && r.time_bucket !== 'today') return false;
     if (activeSegment === 'overdue' && r.time_bucket !== 'overdue') return false;
     if (activeSegment === 'plus_1_day' && r.time_bucket !== 'plus_1_day') return false;
-    if (activeSegment === 'plus_3_days' && r.time_bucket !== 'plus_3_days' && r.time_bucket !== 'plus_1_day') return false;
+    if (activeSegment === 'plus_3_days' && r.time_bucket !== 'plus_3_days') return false;
     if (activeSegment === 'plus_1_week' && r.time_bucket !== 'plus_1_week') return false;
     if (activeSegment === 'plus_1_month' && r.time_bucket !== 'plus_1_month') return false;
 

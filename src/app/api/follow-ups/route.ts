@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
       LIMIT 300;
     `;
 
-    // Classify into exact segmented time buckets
+    // Strictly separate segments without overlapping
     const formattedRows = rows.map((r: any) => {
       const diff = parseInt(r.days_diff, 10) || 0;
       let bucket: 'overdue' | 'today' | 'plus_1_day' | 'plus_3_days' | 'plus_1_week' | 'plus_1_month' | 'future' = 'future';
@@ -39,15 +39,15 @@ export async function GET(req: NextRequest) {
       } else if (diff === 0) {
         bucket = 'today';
       } else if (diff === 1) {
-        bucket = 'plus_1_day';
-      } else if (diff <= 3) {
-        bucket = 'plus_3_days';
-      } else if (diff <= 7) {
-        bucket = 'plus_1_week';
-      } else if (diff <= 30) {
-        bucket = 'plus_1_month';
+        bucket = 'plus_1_day'; // Strictly tomorrow (1 day ahead)
+      } else if (diff >= 2 && diff <= 3) {
+        bucket = 'plus_3_days'; // Strictly in 2 to 3 days (does NOT include tomorrow)
+      } else if (diff >= 4 && diff <= 7) {
+        bucket = 'plus_1_week'; // Strictly in 4 to 7 days
+      } else if (diff >= 8 && diff <= 30) {
+        bucket = 'plus_1_month'; // Strictly in 8 to 30 days
       } else {
-        bucket = 'future';
+        bucket = 'future'; // More than 30 days ahead
       }
 
       return {
