@@ -1,12 +1,165 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Contact, ContactStatus } from '@/lib/types';
 import { 
   ExternalLink, Mail, Edit3, CheckCircle, ChevronLeft, ChevronRight, 
   ChevronsLeft, ChevronsRight, MessageSquare, Star, Phone, AlertTriangle, 
-  Tag, Filter, X, Briefcase, Building2
+  Tag, Filter, X, Briefcase, Building2, Search, ChevronDown, Check
 } from 'lucide-react';
+
+interface FilterComboboxProps {
+  label: string;
+  icon: React.ReactNode;
+  value: string;
+  onChange: (val: string) => void;
+  options: string[];
+  placeholderSearch?: string;
+  themeColor?: string;
+}
+
+function FilterCombobox({
+  label,
+  icon,
+  value,
+  onChange,
+  options,
+  placeholderSearch = 'Buscar...',
+  themeColor = '#00a870',
+}: FilterComboboxProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      // Focus input when opened
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  const filtered = useMemo(() => {
+    if (!query.trim()) return options;
+    const q = query.toLowerCase().trim();
+    return options.filter((opt) => opt.toLowerCase().includes(q));
+  }, [options, query]);
+
+  return (
+    <div className="relative shrink-0" ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs transition-all cursor-pointer max-w-[210px] ${
+          value
+            ? 'bg-[#00a870]/15 text-[#00a870] border-[#00a870]/40 font-bold shadow-xs'
+            : 'bg-theme-sur2 text-theme-txt border-theme-bor hover:border-theme-bor2 hover:bg-theme-sur3'
+        }`}
+      >
+        <span className="shrink-0">{icon}</span>
+        <span className="truncate">
+          {value ? value : label}
+        </span>
+        {value ? (
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              onChange('');
+            }}
+            className="p-0.5 hover:text-red-400 cursor-pointer shrink-0 ml-0.5"
+            title="Limpiar"
+          >
+            <X className="w-3 h-3" />
+          </span>
+        ) : (
+          <ChevronDown className="w-3 h-3 text-theme-txt3 shrink-0 ml-0.5" />
+        )}
+      </button>
+
+      {/* Dropdown with Micro Search Bar */}
+      {isOpen && (
+        <div className="absolute left-0 top-full mt-1.5 w-72 bg-theme-sur border border-theme-bor rounded-2xl shadow-2xl z-50 p-2 space-y-1.5 animate-in fade-in zoom-in-95 duration-150">
+          {/* Micro Search Input */}
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-theme-txt3 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={placeholderSearch}
+              className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl pl-8 pr-7 py-1.5 text-xs text-theme-txt outline-hidden placeholder:text-theme-txt3"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-theme-txt3 hover:text-theme-txt"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+
+          {/* Options List */}
+          <div className="max-h-56 overflow-y-auto space-y-0.5 pt-1 custom-scrollbar">
+            <button
+              type="button"
+              onClick={() => {
+                onChange('');
+                setIsOpen(false);
+                setQuery('');
+              }}
+              className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition-colors cursor-pointer ${
+                !value ? 'bg-[#00a870]/15 text-[#00a870] font-bold' : 'text-theme-txt2 hover:bg-theme-sur2 hover:text-theme-txt'
+              }`}
+            >
+              <span>Todos ({options.length})</span>
+              {!value && <Check className="w-3.5 h-3.5 text-[#00a870]" />}
+            </button>
+
+            {filtered.length === 0 ? (
+              <div className="p-3 text-center text-xs text-theme-txt3">
+                No se encontró &quot;{query}&quot;
+              </div>
+            ) : (
+              filtered.map((opt) => {
+                const isSelected = value === opt;
+                return (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => {
+                      onChange(opt);
+                      setIsOpen(false);
+                      setQuery('');
+                    }}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition-colors cursor-pointer ${
+                      isSelected
+                        ? 'bg-[#00a870]/15 text-[#00a870] font-bold'
+                        : 'text-theme-txt hover:bg-theme-sur2'
+                    }`}
+                  >
+                    <span className="truncate pr-2">{opt}</span>
+                    {isSelected && <Check className="w-3.5 h-3.5 text-[#00a870] shrink-0" />}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface ContactTableProps {
   contacts: Contact[];
@@ -71,26 +224,32 @@ export default function ContactTable({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
 
-  // Derive unique filter items from current list if not fully provided from DB
+  // Complete alphabetically sorted list of positions, companies and tags
   const uniquePositions = useMemo(() => {
-    if (filterOptions?.positions && filterOptions.positions.length > 0) return filterOptions.positions;
+    if (filterOptions?.positions && filterOptions.positions.length > 0) {
+      return [...filterOptions.positions].sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+    }
     const set = new Set<string>();
     contacts.forEach((c) => { if (c.position) set.add(c.position); });
-    return Array.from(set).slice(0, 40);
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
   }, [contacts, filterOptions?.positions]);
 
   const uniqueCompanies = useMemo(() => {
-    if (filterOptions?.companies && filterOptions.companies.length > 0) return filterOptions.companies;
+    if (filterOptions?.companies && filterOptions.companies.length > 0) {
+      return [...filterOptions.companies].sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+    }
     const set = new Set<string>();
     contacts.forEach((c) => { if (c.company) set.add(c.company); });
-    return Array.from(set).slice(0, 40);
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
   }, [contacts, filterOptions?.companies]);
 
   const uniqueTags = useMemo(() => {
-    if (filterOptions?.tags && filterOptions.tags.length > 0) return filterOptions.tags;
+    if (filterOptions?.tags && filterOptions.tags.length > 0) {
+      return [...filterOptions.tags].sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+    }
     const set = new Set<string>();
     contacts.forEach((c) => { c.tags?.forEach((t) => set.add(t)); });
-    return Array.from(set);
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
   }, [contacts, filterOptions?.tags]);
 
   const hasActiveColumnFilters = Boolean(positionFilter || companyFilter || tagFilter);
@@ -107,104 +266,47 @@ export default function ContactTable({
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-theme-bg overflow-hidden">
-      {/* Column Filter Bar (Quick Column Filters) */}
-      <div className="px-3 py-2 bg-theme-sur border-b border-theme-bor flex items-center gap-2 overflow-x-auto shrink-0 text-xs">
-        <div className="flex items-center gap-1 text-theme-txt2 font-semibold shrink-0">
+      {/* Column Filter Bar (Quick Column Combobox Filters with Micro Search) */}
+      <div className="px-3 py-2 bg-theme-sur border-b border-theme-bor flex items-center gap-2.5 overflow-x-auto shrink-0 text-xs">
+        <div className="flex items-center gap-1.5 text-theme-txt2 font-bold shrink-0">
           <Filter className="w-3.5 h-3.5 text-[#00a870]" />
-          <span>Filtros por Columna:</span>
+          <span>Filtros Rápidos:</span>
         </div>
 
-        {/* 1. Cargo Filter */}
+        {/* 1. Cargo Filter Combobox */}
         {setPositionFilter && (
-          <div className="relative shrink-0">
-            <select
-              value={positionFilter}
-              onChange={(e) => setPositionFilter(e.target.value)}
-              className={`text-xs rounded-lg px-2.5 py-1 border transition-all outline-hidden cursor-pointer font-medium max-w-[180px] truncate ${
-                positionFilter
-                  ? 'bg-[#00a870]/15 text-[#00a870] border-[#00a870]/40 font-bold'
-                  : 'bg-theme-sur2 text-theme-txt border-theme-bor hover:border-theme-bor2'
-              }`}
-            >
-              <option value="">🏢 Todos los Cargos</option>
-              {uniquePositions.map((pos) => (
-                <option key={pos} value={pos} className="bg-theme-sur text-theme-txt">
-                  {pos}
-                </option>
-              ))}
-            </select>
-            {positionFilter && (
-              <button
-                onClick={() => setPositionFilter('')}
-                className="absolute right-6 top-1/2 -translate-y-1/2 text-theme-txt2 hover:text-theme-txt p-0.5"
-                title="Limpiar filtro de cargo"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            )}
-          </div>
+          <FilterCombobox
+            label="Todos los Cargos"
+            icon={<Briefcase className="w-3.5 h-3.5 text-theme-txt3" />}
+            value={positionFilter}
+            onChange={setPositionFilter}
+            options={uniquePositions}
+            placeholderSearch="Buscar cargo (ej. Analista, Gerente)..."
+          />
         )}
 
-        {/* 2. Empresa Filter */}
+        {/* 2. Empresa Filter Combobox */}
         {setCompanyFilter && (
-          <div className="relative shrink-0">
-            <select
-              value={companyFilter}
-              onChange={(e) => setCompanyFilter(e.target.value)}
-              className={`text-xs rounded-lg px-2.5 py-1 border transition-all outline-hidden cursor-pointer font-medium max-w-[180px] truncate ${
-                companyFilter
-                  ? 'bg-[#2979ff]/15 text-[#2979ff] border-[#2979ff]/40 font-bold'
-                  : 'bg-theme-sur2 text-theme-txt border-theme-bor hover:border-theme-bor2'
-              }`}
-            >
-              <option value="">🏛️ Todas las Empresas</option>
-              {uniqueCompanies.map((comp) => (
-                <option key={comp} value={comp} className="bg-theme-sur text-theme-txt">
-                  {comp}
-                </option>
-              ))}
-            </select>
-            {companyFilter && (
-              <button
-                onClick={() => setCompanyFilter('')}
-                className="absolute right-6 top-1/2 -translate-y-1/2 text-theme-txt2 hover:text-theme-txt p-0.5"
-                title="Limpiar filtro de empresa"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            )}
-          </div>
+          <FilterCombobox
+            label="Todas las Empresas"
+            icon={<Building2 className="w-3.5 h-3.5 text-theme-txt3" />}
+            value={companyFilter}
+            onChange={setCompanyFilter}
+            options={uniqueCompanies}
+            placeholderSearch="Buscar empresa (ej. Alicorp, BCP)..."
+          />
         )}
 
-        {/* 3. Etiquetas Filter */}
+        {/* 3. Etiquetas Filter Combobox */}
         {setTagFilter && (
-          <div className="relative shrink-0">
-            <select
-              value={tagFilter}
-              onChange={(e) => setTagFilter(e.target.value)}
-              className={`text-xs rounded-lg px-2.5 py-1 border transition-all outline-hidden cursor-pointer font-medium max-w-[170px] truncate ${
-                tagFilter
-                  ? 'bg-[#a855f7]/15 text-[#a855f7] border-[#a855f7]/40 font-bold'
-                  : 'bg-theme-sur2 text-theme-txt border-theme-bor hover:border-theme-bor2'
-              }`}
-            >
-              <option value="">🏷️ Todas las Etiquetas</option>
-              {uniqueTags.map((tag) => (
-                <option key={tag} value={tag} className="bg-theme-sur text-theme-txt">
-                  {tag}
-                </option>
-              ))}
-            </select>
-            {tagFilter && (
-              <button
-                onClick={() => setTagFilter('')}
-                className="absolute right-6 top-1/2 -translate-y-1/2 text-theme-txt2 hover:text-theme-txt p-0.5"
-                title="Limpiar filtro de etiqueta"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            )}
-          </div>
+          <FilterCombobox
+            label="Todas las Etiquetas"
+            icon={<Tag className="w-3.5 h-3.5 text-theme-txt3" />}
+            value={tagFilter}
+            onChange={setTagFilter}
+            options={uniqueTags}
+            placeholderSearch="Buscar etiqueta (ej. Agile, Decisor)..."
+          />
         )}
 
         {/* Reset Active Column Filters */}
@@ -215,9 +317,9 @@ export default function ContactTable({
               if (setCompanyFilter) setCompanyFilter('');
               if (setTagFilter) setTagFilter('');
             }}
-            className="px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#ff6d3b] hover:bg-[#ff6d3b]/10 border border-[#ff6d3b]/30 flex items-center gap-1 cursor-pointer shrink-0 transition-all"
+            className="px-3 py-1.5 rounded-xl text-xs font-bold text-[#ff6d3b] hover:bg-[#ff6d3b]/10 border border-[#ff6d3b]/30 flex items-center gap-1 cursor-pointer shrink-0 transition-all shadow-xs"
           >
-            <X className="w-3 h-3" />
+            <X className="w-3.5 h-3.5" />
             <span>Quitar Filtros</span>
           </button>
         )}

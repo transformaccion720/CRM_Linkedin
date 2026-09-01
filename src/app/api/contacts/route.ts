@@ -73,26 +73,22 @@ export async function GET(req: NextRequest) {
     const years = yearsResult.map((r) => r.yr).filter(Boolean);
 
     const companiesResult = await sql`
-      SELECT company, COUNT(*) as count 
+      SELECT DISTINCT company
       FROM contacts 
-      WHERE company IS NOT NULL AND company != ''
+      WHERE company IS NOT NULL AND TRIM(company) != ''
         AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo})
-      GROUP BY company 
-      ORDER BY count DESC 
-      LIMIT 50
+      ORDER BY company ASC
     `;
-    const topCompanies = companiesResult.map((r) => r.company);
+    const allCompanies = companiesResult.map((r) => r.company).filter(Boolean);
 
     const positionsResult = await sql`
-      SELECT position, COUNT(*) as count 
+      SELECT DISTINCT position
       FROM contacts 
-      WHERE position IS NOT NULL AND position != ''
+      WHERE position IS NOT NULL AND TRIM(position) != ''
         AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo})
-      GROUP BY position 
-      ORDER BY count DESC 
-      LIMIT 50
+      ORDER BY position ASC
     `;
-    const topPositions = positionsResult.map((r) => r.position);
+    const allPositions = positionsResult.map((r) => r.position).filter(Boolean);
 
     const tagsResult = await sql`
       SELECT DISTINCT unnest(tags) as tag
@@ -108,8 +104,8 @@ export async function GET(req: NextRequest) {
         contacts: rows,
         filterOptions: {
           years,
-          companies: topCompanies,
-          positions: topPositions,
+          companies: allCompanies,
+          positions: allPositions,
           tags: distinctTags,
         },
       },

@@ -23,7 +23,7 @@ import ZernioLinkedInModal from '@/components/ZernioLinkedInModal';
 import TemplateManagerModal from '@/components/TemplateManagerModal';
 import ProfileModal from '@/components/ProfileModal';
 import LoginScreen from '@/components/LoginScreen';
-import { Search, ShieldAlert, LayoutGrid, LayoutList, UserCheck } from 'lucide-react';
+import { Search, ShieldAlert, LayoutGrid, LayoutList, UserCheck, X } from 'lucide-react';
 
 export default function Home() {
   // Authentication state
@@ -55,6 +55,7 @@ export default function Home() {
 
   // Filters
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [viewFilter, setViewFilter] = useState<'all' | 'email' | 'noemail' | 'recent' | 'follow_up' | 'star3' | 'shared' | 'active_search'>('all');
   const [statusFilter, setStatusFilter] = useState('');
   const [yearFilter, setYearFilter] = useState('');
@@ -63,6 +64,14 @@ export default function Home() {
   const [tagFilter, setTagFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
   const [assignedToFilter, setAssignedToFilter] = useState('');
+
+  // 250ms Debounce for instant and lag-free searching
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   // Modals
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
@@ -188,7 +197,7 @@ export default function Home() {
     setError(null);
     try {
       const params = new URLSearchParams();
-      if (search) params.set('search', search);
+      if (debouncedSearch) params.set('search', debouncedSearch);
       if (statusFilter) params.set('status', statusFilter);
       if (viewFilter) params.set('viewFilter', viewFilter);
       if (yearFilter) params.set('year', yearFilter);
@@ -213,7 +222,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [search, statusFilter, viewFilter, yearFilter, companyFilter, positionFilter, tagFilter, priorityFilter, assignedToFilter]);
+  }, [debouncedSearch, statusFilter, viewFilter, yearFilter, companyFilter, positionFilter, tagFilter, priorityFilter, assignedToFilter]);
 
   // Initial load
   useEffect(() => {
@@ -356,9 +365,19 @@ export default function Home() {
                       type="text"
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      placeholder="Buscar por nombre, cargo, empresa, necesidad..."
-                      className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl pl-9 pr-3 py-1.5 text-xs text-theme-txt outline-hidden"
+                      placeholder="Buscar por nombre, cargo, empresa, email, teléfono o notas..."
+                      className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl pl-9 pr-8 py-1.5 text-xs text-theme-txt outline-hidden placeholder:text-theme-txt3"
                     />
+                    {search && (
+                      <button
+                        type="button"
+                        onClick={() => setSearch('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-theme-txt3 hover:text-theme-txt cursor-pointer"
+                        title="Limpiar búsqueda"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
 
