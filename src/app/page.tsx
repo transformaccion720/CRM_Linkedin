@@ -393,6 +393,13 @@ export default function Home() {
                 onOpenTemplates={setTemplateContact}
                 onQuickStatusChange={handleQuickStatusChange}
                 viewMode={viewMode}
+                positionFilter={positionFilter}
+                setPositionFilter={setPositionFilter}
+                companyFilter={companyFilter}
+                setCompanyFilter={setCompanyFilter}
+                tagFilter={tagFilter}
+                setTagFilter={setTagFilter}
+                filterOptions={filterOptions}
               />
             </div>
           )}

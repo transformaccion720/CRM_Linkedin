@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   X, ExternalLink, Calendar, Star, Building2, Briefcase, Mail, Phone, 
   Tag, Clock, Save, Edit3, MessageSquare, Check, User, Globe, AlertTriangle,
@@ -68,6 +68,18 @@ export default function ContactDrawer({
 
   if (!isOpen || !contact) return null;
 
+  const handleAddTag = () => {
+    const trimmed = newTagInput.trim();
+    if (trimmed && !tags.includes(trimmed)) {
+      setTags([...tags, trimmed]);
+      setNewTagInput('');
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setTags(tags.filter((t) => t !== tagToRemove));
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -105,7 +117,8 @@ export default function ContactDrawer({
       if (res.ok && data.contact) {
         onUpdate(data.contact);
         setSaveSuccess(true);
-        setTimeout(() => setSaveSuccess(false), 2500);
+        // Persist confirmation without quick flickering (10 seconds)
+        setTimeout(() => setSaveSuccess(false), 10000);
       }
     } catch (e) {
       console.error('Error guardando:', e);
@@ -196,7 +209,7 @@ export default function ContactDrawer({
             )}
           </div>
 
-          {/* Editable Personal & Company Info */}
+          {/* Editable Personal, Company & Location Info */}
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-2.5">
               <div>
@@ -232,17 +245,32 @@ export default function ContactDrawer({
               />
             </div>
 
-            <div>
-              <label className="text-[11px] font-medium text-theme-txt2 mb-1 flex items-center gap-1">
-                <Building2 className="w-3 h-3 text-theme-txt3" />
-                <span>Empresa</span>
-              </label>
-              <input
-                type="text"
-                value={company}
-                onChange={(e) => setCompany(e.target.value)}
-                className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3 py-1.5 text-xs text-theme-txt outline-hidden"
-              />
+            <div className="grid grid-cols-2 gap-2.5">
+              <div>
+                <label className="text-[11px] font-medium text-theme-txt2 mb-1 flex items-center gap-1">
+                  <Building2 className="w-3 h-3 text-theme-txt3" />
+                  <span>Empresa</span>
+                </label>
+                <input
+                  type="text"
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                  className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3 py-1.5 text-xs text-theme-txt outline-hidden"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-medium text-theme-txt2 mb-1 flex items-center gap-1">
+                  <Globe className="w-3 h-3 text-theme-txt3" />
+                  <span>País / Ubicación</span>
+                </label>
+                <input
+                  type="text"
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  placeholder="Perú"
+                  className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3 py-1.5 text-xs text-theme-txt outline-hidden"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2.5">
@@ -272,6 +300,54 @@ export default function ContactDrawer({
                   className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3 py-1.5 text-xs text-theme-txt outline-hidden"
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Tags (Etiquetas del Prospecto) */}
+          <div>
+            <label className="text-[11px] font-medium text-theme-txt2 mb-1.5 flex items-center gap-1">
+              <Tag className="w-3 h-3 text-theme-txt3" />
+              <span>Etiquetas de Segmentación</span>
+            </label>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {tags.map((t) => (
+                <span
+                  key={t}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-mono bg-[#2979ff]/15 text-[#2979ff] border border-[#2979ff]/30 font-semibold"
+                >
+                  <span>{t}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveTag(t)}
+                    className="hover:text-red-400 cursor-pointer"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={newTagInput}
+                onChange={(e) => setNewTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddTag();
+                  }
+                }}
+                placeholder="Añadir etiqueta (ej. Agile, Decisor, Interesado) y presiona Enter..."
+                className="flex-1 bg-theme-sur2 border border-theme-bor focus:border-[#2979ff] rounded-xl px-3 py-1.5 text-xs text-theme-txt outline-hidden"
+              />
+              <button
+                type="button"
+                onClick={handleAddTag}
+                className="px-3 py-1.5 rounded-xl bg-theme-sur2 hover:bg-theme-sur3 border border-theme-bor text-xs font-semibold text-theme-txt cursor-pointer flex items-center gap-1"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Añadir</span>
+              </button>
             </div>
           </div>
 
@@ -389,11 +465,13 @@ export default function ContactDrawer({
         {/* Sticky Save Footer */}
         <div className="p-4 px-6 border-t border-theme-bor bg-theme-sur sticky bottom-0 z-10 flex items-center justify-between shrink-0">
           <div>
-            {saveSuccess && (
-              <span className="text-xs text-[#00a870] font-bold flex items-center gap-1 animate-in fade-in">
+            {saveSuccess ? (
+              <span className="text-xs text-[#00a870] font-bold flex items-center gap-1 animate-in fade-in bg-[#00a870]/10 px-2.5 py-1 rounded-lg border border-[#00a870]/20">
                 <Check className="w-4 h-4" />
-                <span>¡Guardado correctamente!</span>
+                <span>¡Se guardó correctamente!</span>
               </span>
+            ) : (
+              <span className="text-[11px] text-theme-txt3">Cambios pendientes por guardar</span>
             )}
           </div>
 
