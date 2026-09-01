@@ -6,7 +6,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search')?.trim() || '';
     const status = searchParams.get('status') || '';
-    const viewFilter = searchParams.get('viewFilter') || 'all'; // all, email, noemail, recent, follow_up, star3, shared, active_search
+    const viewFilter = searchParams.get('viewFilter') || 'all';
     const year = searchParams.get('year') || '';
     const company = searchParams.get('company') || '';
     const position = searchParams.get('position') || '';
@@ -17,18 +17,23 @@ export async function GET(req: NextRequest) {
 
     const searchPattern = search ? `%${search.toLowerCase()}%` : null;
 
-    const rows = await sql`
-      SELECT 
-        c.id, c.first_name, c.last_name, c.linkedin_url, c.email, c.phone, c.company, c.position, c.country,
-        TO_CHAR(c.connected_on, 'YYYY-MM-DD') as connected_on,
-        c.status, c.notes, c.priority, 
-        TO_CHAR(c.follow_up_date, 'YYYY-MM-DD') as follow_up_date,
-        c.tags, c.assigned_to, c.source, c.post_url, c.service_needed,
-        c.created_at, c.updated_at,
-        ARRAY(
-          SELECT DISTINCT c2.assigned_to 
-          FROM contacts c2 
-          WHERE c2.id != c.id 
+    // Run main query and filter option queries IN PARALLEL
+    const [rows, yearsResult, companiesResult, positionsResult, tagsResult] = await Promise.all([
+      // Main contacts query — shared_with computed via LEFT JOIN aggregate instead of correlated subquery
+      sql`
+        SELECT 
+          c.id, c.first_name, c.last_name, c.linkedin_url, c.email, c.phone, c.company, c.position, c.country,
+          TO_CHAR(c.connected_on, 'YYYY-MM-DD') as connected_on,
+          c.status, c.notes, c.priority, 
+          TO_CHAR(c.follow_up_date, 'YYYY-MM-DD') as follow_up_date,
+          c.tags, c.assigned_to, c.source, c.post_url, c.service_needed,
+          c.created_at, c.updated_at,
+          COALESCE(sw.shared_names, ARRAY[]::text[]) as shared_with
+        FROM contacts c
+        LEFT JOIN LATERAL (
+          SELECT ARRAY_AGG(DISTINCT c2.assigned_to) as shared_names
+          FROM contacts c2
+          WHERE c2.id != c.id
             AND c2.assigned_to IS NOT NULL
             AND c2.assigned_to != c.assigned_to
             AND (
@@ -42,89 +47,88 @@ export async function GET(req: NextRequest) {
                 )
               )
             )
-        ) as shared_with
-      FROM contacts c
-      WHERE 
-        (${searchPattern}::text IS NULL OR (
-          LOWER(c.first_name) LIKE ${searchPattern} OR 
-          LOWER(COALESCE(c.last_name, '')) LIKE ${searchPattern} OR 
-          LOWER(COALESCE(c.company, '')) LIKE ${searchPattern} OR 
-          LOWER(COALESCE(c.position, '')) LIKE ${searchPattern} OR
-          LOWER(COALESCE(c.email, '')) LIKE ${searchPattern} OR
-          LOWER(COALESCE(c.phone, '')) LIKE ${searchPattern} OR
-          LOWER(COALESCE(c.service_needed, '')) LIKE ${searchPattern}
-        ))
-        AND (${status === '' || status === 'all'}::boolean OR c.status = ${status})
-        AND (${company === '' || company === 'all'}::boolean OR c.company = ${company})
-        AND (${position === '' || position === 'all'}::boolean OR c.position = ${position})
-        AND (${year === '' || year === 'all'}::boolean OR TO_CHAR(c.connected_on, 'YYYY') = ${year})
-        AND (${priority === '' || priority === 'all'}::boolean OR c.priority = ${parseInt(priority || '1', 10)})
-        AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR c.assigned_to = ${assignedTo})
-        AND (${source === '' || source === 'all'}::boolean OR c.source = ${source})
-        AND (${tag === '' || tag === 'all'}::boolean OR ${tag} = ANY(c.tags))
-        AND (
-          ${viewFilter === 'all'}::boolean OR
-          (${viewFilter === 'active_search'}::boolean AND c.source = 'BUSQUEDA_ACTIVA') OR
-          (${viewFilter === 'email'}::boolean AND c.email IS NOT NULL AND c.email != '') OR
-          (${viewFilter === 'noemail'}::boolean AND (c.email IS NULL OR c.email = '')) OR
-          (${viewFilter === 'recent'}::boolean AND c.connected_on >= '2025-01-01') OR
-          (${viewFilter === 'follow_up'}::boolean AND c.follow_up_date IS NOT NULL AND c.follow_up_date <= CURRENT_DATE + INTERVAL '7 days') OR
-          (${viewFilter === 'star3'}::boolean AND c.priority = 3)
-        )
-      ORDER BY 
-        CASE WHEN c.source = 'BUSQUEDA_ACTIVA' THEN 0 ELSE 1 END,
-        CASE WHEN c.follow_up_date IS NOT NULL AND c.follow_up_date <= CURRENT_DATE THEN 0 ELSE 1 END,
-        c.priority DESC,
-        c.connected_on DESC NULLS LAST, 
-        c.created_at DESC
-      LIMIT 3500;
-    `;
+        ) sw ON true
+        WHERE 
+          (${searchPattern}::text IS NULL OR (
+            LOWER(c.first_name) LIKE ${searchPattern} OR 
+            LOWER(COALESCE(c.last_name, '')) LIKE ${searchPattern} OR 
+            LOWER(COALESCE(c.company, '')) LIKE ${searchPattern} OR 
+            LOWER(COALESCE(c.position, '')) LIKE ${searchPattern} OR
+            LOWER(COALESCE(c.email, '')) LIKE ${searchPattern} OR
+            LOWER(COALESCE(c.phone, '')) LIKE ${searchPattern} OR
+            LOWER(COALESCE(c.service_needed, '')) LIKE ${searchPattern}
+          ))
+          AND (${status === '' || status === 'all'}::boolean OR c.status = ${status})
+          AND (${company === '' || company === 'all'}::boolean OR c.company = ${company})
+          AND (${position === '' || position === 'all'}::boolean OR c.position = ${position})
+          AND (${year === '' || year === 'all'}::boolean OR TO_CHAR(c.connected_on, 'YYYY') = ${year})
+          AND (${priority === '' || priority === 'all'}::boolean OR c.priority = ${parseInt(priority || '1', 10)})
+          AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR c.assigned_to = ${assignedTo})
+          AND (${source === '' || source === 'all'}::boolean OR c.source = ${source})
+          AND (${tag === '' || tag === 'all'}::boolean OR ${tag} = ANY(c.tags))
+          AND (
+            ${viewFilter === 'all'}::boolean OR
+            (${viewFilter === 'active_search'}::boolean AND c.source = 'BUSQUEDA_ACTIVA') OR
+            (${viewFilter === 'email'}::boolean AND c.email IS NOT NULL AND c.email != '') OR
+            (${viewFilter === 'noemail'}::boolean AND (c.email IS NULL OR c.email = '')) OR
+            (${viewFilter === 'recent'}::boolean AND c.connected_on >= '2025-01-01') OR
+            (${viewFilter === 'follow_up'}::boolean AND c.follow_up_date IS NOT NULL AND c.follow_up_date <= CURRENT_DATE + INTERVAL '7 days') OR
+            (${viewFilter === 'star3'}::boolean AND c.priority = 3)
+          )
+        ORDER BY 
+          CASE WHEN c.source = 'BUSQUEDA_ACTIVA' THEN 0 ELSE 1 END,
+          CASE WHEN c.follow_up_date IS NOT NULL AND c.follow_up_date <= CURRENT_DATE THEN 0 ELSE 1 END,
+          c.priority DESC,
+          c.connected_on DESC NULLS LAST, 
+          c.created_at DESC
+        LIMIT 3500;
+      `,
 
-    // Dynamic contextual filter options
-    const yearsResult = await sql`
-      SELECT DISTINCT TO_CHAR(connected_on, 'YYYY') as yr 
-      FROM contacts 
-      WHERE connected_on IS NOT NULL 
-        AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo})
-      ORDER BY yr DESC
-    `;
-    const years = yearsResult.map((r) => r.yr).filter(Boolean);
+      // Filter: years
+      sql`
+        SELECT DISTINCT TO_CHAR(connected_on, 'YYYY') as yr 
+        FROM contacts 
+        WHERE connected_on IS NOT NULL 
+          AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo})
+        ORDER BY yr DESC
+      `,
 
-    const companiesResult = await sql`
-      SELECT DISTINCT company
-      FROM contacts 
-      WHERE company IS NOT NULL AND TRIM(company) != ''
-        AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo})
-      ORDER BY company ASC
-    `;
-    const allCompanies = companiesResult.map((r) => r.company).filter(Boolean);
+      // Filter: companies
+      sql`
+        SELECT DISTINCT company
+        FROM contacts 
+        WHERE company IS NOT NULL AND TRIM(company) != ''
+          AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo})
+        ORDER BY company ASC
+      `,
 
-    const positionsResult = await sql`
-      SELECT DISTINCT position
-      FROM contacts 
-      WHERE position IS NOT NULL AND TRIM(position) != ''
-        AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo})
-      ORDER BY position ASC
-    `;
-    const allPositions = positionsResult.map((r) => r.position).filter(Boolean);
+      // Filter: positions
+      sql`
+        SELECT DISTINCT position
+        FROM contacts 
+        WHERE position IS NOT NULL AND TRIM(position) != ''
+          AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo})
+        ORDER BY position ASC
+      `,
 
-    const tagsResult = await sql`
-      SELECT DISTINCT unnest(tags) as tag
-      FROM contacts
-      WHERE tags IS NOT NULL AND array_length(tags, 1) > 0
-        AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo})
-      ORDER BY tag ASC;
-    `;
-    const distinctTags = tagsResult.map((r) => r.tag).filter(Boolean);
+      // Filter: tags
+      sql`
+        SELECT DISTINCT unnest(tags) as tag
+        FROM contacts
+        WHERE tags IS NOT NULL AND array_length(tags, 1) > 0
+          AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo})
+        ORDER BY tag ASC;
+      `,
+    ]);
 
     return NextResponse.json(
       {
         contacts: rows,
         filterOptions: {
-          years,
-          companies: allCompanies,
-          positions: allPositions,
-          tags: distinctTags,
+          years: yearsResult.map((r) => r.yr).filter(Boolean),
+          companies: companiesResult.map((r) => r.company).filter(Boolean),
+          positions: positionsResult.map((r) => r.position).filter(Boolean),
+          tags: tagsResult.map((r) => r.tag).filter(Boolean),
         },
       },
       {
