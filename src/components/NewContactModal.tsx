@@ -54,6 +54,15 @@ export default function NewContactModal({
     setTags(tags.filter((t) => t !== tagToRemove));
   };
 
+  const setQuickFollowUp = (daysAhead: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + daysAhead);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    setFollowUpDate(`${yyyy}-${mm}-${dd}`);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!firstName.trim()) {
@@ -314,10 +323,35 @@ export default function NewContactModal({
             </div>
 
             <div className="sm:col-span-2">
-              <label className="text-xs font-semibold text-theme-txt mb-1 flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-[#ff6d3b]" />
-                <span>Fecha de Seguimiento (Opcional)</span>
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-theme-txt flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5 text-[#ff6d3b]" />
+                  <span>Fecha de Seguimiento (Opcional)</span>
+                </label>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setQuickFollowUp(1)}
+                    className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#ff6d3b]/15 text-[#ff6d3b] hover:bg-[#ff6d3b]/25 cursor-pointer transition-colors"
+                  >
+                    +1d
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQuickFollowUp(3)}
+                    className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-theme-sur text-theme-txt hover:bg-theme-sur3 border border-theme-bor cursor-pointer transition-colors"
+                  >
+                    +3d
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQuickFollowUp(7)}
+                    className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-theme-sur text-theme-txt hover:bg-theme-sur3 border border-theme-bor cursor-pointer transition-colors"
+                  >
+                    +1sem
+                  </button>
+                </div>
+              </div>
               <input
                 type="date"
                 value={followUpDate}
