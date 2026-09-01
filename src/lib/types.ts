@@ -6,6 +6,11 @@ export type ContactStatus =
   | 'Descartado'
   | 'En pausa';
 
+export type ContactSource =
+  | 'BUSQUEDA_ACTIVA' // 🎯 Prospectos detectados buscando servicios / Signal Lead
+  | 'PROSPECCION_DIRECTA' // 👤 Añadido manualmente
+  | 'BASE_IMPORTADA'; // 🗄️ Base importada desde CSV
+
 export interface TeamMember {
   id: string;
   name: string;
@@ -74,6 +79,9 @@ export interface Contact {
   tags?: string[];
   assigned_to?: string | null;
   shared_with?: string[];
+  source?: ContactSource; // Origen del lead
+  post_url?: string | null; // Link de la publicación / post de búsqueda
+  service_needed?: string | null; // Servicio / necesidad específica que busca
   last_interaction_date?: string | null;
   last_message_preview?: string | null;
   created_at?: string;
@@ -174,7 +182,7 @@ export interface FollowUpReminder {
   notes: string | null;
   is_overdue: boolean;
   is_today: boolean;
-  days_diff: number; // positive = future days, negative = overdue days, 0 = today
+  days_diff: number;
   time_bucket: 'overdue' | 'today' | 'plus_1_day' | 'plus_3_days' | 'plus_1_week' | 'plus_1_month' | 'future';
 }
 
@@ -183,6 +191,7 @@ export interface ContactStats {
   withEmail: number;
   noEmail?: number;
   withPhone?: number;
+  activeSearchCount?: number; // Contador de prospectos en búsqueda activa
   companiesCount: number;
   recentCount: number;
   pendingFollowUps?: number;

@@ -22,11 +22,14 @@ export async function PATCH(
       email,
       phone, 
       assigned_to,
+      source,
+      post_url,
+      service_needed,
       performed_by 
     } = body;
 
     // Get current state before update for audit log
-    const prevRows = await sql`SELECT first_name, last_name, status, email, phone, company, position, country, assigned_to, tags, notes FROM contacts WHERE id = ${id} LIMIT 1`;
+    const prevRows = await sql`SELECT first_name, last_name, status, email, phone, company, position, country, assigned_to, tags, notes, source, post_url, service_needed FROM contacts WHERE id = ${id} LIMIT 1`;
     const prev = prevRows[0];
 
     // Ensure tags is handled safely as an array
@@ -44,6 +47,9 @@ export async function PATCH(
         email = CASE WHEN ${email !== undefined} THEN ${email} ELSE email END,
         phone = CASE WHEN ${phone !== undefined} THEN ${phone} ELSE phone END,
         assigned_to = CASE WHEN ${assigned_to !== undefined} THEN ${assigned_to} ELSE assigned_to END,
+        source = CASE WHEN ${source !== undefined} THEN ${source} ELSE source END,
+        post_url = CASE WHEN ${post_url !== undefined} THEN ${post_url} ELSE post_url END,
+        service_needed = CASE WHEN ${service_needed !== undefined} THEN ${service_needed} ELSE service_needed END,
         notes = CASE WHEN ${notes !== undefined} THEN ${notes} ELSE notes END,
         priority = CASE WHEN ${priority !== undefined} THEN ${priority} ELSE priority END,
         follow_up_date = CASE WHEN ${follow_up_date !== undefined} THEN ${follow_up_date} ELSE follow_up_date END,
@@ -58,53 +64,36 @@ export async function PATCH(
     }
 
     const updated = result[0];
-    const contactFullName = `${updated.first_name} ${updated.last_name || ''}`.trim();
-    const actor = performed_by || updated.assigned_to || 'Comercial';
 
-    // Automatic Audit Logging
+    // Register Activity / Audit Logs
     try {
-      if (status && prev && prev.status !== status) {
+      const contactFullName = `${updated.first_name} ${updated.last_name || ''}`.trim();
+      const userActor = performed_by || 'Gabino';
+
+      if (status && status !== prev?.status) {
         let actionType = 'STATUS_CHANGE';
-        if (status === 'En contacto') {
-          actionType = 'CONTACTED_OUTREACH';
-        } else if (status === 'Oportunidad') {
-          actionType = 'OPPORTUNITY_CREATED';
-        } else if (status === 'Cliente') {
-          actionType = 'CLIENT_WON';
-        } else if (status === 'En pausa') {
-          actionType = 'LEAD_PAUSED';
-        }
+        if (status === 'En contacto') actionType = 'CONTACTED_OUTREACH';
+        if (status === 'Oportunidad') actionType = 'OPPORTUNITY_CREATED';
+        if (status === 'Cliente') actionType = 'CLIENT_WON';
+        if (status === 'En pausa') actionType = 'LEAD_PAUSED';
 
         await sql`
           INSERT INTO activity_logs (contact_id, contact_name, action_type, description, performed_by)
-          VALUES (${id}, ${contactFullName}, ${actionType}, ${'Cambió estado de "' + prev.status + '" a "' + status + '"'}, ${actor});
+          VALUES (${id}::uuid, ${contactFullName}, ${actionType}, ${'Cambió estado a: ' + status}, ${userActor});
         `;
-      } else if (phone && prev && prev.phone !== phone) {
+      }
+
+      if (phone && phone !== prev?.phone) {
         await sql`
           INSERT INTO activity_logs (contact_id, contact_name, action_type, description, performed_by)
-          VALUES (${id}, ${contactFullName}, 'PHONE_ADDED', ${'Añadió/actualizó teléfono: ' + phone}, ${actor});
-        `;
-      } else if (email && prev && prev.email !== email) {
-        await sql`
-          INSERT INTO activity_logs (contact_id, contact_name, action_type, description, performed_by)
-          VALUES (${id}, ${contactFullName}, 'EMAIL_ADDED', ${'Añadió/actualizó email: ' + email}, ${actor});
-        `;
-      } else if (position && prev && prev.position !== position) {
-        await sql`
-          INSERT INTO activity_logs (contact_id, contact_name, action_type, description, performed_by)
-          VALUES (${id}, ${contactFullName}, 'DATA_UPDATE', ${'Actualizó cargo a: ' + position}, ${actor});
-        `;
-      } else if (notes !== undefined && prev && prev.notes !== notes && notes.trim() !== '') {
-        await sql`
-          INSERT INTO activity_logs (contact_id, contact_name, action_type, description, performed_by)
-          VALUES (${id}, ${contactFullName}, 'NOTE_ADDED', ${'Registró nuevos acuerdos/notas de conversación'}, ${actor});
+          VALUES (${id}::uuid, ${contactFullName}, 'PHONE_ADDED', ${'Añadió teléfono: ' + phone}, ${userActor});
         `;
       }
     } catch (auditErr) {
-      console.error('Audit log insert failed:', auditErr);
+      console.error('Error writing audit log:', auditErr);
     }
 
-    return NextResponse.json({ contact: result[0] });
+    return NextResponse.json({ contact: updated });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ error: message }, { status: 500 });
@@ -117,7 +106,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    await sql`DELETE FROM contacts WHERE id = ${id}`;
+    await sql`DELETE FROM contacts WHERE id = ${id};`;
     return NextResponse.json({ success: true, message: 'Contacto eliminado' });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);

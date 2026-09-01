@@ -4,6 +4,7 @@ export interface MessageTemplate {
   category: 'Lanzamiento Ágil' | 'Consultoría' | 'Soluciones Digitales' | 'Entrenamiento' | 'General';
   targetAudience: 'Venta Directa / Profesional' | 'Líderes / Gerentes (Equipos)' | 'C-Level / Decisor';
   text: string;
+  isActive?: boolean;
 }
 
 export const DEFAULT_TEMPLATES: MessageTemplate[] = [

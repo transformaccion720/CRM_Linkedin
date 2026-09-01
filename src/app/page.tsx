@@ -14,6 +14,7 @@ import ExecutiveDashboard from '@/components/ExecutiveDashboard';
 import FollowUpsCalendarView from '@/components/FollowUpsCalendarView';
 import MessagingInboxView from '@/components/MessagingInboxView';
 import ResourcesDirectoryView from '@/components/ResourcesDirectoryView';
+import SettingsCenterView from '@/components/SettingsCenterView';
 import ContactDrawer from '@/components/ContactDrawer';
 import CsvUploader from '@/components/CsvUploader';
 import NewContactModal from '@/components/NewContactModal';
@@ -49,12 +50,12 @@ export default function Home() {
   const [activeTemplateId, setActiveTemplateId] = useState<string>(DEFAULT_TEMPLATES[0].id);
 
   // Tabs & Views
-  const [activeTab, setActiveTab] = useState<'contactos' | 'segmentos' | 'funnel' | 'objetivos' | 'seguimientos' | 'mensajeria' | 'recursos' | 'analytics' | 'ejecutivo'>('contactos');
+  const [activeTab, setActiveTab] = useState<'contactos' | 'segmentos' | 'funnel' | 'objetivos' | 'seguimientos' | 'mensajeria' | 'recursos' | 'analytics' | 'ejecutivo' | 'configuracion'>('contactos');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
 
   // Filters
   const [search, setSearch] = useState('');
-  const [viewFilter, setViewFilter] = useState<'all' | 'email' | 'noemail' | 'recent' | 'follow_up' | 'star3' | 'shared'>('all');
+  const [viewFilter, setViewFilter] = useState<'all' | 'email' | 'noemail' | 'recent' | 'follow_up' | 'star3' | 'shared' | 'active_search'>('all');
   const [statusFilter, setStatusFilter] = useState('');
   const [yearFilter, setYearFilter] = useState('');
   const [companyFilter, setCompanyFilter] = useState('');
@@ -99,7 +100,63 @@ export default function Home() {
     setIsProfileOpen(false);
   };
 
-  // Fetch team members from Neon DB
+  // Fetch Message Templates from Neon DB
+  const fetchTemplates = useCallback(async () => {
+    try {
+      const res = await fetch('/api/templates');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.templates && data.templates.length > 0) {
+          setTemplates(data.templates);
+          const active = data.templates.find((t: MessageTemplate) => t.isActive);
+          if (active) setActiveTemplateId(active.id);
+        }
+      }
+    } catch (e) {
+      console.error('Error fetching templates:', e);
+    }
+  }, []);
+
+  // Save updated templates
+  const handleSaveTemplates = async (updated: MessageTemplate[]) => {
+    setTemplates(updated);
+    try {
+      await fetch('/api/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ templates: updated }),
+      });
+    } catch (e) {
+      console.error('Error saving templates:', e);
+    }
+  };
+
+  // Reset templates to defaults
+  const handleResetTemplates = async () => {
+    setTemplates(DEFAULT_TEMPLATES);
+    setActiveTemplateId(DEFAULT_TEMPLATES[0].id);
+    try {
+      await fetch('/api/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ templates: DEFAULT_TEMPLATES }),
+      });
+    } catch (e) {
+      console.error('Error resetting templates:', e);
+    }
+  };
+
+  // Set active template
+  const handleSelectActiveTemplate = (id: string) => {
+    setActiveTemplateId(id);
+    const updated = templates.map((t) => ({
+      ...t,
+      isActive: t.id === id,
+    }));
+    handleSaveTemplates(updated);
+  };
+
+  // Fetch team members
   const fetchTeamMembers = useCallback(async () => {
     try {
       const res = await fetch('/api/team');
@@ -108,90 +165,24 @@ export default function Home() {
         setTeamMembers(data.members || []);
       }
     } catch (e) {
-      console.error('Error fetching team members:', e);
+      console.error('Error fetching team:', e);
     }
   }, []);
 
-  // Fetch templates from Neon DB
-  const fetchTemplates = useCallback(async () => {
-    try {
-      const res = await fetch('/api/templates');
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data.templates) && data.templates.length > 0) {
-          setTemplates(data.templates);
-          const active = data.templates.find((t: any) => t.isActive);
-          if (active) {
-            setActiveTemplateId(active.id);
-          } else {
-            setActiveTemplateId(data.templates[0].id);
-          }
-        }
-      }
-    } catch (e) {
-      console.error('Error fetching templates from Neon DB:', e);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (currentUser) {
-      fetchTemplates();
-      fetchTeamMembers();
-    }
-  }, [currentUser, fetchTemplates, fetchTeamMembers]);
-
-  const handleSaveTemplates = async (newTemplates: MessageTemplate[]) => {
-    setTemplates(newTemplates);
-    try {
-      await fetch('/api/templates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ templates: newTemplates, activeTemplateId }),
-      });
-    } catch (e) {
-      console.error('Error saving templates to Neon DB:', e);
-    }
-  };
-
-  const handleSelectActiveTemplate = async (id: string) => {
-    setActiveTemplateId(id);
-    try {
-      await fetch('/api/templates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ templates, activeTemplateId: id }),
-      });
-    } catch (e) {
-      console.error('Error syncing active template to Neon DB:', e);
-    }
-  };
-
-  const handleResetTemplates = async () => {
-    setTemplates(DEFAULT_TEMPLATES);
-    setActiveTemplateId(DEFAULT_TEMPLATES[0].id);
-    try {
-      await fetch('/api/templates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ templates: DEFAULT_TEMPLATES, activeTemplateId: DEFAULT_TEMPLATES[0].id }),
-      });
-    } catch (e) {
-      console.error('Error resetting templates in Neon DB:', e);
-    }
-  };
-
+  // Fetch stats from Neon DB
   const fetchStats = useCallback(async () => {
     try {
       const res = await fetch('/api/stats');
       if (res.ok) {
         const data = await res.json();
-        setStats(data.stats);
+        setStats(data);
       }
     } catch (e) {
       console.error('Error fetching stats:', e);
     }
   }, []);
 
+  // Fetch Contacts with all filters
   const fetchContacts = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -208,43 +199,41 @@ export default function Home() {
       if (assignedToFilter) params.set('assignedTo', assignedToFilter);
 
       const res = await fetch(`/api/contacts?${params.toString()}`);
-      const data = await res.json();
-
       if (!res.ok) {
-        throw new Error(data.error || 'Error al conectar con Neon DB');
+        throw new Error('Error al cargar contactos de la base de datos');
       }
-
+      const data = await res.json();
       setContacts(data.contacts || []);
       if (data.filterOptions) {
-        setFilterOptions({
-          years: data.filterOptions.years || [],
-          companies: data.filterOptions.companies || [],
-          positions: data.filterOptions.positions || [],
-          tags: data.filterOptions.tags || [],
-        });
+        setFilterOptions(data.filterOptions);
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error al cargar contactos';
+      const msg = err instanceof Error ? err.message : 'Error inesperado';
       setError(msg);
     } finally {
       setLoading(false);
     }
   }, [search, statusFilter, viewFilter, yearFilter, companyFilter, positionFilter, tagFilter, priorityFilter, assignedToFilter]);
 
+  // Initial load
   useEffect(() => {
-    if (currentUser) {
-      fetchContacts();
-      fetchStats();
-    }
-  }, [currentUser, fetchContacts, fetchStats]);
+    fetchStats();
+    fetchTeamMembers();
+    fetchTemplates();
+  }, [fetchStats, fetchTeamMembers, fetchTemplates]);
 
-  const handleQuickStatusChange = useCallback(async (id: string, newStatus: ContactStatus) => {
-    setContacts((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, status: newStatus } : c))
-    );
+  useEffect(() => {
+    fetchContacts();
+  }, [fetchContacts]);
 
+  // Handle Quick Status Change
+  const handleQuickStatusChange = async (contactId: string, newStatus: ContactStatus) => {
     try {
-      await fetch(`/api/contacts/${id}`, {
+      setContacts((prev) =>
+        prev.map((c) => (c.id === contactId ? { ...c, status: newStatus } : c))
+      );
+
+      const res = await fetch(`/api/contacts/${contactId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -252,102 +241,83 @@ export default function Home() {
           performed_by: currentUser?.name || 'Comercial'
         }),
       });
-      fetchStats();
+
+      if (!res.ok) {
+        fetchContacts();
+      } else {
+        fetchStats();
+      }
     } catch (e) {
-      console.error('Error actualizando estado:', e);
+      console.error('Error changing status:', e);
       fetchContacts();
     }
-  }, [currentUser?.name, fetchContacts, fetchStats]);
-
-  const handleClearFilters = () => {
-    setSearch('');
-    setViewFilter('all');
-    setStatusFilter('');
-    setYearFilter('');
-    setCompanyFilter('');
-    setPositionFilter('');
-    setTagFilter('');
-    setPriorityFilter('');
-    setAssignedToFilter('');
   };
 
   const handleExportCSV = () => {
-    if (!contacts.length) return;
-    const header = ['Nombre', 'Apellido', 'URL', 'Email', 'Teléfono', 'Empresa', 'Cargo', 'País', 'Fecha Conexión', 'Estado', 'Prioridad', 'Próximo Seguimiento', 'Responsable', 'Etiquetas', 'Notas'];
-    const rows = contacts.map((c) => [
-      c.first_name,
-      c.last_name || '',
-      c.linkedin_url || '',
-      c.email || '',
-      c.phone || '',
-      c.company || '',
-      c.position || '',
-      c.country || 'Perú',
-      c.connected_on || '',
-      c.status || '',
-      c.priority || 1,
-      c.follow_up_date || '',
-      c.assigned_to || '',
-      (c.tags || []).join('; '),
-      (c.notes || '').replace(/,/g, ';'),
-    ]);
-
-    const csvContent = [header, ...rows]
-      .map((r) => r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-      .join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `crm_linkedin_contactos_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    window.open('/api/contacts?export=csv', '_blank');
   };
 
-  // If not authenticated, display login screen
+  const activeTemplate = useMemo(() => {
+    return templates.find((t) => t.id === activeTemplateId) || templates[0];
+  }, [templates, activeTemplateId]);
+
+  // Clean Theme Toggle State
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  useEffect(() => {
+    const isDark = document.documentElement.classList.contains('dark') || !document.documentElement.classList.contains('light');
+    setTheme(isDark ? 'dark' : 'light');
+  }, []);
+
+  const toggleTheme = () => {
+    if (theme === 'dark') {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+      setTheme('light');
+    } else {
+      document.documentElement.classList.remove('light');
+      document.documentElement.classList.add('dark');
+      setTheme('dark');
+    }
+  };
+
   if (!authChecked) {
     return (
-      <div className="min-h-screen bg-[#0a0f18] flex items-center justify-center text-xs text-[#7d8fa8]">
-        <div className="w-3 h-3 rounded-full bg-[#00a870] animate-ping" />
+      <div className="min-h-screen bg-theme-bg flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-2 border-[#00a870] border-t-transparent animate-spin" />
       </div>
     );
   }
 
   if (!currentUser) {
-    return <LoginScreen onLoginSuccess={setCurrentUser} />;
+    return <LoginScreen onLoginSuccess={(user) => setCurrentUser(user)} />;
   }
 
   return (
-    <div className="flex flex-col h-screen bg-theme-bg text-theme-txt overflow-hidden">
-      {/* Responsive Header */}
+    <div className="flex flex-col h-screen bg-theme-bg text-theme-txt overflow-hidden font-sans">
+      {/* Dynamic Navigation Bar */}
       <Navbar
+        totalContacts={stats?.total || contacts.length}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        onOpenImport={() => setIsImportOpen(true)}
         onOpenNewContact={() => setIsNewContactOpen(true)}
-        onOpenTeamManager={() => setIsTeamManagerOpen(true)}
-        onOpenProfile={() => setIsProfileOpen(true)}
-        onOpenTemplateManager={() => setIsTemplateManagerOpen(true)}
-        onToggleMobileSidebar={() => setIsMobileSidebarOpen(true)}
         onRefresh={() => {
           fetchContacts();
           fetchStats();
-          fetchTemplates();
           fetchTeamMembers();
         }}
-        onExport={handleExportCSV}
+        onToggleMobileSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+        theme={theme}
+        toggleTheme={toggleTheme}
+        currentUser={currentUser}
         onOpenContactDrawer={(cId) => {
           const found = contacts.find((c) => c.id === cId);
           if (found) setSelectedContact(found);
         }}
-        totalContacts={stats?.total || 0}
-        currentUser={currentUser}
       />
 
-      {/* Main workspace layout */}
-      <div className="flex flex-1 overflow-hidden min-h-0">
-        {/* Responsive Sidebar */}
+      {/* Main Layout Area */}
+      <div className="flex flex-1 overflow-hidden relative">
+        {/* Left Sidebar */}
         <Sidebar
           viewFilter={viewFilter}
           setViewFilter={setViewFilter}
@@ -356,8 +326,8 @@ export default function Home() {
           assignedToFilter={assignedToFilter}
           setAssignedToFilter={setAssignedToFilter}
           teamMembers={teamMembers}
-          onOpenTeamManager={() => setIsTeamManagerOpen(true)}
-          onClearFilters={handleClearFilters}
+          currentUser={currentUser}
+          onOpenProfile={() => setIsProfileOpen(true)}
           onSwitchTab={setActiveTab}
           isMobileOpen={isMobileSidebarOpen}
           onCloseMobile={() => setIsMobileSidebarOpen(false)}
@@ -367,155 +337,62 @@ export default function Home() {
             noEmail: stats?.noEmail || 0,
             recent: stats?.recentCount || 0,
             pendingFollowUps: stats?.pendingFollowUps || 0,
+            activeSearchCount: stats?.activeSearchCount || 0,
           }}
         />
 
-        {/* Dynamic Tab Body */}
-        <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-theme-bg">
-          {error && (
-            <div className="m-3 p-3 rounded-xl bg-[#ff6d3b]/10 border border-[#ff6d3b]/30 flex items-center gap-2.5 text-xs text-theme-txt">
-              <ShieldAlert className="w-4 h-4 text-[#ff6d3b] shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-
+        {/* Content Tabs Switcher */}
+        <main className="flex-1 flex flex-col overflow-hidden relative">
           {activeTab === 'contactos' && (
-            <>
-              {/* Toolbar */}
-              <div className="px-3 sm:px-5 py-2.5 border-b border-theme-bor bg-theme-sur flex items-center gap-2 flex-wrap shrink-0">
-                <div className="relative flex-1 min-w-[140px] max-w-xs">
-                  <Search className="w-3.5 h-3.5 text-theme-txt2 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    type="text"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Buscar contacto, cargo, tel..."
-                    className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-lg pl-8 pr-3 py-1.5 text-xs text-theme-txt placeholder-theme-txt3 outline-hidden transition-all"
-                  />
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Filter controls */}
+              <div className="p-3 bg-theme-sur border-b border-theme-bor flex items-center justify-between gap-3 shrink-0 flex-wrap">
+                <div className="flex items-center gap-2 flex-1 min-w-[240px] max-w-lg">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 text-theme-txt3 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Buscar por nombre, cargo, empresa, necesidad..."
+                      className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl pl-9 pr-3 py-1.5 text-xs text-theme-txt outline-hidden"
+                    />
+                  </div>
                 </div>
 
-                {/* Team member active filter pill */}
-                {assignedToFilter && (
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#00a870]/15 text-[#00a870] border border-[#00a870]/30 text-xs font-semibold">
-                    <UserCheck className="w-3.5 h-3.5" />
-                    <span>Base: {assignedToFilter}</span>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center bg-theme-sur2 border border-theme-bor rounded-xl p-0.5">
                     <button
-                      onClick={() => setAssignedToFilter('')}
-                      className="ml-1 hover:text-white cursor-pointer font-bold"
+                      onClick={() => setViewMode('table')}
+                      className={`p-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
+                        viewMode === 'table' ? 'bg-theme-sur text-[#00a870] shadow-xs' : 'text-theme-txt3 hover:text-theme-txt'
+                      }`}
+                      title="Vista de Tabla"
                     >
-                      ×
+                      <LayoutList className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setViewMode('grid')}
+                      className={`p-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
+                        viewMode === 'grid' ? 'bg-theme-sur text-[#00a870] shadow-xs' : 'text-theme-txt3 hover:text-theme-txt'
+                      }`}
+                      title="Vista de Tarjetas / Cuadrícula"
+                    >
+                      <LayoutGrid className="w-4 h-4" />
                     </button>
                   </div>
-                )}
-
-                {/* Filter by Year */}
-                <select
-                  value={yearFilter}
-                  onChange={(e) => setYearFilter(e.target.value)}
-                  className="bg-theme-sur2 border border-theme-bor rounded-lg px-2.5 py-1.5 text-xs text-theme-txt outline-hidden cursor-pointer"
-                >
-                  <option value="">Años</option>
-                  {filterOptions.years.map((y) => (
-                    <option key={y} value={y} className="bg-theme-sur text-theme-txt">
-                      {y}
-                    </option>
-                  ))}
-                </select>
-
-                {/* Filter by Company */}
-                <select
-                  value={companyFilter}
-                  onChange={(e) => setCompanyFilter(e.target.value)}
-                  className="bg-theme-sur2 border border-theme-bor rounded-lg px-2.5 py-1.5 text-xs text-theme-txt outline-hidden max-w-[130px] cursor-pointer"
-                >
-                  <option value="">Empresas</option>
-                  {filterOptions.companies.map((c) => (
-                    <option key={c} value={c} className="bg-theme-sur text-theme-txt">
-                      {c.length > 16 ? `${c.slice(0, 16)}…` : c}
-                    </option>
-                  ))}
-                </select>
-
-                {/* Filter by Position (Cargo) */}
-                <select
-                  value={positionFilter}
-                  onChange={(e) => setPositionFilter(e.target.value)}
-                  className="bg-theme-sur2 border border-theme-bor rounded-lg px-2.5 py-1.5 text-xs text-theme-txt outline-hidden max-w-[130px] cursor-pointer"
-                >
-                  <option value="">Cargos</option>
-                  {filterOptions.positions.map((p) => (
-                    <option key={p} value={p} className="bg-theme-sur text-theme-txt">
-                      {p.length > 16 ? `${p.slice(0, 16)}…` : p}
-                    </option>
-                  ))}
-                </select>
-
-                {/* Filter by Tag */}
-                {filterOptions.tags.length > 0 && (
-                  <select
-                    value={tagFilter}
-                    onChange={(e) => setTagFilter(e.target.value)}
-                    className="bg-theme-sur2 border border-theme-bor rounded-lg px-2.5 py-1.5 text-xs text-theme-txt outline-hidden max-w-[110px] cursor-pointer"
-                  >
-                    <option value="">Tags</option>
-                    {filterOptions.tags.map((t) => (
-                      <option key={t} value={t} className="bg-theme-sur text-theme-txt">
-                        🏷️ {t}
-                      </option>
-                    ))}
-                  </select>
-                )}
-
-                {/* Filter by Priority */}
-                <select
-                  value={priorityFilter}
-                  onChange={(e) => setPriorityFilter(e.target.value)}
-                  className="bg-theme-sur2 border border-theme-bor rounded-lg px-2.5 py-1.5 text-xs text-theme-txt outline-hidden cursor-pointer"
-                >
-                  <option value="">Prioridad</option>
-                  <option value="3">⭐⭐⭐ Alta</option>
-                  <option value="2">⭐⭐ Media</option>
-                  <option value="1">⭐ Normal</option>
-                </select>
-
-                <div className="ml-auto flex items-center gap-1 bg-theme-sur2 p-1 rounded-lg border border-theme-bor">
-                  <button
-                    onClick={() => setViewMode('table')}
-                    className={`p-1 rounded cursor-pointer ${viewMode === 'table' ? 'bg-theme-sur text-[#00a870] shadow-xs' : 'text-theme-txt2'}`}
-                    title="Vista Tabla"
-                  >
-                    <LayoutList className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={`p-1 rounded cursor-pointer ${viewMode === 'grid' ? 'bg-theme-sur text-[#00a870] shadow-xs' : 'text-theme-txt2'}`}
-                    title="Vista Cuadrícula"
-                  >
-                    <LayoutGrid className="w-3.5 h-3.5" />
-                  </button>
                 </div>
               </div>
 
-              {/* Table Body */}
-              <div className="flex-1 flex flex-col min-h-0">
-                {loading ? (
-                  <div className="flex-1 flex items-center justify-center text-xs text-theme-txt2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#00a870] animate-ping" />
-                      <span>Cargando contactos desde Neon DB...</span>
-                    </div>
-                  </div>
-                ) : (
-                  <ContactTable
-                    contacts={contacts}
-                    viewMode={viewMode}
-                    onSelectContact={setSelectedContact}
-                    onOpenTemplates={setTemplateContact}
-                    onQuickStatusChange={handleQuickStatusChange}
-                  />
-                )}
-              </div>
-            </>
+              {/* Table / Grid */}
+              <ContactTable
+                contacts={contacts}
+                onSelectContact={setSelectedContact}
+                onOpenTemplates={setTemplateContact}
+                onQuickStatusChange={handleQuickStatusChange}
+                viewMode={viewMode}
+              />
+            </div>
           )}
 
           {activeTab === 'segmentos' && (
@@ -568,6 +445,19 @@ export default function Home() {
           {activeTab === 'analytics' && <AnalyticsView stats={stats} />}
 
           {activeTab === 'ejecutivo' && <ExecutiveDashboard stats={stats} />}
+
+          {/* Unified Settings Center */}
+          {activeTab === 'configuracion' && (
+            <SettingsCenterView
+              currentUser={currentUser}
+              teamMembers={teamMembers}
+              onOpenTeamManager={() => setIsTeamManagerOpen(true)}
+              onOpenTemplateManager={() => setIsTemplateManagerOpen(true)}
+              onOpenImport={() => setIsImportOpen(true)}
+              onExport={handleExportCSV}
+              onOpenProfile={() => setIsProfileOpen(true)}
+            />
+          )}
         </main>
       </div>
 
@@ -584,11 +474,6 @@ export default function Home() {
         onUpdate={(updated) => {
           setSelectedContact(updated);
           setContacts((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-          fetchStats();
-        }}
-        onDelete={(deletedId) => {
-          setSelectedContact(null);
-          setContacts((prev) => prev.filter((c) => c.id !== deletedId));
           fetchStats();
         }}
       />

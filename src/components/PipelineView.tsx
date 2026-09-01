@@ -195,6 +195,11 @@ export default function PipelineView({
                             <div className="font-semibold text-xs text-theme-txt group-hover:text-[#00e5a0] transition-colors truncate">
                               {c.first_name} {c.last_name || ''}
                             </div>
+                            {c.source === 'BUSQUEDA_ACTIVA' && (
+                              <span className="text-[8px] font-bold px-1.5 py-0.2 rounded bg-[#ff6d3b]/15 text-[#ff6d3b] border border-[#ff6d3b]/30 shrink-0">
+                                🎯 Activo
+                              </span>
+                            )}
                             {c.priority && c.priority > 1 && (
                               <span className="flex items-center text-[#f59e0b] shrink-0">
                                 {[...Array(c.priority)].map((_, i) => (

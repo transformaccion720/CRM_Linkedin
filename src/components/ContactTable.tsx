@@ -120,6 +120,11 @@ export default function ContactTable({
                           </div>
 
                           <div className="flex items-center gap-1.5 flex-wrap">
+                            {c.source === 'BUSQUEDA_ACTIVA' && (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[8.5px] font-bold bg-[#ff6d3b]/15 text-[#ff6d3b] border border-[#ff6d3b]/30">
+                                <span>🎯 Búsqueda Activa</span>
+                              </span>
+                            )}
                             {c.assigned_to && (
                               <span className="text-[9.5px] text-theme-txt3 truncate font-mono">
                                 Resp: {c.assigned_to}

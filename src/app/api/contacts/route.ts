@@ -6,24 +6,25 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search')?.trim() || '';
     const status = searchParams.get('status') || '';
-    const viewFilter = searchParams.get('viewFilter') || 'all'; // all, email, noemail, recent, follow_up, star3, shared
+    const viewFilter = searchParams.get('viewFilter') || 'all'; // all, email, noemail, recent, follow_up, star3, shared, active_search
     const year = searchParams.get('year') || '';
     const company = searchParams.get('company') || '';
     const position = searchParams.get('position') || '';
     const tag = searchParams.get('tag') || '';
     const priority = searchParams.get('priority') || '';
     const assignedTo = searchParams.get('assignedTo') || '';
+    const source = searchParams.get('source') || '';
 
     const searchPattern = search ? `%${search.toLowerCase()}%` : null;
 
-    // High performance query: shared contacts are joined efficiently via window or indexed subquery
     const rows = await sql`
       SELECT 
         c.id, c.first_name, c.last_name, c.linkedin_url, c.email, c.phone, c.company, c.position, c.country,
         TO_CHAR(c.connected_on, 'YYYY-MM-DD') as connected_on,
         c.status, c.notes, c.priority, 
         TO_CHAR(c.follow_up_date, 'YYYY-MM-DD') as follow_up_date,
-        c.tags, c.assigned_to, c.created_at, c.updated_at
+        c.tags, c.assigned_to, c.source, c.post_url, c.service_needed,
+        c.created_at, c.updated_at
       FROM contacts c
       WHERE 
         (${searchPattern}::text IS NULL OR (
@@ -32,7 +33,8 @@ export async function GET(req: NextRequest) {
           LOWER(COALESCE(c.company, '')) LIKE ${searchPattern} OR 
           LOWER(COALESCE(c.position, '')) LIKE ${searchPattern} OR
           LOWER(COALESCE(c.email, '')) LIKE ${searchPattern} OR
-          LOWER(COALESCE(c.phone, '')) LIKE ${searchPattern}
+          LOWER(COALESCE(c.phone, '')) LIKE ${searchPattern} OR
+          LOWER(COALESCE(c.service_needed, '')) LIKE ${searchPattern}
         ))
         AND (${status === '' || status === 'all'}::boolean OR c.status = ${status})
         AND (${company === '' || company === 'all'}::boolean OR c.company = ${company})
@@ -40,9 +42,11 @@ export async function GET(req: NextRequest) {
         AND (${year === '' || year === 'all'}::boolean OR TO_CHAR(c.connected_on, 'YYYY') = ${year})
         AND (${priority === '' || priority === 'all'}::boolean OR c.priority = ${parseInt(priority || '1', 10)})
         AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR c.assigned_to = ${assignedTo})
+        AND (${source === '' || source === 'all'}::boolean OR c.source = ${source})
         AND (${tag === '' || tag === 'all'}::boolean OR ${tag} = ANY(c.tags))
         AND (
           ${viewFilter === 'all'}::boolean OR
+          (${viewFilter === 'active_search'}::boolean AND c.source = 'BUSQUEDA_ACTIVA') OR
           (${viewFilter === 'email'}::boolean AND c.email IS NOT NULL AND c.email != '') OR
           (${viewFilter === 'noemail'}::boolean AND (c.email IS NULL OR c.email = '')) OR
           (${viewFilter === 'recent'}::boolean AND c.connected_on >= '2025-01-01') OR
@@ -50,6 +54,7 @@ export async function GET(req: NextRequest) {
           (${viewFilter === 'star3'}::boolean AND c.priority = 3)
         )
       ORDER BY 
+        CASE WHEN c.source = 'BUSQUEDA_ACTIVA' THEN 0 ELSE 1 END,
         CASE WHEN c.follow_up_date IS NOT NULL AND c.follow_up_date <= CURRENT_DATE THEN 0 ELSE 1 END,
         c.priority DESC,
         c.connected_on DESC NULLS LAST, 
@@ -57,45 +62,41 @@ export async function GET(req: NextRequest) {
       LIMIT 3500;
     `;
 
-    // Dynamic contextual filter options based on assignedTo (respects current team member base)
-    // 1. Distinct years for this base
+    // Dynamic contextual filter options
     const yearsResult = await sql`
       SELECT DISTINCT TO_CHAR(connected_on, 'YYYY') as yr 
       FROM contacts 
       WHERE connected_on IS NOT NULL 
         AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo})
-      ORDER BY yr DESC;
+      ORDER BY yr DESC
     `;
     const years = yearsResult.map((r) => r.yr).filter(Boolean);
 
-    // 2. Top companies for this base
     const companiesResult = await sql`
       SELECT company, COUNT(*) as count 
       FROM contacts 
-      WHERE company IS NOT NULL AND company != '' 
+      WHERE company IS NOT NULL AND company != ''
         AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo})
       GROUP BY company 
       ORDER BY count DESC 
-      LIMIT 60;
+      LIMIT 50
     `;
     const topCompanies = companiesResult.map((r) => r.company);
 
-    // 3. Top positions (cargos) for this base
     const positionsResult = await sql`
       SELECT position, COUNT(*) as count 
       FROM contacts 
-      WHERE position IS NOT NULL AND position != '' 
+      WHERE position IS NOT NULL AND position != ''
         AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo})
       GROUP BY position 
       ORDER BY count DESC 
-      LIMIT 60;
+      LIMIT 50
     `;
     const topPositions = positionsResult.map((r) => r.position);
 
-    // 4. Distinct tags for this base
     const tagsResult = await sql`
-      SELECT DISTINCT UNNEST(tags) as tag 
-      FROM contacts 
+      SELECT DISTINCT unnest(tags) as tag
+      FROM contacts
       WHERE tags IS NOT NULL AND array_length(tags, 1) > 0
         AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo})
       ORDER BY tag ASC;
@@ -142,12 +143,17 @@ export async function POST(req: NextRequest) {
       priority, 
       follow_up_date, 
       tags, 
-      assigned_to 
+      assigned_to,
+      source,
+      post_url,
+      service_needed,
     } = body;
 
     if (!first_name) {
       return NextResponse.json({ error: 'El nombre es obligatorio' }, { status: 400 });
     }
+
+    const leadSource = source || 'BUSQUEDA_ACTIVA';
 
     const result = await sql`
       INSERT INTO contacts (
@@ -165,7 +171,10 @@ export async function POST(req: NextRequest) {
         priority, 
         follow_up_date, 
         tags, 
-        assigned_to
+        assigned_to,
+        source,
+        post_url,
+        service_needed
       )
       VALUES (
         ${first_name}, 
@@ -179,10 +188,13 @@ export async function POST(req: NextRequest) {
         ${connected_on || null}, 
         ${status || 'Sin contactar'}, 
         ${notes || null},
-        ${priority || 1},
+        ${priority || (leadSource === 'BUSQUEDA_ACTIVA' ? 3 : 1)},
         ${follow_up_date || null},
         ${tags || []},
-        ${assigned_to || 'Gabino'}
+        ${assigned_to || 'Gabino'},
+        ${leadSource},
+        ${post_url || null},
+        ${service_needed || null}
       )
       RETURNING *
     `;

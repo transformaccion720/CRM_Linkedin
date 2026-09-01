@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function GET() {
   try {
     // 1. Total and email stats
@@ -21,6 +24,10 @@ export async function GET() {
 
     const followUpsResult = await sql`SELECT COUNT(*) as count FROM contacts WHERE follow_up_date IS NOT NULL AND follow_up_date <= CURRENT_DATE + INTERVAL '7 days'`;
     const pendingFollowUps = parseInt(followUpsResult[0]?.count || '0', 10);
+
+    // Leads in active search (Signal leads)
+    const activeSearchResult = await sql`SELECT COUNT(*) as count FROM contacts WHERE source = 'BUSQUEDA_ACTIVA'`;
+    const activeSearchCount = parseInt(activeSearchResult[0]?.count || '0', 10);
 
     // 2. Breakdown by status
     const statusResult = await sql`
@@ -60,30 +67,26 @@ export async function GET() {
       paused: r.paused,
     }));
 
-    // 4. Breakdown by Countries (Top Countries)
-    const countriesResult = await sql`
-      SELECT COALESCE(country, 'Perú') as country, COUNT(*) as count 
-      FROM contacts 
-      GROUP BY COALESCE(country, 'Perú') 
-      ORDER BY count DESC 
-      LIMIT 8
-    `;
-    const topCountries = countriesResult.map((r) => ({
-      country: r.country,
-      count: String(r.count),
-    }));
-
-    // 5. Top companies
+    // 4. Top Companies
     const topCompanies = await sql`
       SELECT company, COUNT(*) as count 
       FROM contacts 
-      WHERE company IS NOT NULL AND company != '' 
+      WHERE company IS NOT NULL AND company != ''
       GROUP BY company 
       ORDER BY count DESC 
       LIMIT 6
     `;
 
-    // 6. By year
+    // 5. Top Countries
+    const topCountries = await sql`
+      SELECT COALESCE(country, 'No especificado') as country, COUNT(*) as count 
+      FROM contacts 
+      GROUP BY country 
+      ORDER BY count DESC 
+      LIMIT 5
+    `;
+
+    // 6. Growth by Year
     const byYear = await sql`
       SELECT TO_CHAR(connected_on, 'YYYY') as yr, COUNT(*) as count 
       FROM contacts 
@@ -93,40 +96,45 @@ export async function GET() {
       LIMIT 8
     `;
 
-    // 7. Top positions
+    // 7. Top Positions
     const topPositions = await sql`
       SELECT position, COUNT(*) as count 
       FROM contacts 
-      WHERE position IS NOT NULL AND position != '' 
+      WHERE position IS NOT NULL AND position != ''
       GROUP BY position 
       ORDER BY count DESC 
       LIMIT 6
     `;
 
-    return NextResponse.json(
-      {
-        stats: {
-          total,
-          withEmail,
-          noEmail: total - withEmail,
-          withPhone,
-          companiesCount,
-          recentCount,
-          pendingFollowUps,
-          byStatus,
-          byMember,
-          topCountries,
-          topCompanies,
-          byYear,
-          topPositions,
-        },
+    // 8. Recent Contacts
+    const recentContacts = await sql`
+      SELECT id, first_name, last_name, TO_CHAR(connected_on, 'YYYY-MM-DD') as connected_on
+      FROM contacts 
+      ORDER BY connected_on DESC NULLS LAST, created_at DESC 
+      LIMIT 5
+    `;
+
+    return NextResponse.json({
+      total,
+      withEmail,
+      noEmail: total - withEmail,
+      withPhone,
+      companiesCount,
+      recentCount,
+      pendingFollowUps,
+      activeSearchCount,
+      byStatus,
+      byMember,
+      topCompanies,
+      topCountries,
+      byYear,
+      topPositions,
+      recentContacts,
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0',
       },
-      {
-        headers: {
-          'Cache-Control': 'no-store, max-age=0',
-        },
-      }
-    );
+    });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ error: message }, { status: 500 });
