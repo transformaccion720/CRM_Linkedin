@@ -1,51 +1,51 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Target, Trophy, Flame, ChevronLeft, ChevronRight, Settings2, TrendingUp, Phone, Users, CheckCircle2, MessageSquare, Award, AlertCircle, Sun, CalendarCheck, Zap } from 'lucide-react';
-import { WeeklySprintData } from '@/lib/types';
-
-interface WeeklyGoalsViewProps {
-  onOpenGoalConfig?: () => void;
-}
+import { WeeklySprintData, WeeklyGoal, DayBreakdown } from '@/lib/types';
+import { 
+  Trophy, Target, Zap, Phone, Star, Sparkles, TrendingUp, CheckCircle2, 
+  Settings2, ChevronLeft, ChevronRight, Users, Flame, Clock, Award, BarChart3, CalendarDays, Calendar
+} from 'lucide-react';
 
 export default function WeeklyGoalsView() {
   const [sprintData, setSprintData] = useState<WeeklySprintData | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   const [weekOffset, setWeekOffset] = useState<number>(0);
-  const [loading, setLoading] = useState(true);
-  const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [isConfigOpen, setIsConfigOpen] = useState<boolean>(false);
+  const [selectedDayBreakdown, setSelectedDayBreakdown] = useState<DayBreakdown | null>(null);
 
-  // Edit goal form state
-  const [dailyContactedGoal, setDailyContactedGoal] = useState<number>(30);
-  const [contactedGoal, setContactedGoal] = useState<number>(150);
-  const [phonesGoal, setPhonesGoal] = useState<number>(25);
-  const [opportunitiesGoal, setOpportunitiesGoal] = useState<number>(8);
-  const [clientsGoal, setClientsGoal] = useState<number>(2);
-  const [savingGoals, setSavingGoals] = useState(false);
+  // Form states for manual goal configuration
+  const [dailyGoalInput, setDailyGoalInput] = useState<number>(30);
+  const [contactedGoalInput, setContactedGoalInput] = useState<number>(150);
+  const [phonesGoalInput, setPhonesGoalInput] = useState<number>(25);
+  const [oppsGoalInput, setOppsGoalInput] = useState<number>(8);
+  const [clientsGoalInput, setClientsGoalInput] = useState<number>(2);
+  const [savingGoals, setSavingGoals] = useState<boolean>(false);
 
-  const fetchSprint = async (offset = weekOffset) => {
+  const fetchSprintData = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/goals?weekOffset=${offset}`);
+      const res = await fetch(`/api/goals?weekOffset=${weekOffset}`);
       if (res.ok) {
         const data = await res.json();
         setSprintData(data.sprint);
         if (data.sprint?.goals) {
-          setDailyContactedGoal(data.sprint.goals.daily_contacted || 30);
-          setContactedGoal(data.sprint.goals.contacted);
-          setPhonesGoal(data.sprint.goals.phones);
-          setOpportunitiesGoal(data.sprint.goals.opportunities);
-          setClientsGoal(data.sprint.goals.clients);
+          setDailyGoalInput(data.sprint.goals.daily_contacted || 30);
+          setContactedGoalInput(data.sprint.goals.contacted || 150);
+          setPhonesGoalInput(data.sprint.goals.phones || 25);
+          setOppsGoalInput(data.sprint.goals.opportunities || 8);
+          setClientsGoalInput(data.sprint.goals.clients || 2);
         }
       }
     } catch (e) {
-      console.error('Error fetching sprint data:', e);
+      console.error('Error fetching weekly sprint goals:', e);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchSprint(weekOffset);
+    fetchSprintData();
   }, [weekOffset]);
 
   const handleSaveGoals = async (e: React.FormEvent) => {
@@ -56,16 +56,17 @@ export default function WeeklyGoalsView() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          daily_contacted: dailyContactedGoal,
-          contacted: contactedGoal,
-          phones: phonesGoal,
-          opportunities: opportunitiesGoal,
-          clients: clientsGoal,
+          daily_contacted: dailyGoalInput,
+          contacted: contactedGoalInput,
+          phones: phonesGoalInput,
+          opportunities: oppsGoalInput,
+          clients: clientsGoalInput,
         }),
       });
+
       if (res.ok) {
         setIsConfigOpen(false);
-        fetchSprint(weekOffset);
+        fetchSprintData();
       }
     } catch (e) {
       console.error('Error saving goals:', e);
@@ -74,12 +75,19 @@ export default function WeeklyGoalsView() {
     }
   };
 
+  const getStatusColor = (pct: number) => {
+    if (pct >= 100) return { bg: 'bg-[#00a870]', text: 'text-[#00a870]', border: 'border-[#00a870]/30', label: 'Meta Superada 🚀' };
+    if (pct >= 70) return { bg: 'bg-[#2979ff]', text: 'text-[#2979ff]', border: 'border-[#2979ff]/30', label: 'Ritmo Óptimo ⚡' };
+    if (pct >= 40) return { bg: 'bg-[#f59e0b]', text: 'text-[#f59e0b]', border: 'border-[#f59e0b]/30', label: 'En Progreso ⏳' };
+    return { bg: 'bg-[#ff6d3b]', text: 'text-[#ff6d3b]', border: 'border-[#ff6d3b]/30', label: 'Por Acelerar ⚠️' };
+  };
+
   if (loading && !sprintData) {
     return (
       <div className="flex-1 flex items-center justify-center p-12 text-xs text-theme-txt2">
         <div className="flex items-center gap-2">
           <div className="w-2.5 h-2.5 rounded-full bg-[#00a870] animate-ping" />
-          <span>Calculando sprint comercial y objetivos semanales...</span>
+          <span>Cargando datos del Sprint Comercial...</span>
         </div>
       </div>
     );
@@ -87,15 +95,7 @@ export default function WeeklyGoalsView() {
 
   const global = sprintData?.global_totals;
   const members = sprintData?.members_progress || [];
-
-  // Sort members by overall percentage (Rankings)
   const rankedMembers = [...members].sort((a, b) => b.overall_pct - a.overall_pct);
-
-  const getStatusColor = (pct: number) => {
-    if (pct >= 80) return { text: 'text-[#00a870]', bg: 'bg-[#00a870]', border: 'border-[#00a870]/30', badge: 'bg-[#00a870]/15' };
-    if (pct >= 50) return { text: 'text-[#f59e0b]', bg: 'bg-[#f59e0b]', border: 'border-[#f59e0b]/30', badge: 'bg-[#f59e0b]/15' };
-    return { text: 'text-[#ff6d3b]', bg: 'bg-[#ff6d3b]', border: 'border-[#ff6d3b]/30', badge: 'bg-[#ff6d3b]/15' };
-  };
 
   return (
     <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-theme-bg">
@@ -113,7 +113,7 @@ export default function WeeklyGoalsView() {
             {sprintData?.week_label || 'Sprint Semanal'}
           </h2>
           <p className="text-xs text-theme-txt2 mt-0.5">
-            Monitoreo en tiempo real de metas diarias y semanales por comercial
+            Monitoreo en tiempo real de metas diarias, semanales y desglose día a día
           </p>
         </div>
 
@@ -158,64 +158,124 @@ export default function WeeklyGoalsView() {
             <div>
               <h3 className="font-bold text-sm text-theme-txt flex items-center gap-2">
                 <Target className="w-4 h-4 text-[#00a870]" />
-                <span>Cumplimiento Global del Equipo</span>
+                <span>Cumplimiento Global del Equipo ({sprintData?.week_label})</span>
               </h3>
               <p className="text-xs text-theme-txt2 mt-0.5">
-                Avance ponderado hacia la meta colectiva de la semana
+                Ponderación: 35% Contactos Semanales + 25% Teléfonos + 25% Oportunidades + 15% Cierres
               </p>
             </div>
+
             <div className="flex items-center gap-2">
-              <span className={`text-2xl font-mono font-black ${getStatusColor(global.overall_pct).text}`}>
+              <span className={`text-xs font-bold px-3 py-1 rounded-full border ${getStatusColor(global.overall_pct).text} ${getStatusColor(global.overall_pct).border} bg-theme-sur2`}>
+                {getStatusColor(global.overall_pct).label}
+              </span>
+              <span className="text-xl font-extrabold font-mono text-theme-txt">
                 {global.overall_pct}%
               </span>
-              <span className="text-xs text-theme-txt3 font-mono">semanal</span>
             </div>
           </div>
 
-          {/* Large Progress Bar */}
-          <div className="w-full h-3.5 bg-theme-sur2 rounded-full overflow-hidden p-0.5 border border-theme-bor">
+          {/* Master Progress Bar */}
+          <div className="w-full h-3 bg-theme-sur2 rounded-full overflow-hidden border border-theme-bor p-0.5">
             <div
               className={`h-full rounded-full transition-all duration-700 ${getStatusColor(global.overall_pct).bg}`}
               style={{ width: `${Math.max(global.overall_pct, 2)}%` }}
             />
           </div>
 
-          {/* Daily Rhythm Strip (Ritmo Diario de Prospección) */}
-          <div className="p-3.5 bg-gradient-to-r from-theme-sur2 to-theme-sur border border-theme-bor rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-lg bg-[#f59e0b]/20 text-[#f59e0b]">
-                <Sun className="w-4 h-4" />
+          {/* Daily Rhythm Tracker Card (Meta Hoy) */}
+          <div className="p-4 bg-theme-sur2/90 border border-theme-bor rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-[#f59e0b]/15 text-[#f59e0b] flex items-center justify-center font-bold">
+                <Zap className="w-5 h-5" />
               </div>
               <div>
-                <span className="font-bold text-xs text-theme-txt block">
-                  Ritmo Diario de Prospección (Hoy)
-                </span>
-                <span className="text-[11px] text-theme-txt2 font-mono">
-                  <b className="text-theme-txt font-bold">{global.contacted_today_total}</b> de {global.contacted_daily_goal_total} contactos abordados hoy en el equipo
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-xs text-theme-txt">Ritmo Diario de Prospección (Hoy)</span>
+                  <span className="text-[10px] font-mono px-2 py-0.2 rounded bg-[#00a870]/15 text-[#00a870] font-bold border border-[#00a870]/30">
+                    Meta: {sprintData?.goals?.daily_contacted || 30} / día por comercial
+                  </span>
+                </div>
+                <p className="text-xs text-theme-txt2">
+                  El equipo ha abordado a <b className="text-theme-txt font-mono">{global.contacted_today_total}</b> prospectos hoy ({global.today_pct_total}% de la meta diaria global de {global.contacted_daily_goal_total})
+                </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5">
-              <div className="w-28 sm:w-40 h-2.5 bg-theme-sur border border-theme-bor rounded-full overflow-hidden">
+            <div className="flex items-center gap-2">
+              <div className="w-36 h-2.5 bg-theme-sur rounded-full overflow-hidden border border-theme-bor">
                 <div
-                  className="h-full bg-[#f59e0b] rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min(100, Math.max(global.today_pct_total, 2))}%` }}
+                  className="h-full bg-[#f59e0b] rounded-full transition-all"
+                  style={{ width: `${Math.min(global.today_pct_total, 100)}%` }}
                 />
               </div>
-              <span className="font-mono text-xs font-extrabold text-[#f59e0b]">
-                {global.today_pct_total}% hoy
+              <span className="font-mono font-bold text-xs text-[#f59e0b] min-w-[45px] text-right">
+                {global.today_pct_total}%
               </span>
             </div>
           </div>
 
-          {/* 4 Objective Pillars Global Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+          {/* NEW: Timeline Semanal Día a Día (7 Días Lunes a Domingo) */}
+          {global.global_days_breakdown && (
+            <div className="pt-2">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 flex items-center gap-1.5 font-bold">
+                  <CalendarDays className="w-3.5 h-3.5 text-[#00a870]" />
+                  <span>Desglose Diario de la Semana (Lunes a Domingo):</span>
+                </span>
+                <span className="text-[10.5px] font-mono text-theme-txt3">
+                  Pasa el mouse para ver detalles
+                </span>
+              </div>
+
+              <div className="grid grid-cols-7 gap-2">
+                {global.global_days_breakdown.map((day) => {
+                  const isHit = day.pct >= 100;
+
+                  return (
+                    <div
+                      key={day.date_str}
+                      className={`p-2.5 rounded-xl border text-center transition-all ${
+                        day.is_today
+                          ? 'bg-[#00a870]/10 border-[#00a870] shadow-xs'
+                          : day.contacted_count > 0
+                          ? 'bg-theme-sur2 border-theme-bor'
+                          : 'bg-theme-sur2/40 border-theme-bor/60 opacity-60'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-[10px] font-mono mb-1">
+                        <span className="font-bold text-theme-txt">{day.day_name}</span>
+                        <span className="text-theme-txt3">{day.display_date}</span>
+                      </div>
+
+                      <div className="text-sm font-extrabold font-mono text-theme-txt my-0.5">
+                        {day.contacted_count}
+                      </div>
+
+                      <div className="text-[9.5px] font-mono text-theme-txt3">
+                        Meta: {day.goal_count}
+                      </div>
+
+                      <div className="w-full h-1 bg-theme-sur rounded-full mt-1.5 overflow-hidden">
+                        <div
+                          className={`h-full ${isHit ? 'bg-[#00a870]' : 'bg-[#f59e0b]'}`}
+                          style={{ width: `${Math.min(day.pct, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 4 Core Weekly Metric Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
             {/* 1. Contactados */}
             <div className="bg-theme-sur2 border border-theme-bor p-3.5 rounded-xl shadow-2xs">
               <div className="flex items-center justify-between text-theme-txt2 mb-1.5">
-                <span className="text-[11px] font-mono uppercase tracking-wider">💬 Contactados</span>
-                <span className="text-[11px] font-bold font-mono text-[#2979ff]">
+                <span className="text-[11px] font-mono uppercase tracking-wider">📤 Contactados</span>
+                <span className="text-[11px] font-bold font-mono text-[#00a870]">
                   {Math.round((global.contacted_actual / Math.max(global.contacted_goal, 1)) * 100)}%
                 </span>
               </div>
@@ -224,7 +284,7 @@ export default function WeeklyGoalsView() {
               </div>
               <div className="w-full h-1.5 bg-theme-sur rounded-full mt-2 overflow-hidden">
                 <div
-                  className="h-full bg-[#2979ff]"
+                  className="h-full bg-[#00a870]"
                   style={{ width: `${Math.min(100, (global.contacted_actual / Math.max(global.contacted_goal, 1)) * 100)}%` }}
                 />
               </div>
@@ -234,16 +294,16 @@ export default function WeeklyGoalsView() {
             <div className="bg-theme-sur2 border border-theme-bor p-3.5 rounded-xl shadow-2xs">
               <div className="flex items-center justify-between text-theme-txt2 mb-1.5">
                 <span className="text-[11px] font-mono uppercase tracking-wider">📱 Teléfonos</span>
-                <span className="text-[11px] font-bold font-mono text-[#00a870]">
+                <span className="text-[11px] font-bold font-mono text-[#2979ff]">
                   {Math.round((global.phones_actual / Math.max(global.phones_goal, 1)) * 100)}%
                 </span>
               </div>
-              <div className="text-base font-extrabold text-theme-txt font-mono">
+              <div className="text-base font-extrabold text-[#2979ff] font-mono">
                 {global.phones_actual} <span className="text-xs text-theme-txt3 font-normal">/ {global.phones_goal}</span>
               </div>
               <div className="w-full h-1.5 bg-theme-sur rounded-full mt-2 overflow-hidden">
                 <div
-                  className="h-full bg-[#00a870]"
+                  className="h-full bg-[#2979ff]"
                   style={{ width: `${Math.min(100, (global.phones_actual / Math.max(global.phones_goal, 1)) * 100)}%` }}
                 />
               </div>
@@ -318,34 +378,32 @@ export default function WeeklyGoalsView() {
                   <div className="flex items-center gap-3">
                     <div
                       className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white text-xs shadow-xs"
-                      style={{ backgroundColor: m.color || '#00a870' }}
+                      style={{ backgroundColor: m.color }}
                     >
                       {m.member_name.slice(0, 2).toUpperCase()}
                     </div>
                     <div>
-                      <div className="flex items-center gap-1.5">
-                        <h4 className="font-bold text-sm text-theme-txt">{m.member_name}</h4>
+                      <div className="flex items-center gap-2">
+                        <span className="font-extrabold text-sm text-theme-txt">{m.member_name}</span>
                         {isLeader && (
-                          <span className="px-1.5 py-0.2 rounded text-[9.5px] font-bold bg-[#f59e0b]/20 text-[#f59e0b] border border-[#f59e0b]/40 flex items-center gap-0.5">
-                            <Award className="w-3 h-3" />
-                            <span>Líder</span>
+                          <span className="text-[9.5px] font-mono font-bold text-[#f59e0b] bg-[#f59e0b]/15 px-2 py-0.5 rounded-full flex items-center gap-1 border border-[#f59e0b]/30">
+                            👑 Líder
                           </span>
                         )}
                       </div>
-                      <span className="text-[11px] text-theme-txt3 font-mono">Comercial asignado</span>
+                      <span className="text-xs text-theme-txt2 font-mono">
+                        Cumplimiento: <b className={`font-bold ${colors.text}`}>{m.overall_pct}%</b>
+                      </span>
                     </div>
                   </div>
 
-                  <div className="text-right">
-                    <span className={`text-xl font-extrabold font-mono ${colors.text}`}>
-                      {m.overall_pct}%
-                    </span>
-                    <span className="text-[10px] text-theme-txt3 block font-mono">cumplimiento semanal</span>
-                  </div>
+                  <span className={`text-[10.5px] font-bold px-2.5 py-1 rounded-full border ${colors.text} ${colors.border} bg-theme-sur2`}>
+                    {colors.label}
+                  </span>
                 </div>
 
                 {/* Progress bar */}
-                <div className="w-full h-2 bg-theme-sur2 rounded-full overflow-hidden">
+                <div className="w-full h-2.5 bg-theme-sur2 rounded-full overflow-hidden border border-theme-bor">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${colors.bg}`}
                     style={{ width: `${Math.max(m.overall_pct, 2)}%` }}
@@ -364,6 +422,34 @@ export default function WeeklyGoalsView() {
                     <span className="font-mono font-bold text-[#f59e0b] text-[11px]">
                       {daily.today_pct}% del día
                     </span>
+                  </div>
+                )}
+
+                {/* Individual 7-Day Mini Breakdown */}
+                {m.days_breakdown && (
+                  <div className="space-y-1 pt-1">
+                    <span className="text-[10px] font-mono uppercase text-theme-txt3 block font-bold">
+                      Ritmo Día a Día (Lun - Dom)
+                    </span>
+                    <div className="grid grid-cols-7 gap-1">
+                      {m.days_breakdown.map((d) => (
+                        <div
+                          key={d.date_str}
+                          className={`p-1.5 rounded-lg border text-center text-[9.5px] font-mono ${
+                            d.is_today
+                              ? 'bg-[#00a870]/15 border-[#00a870] font-bold text-[#00a870]'
+                              : d.contacted_count > 0
+                              ? 'bg-theme-sur2 border-theme-bor text-theme-txt'
+                              : 'bg-theme-sur2/40 border-theme-bor/40 text-theme-txt3 opacity-50'
+                          }`}
+                          title={`${d.day_name} ${d.display_date}: ${d.contacted_count} contactados`}
+                        >
+                          <div className="text-[8.5px] text-theme-txt3">{d.day_name}</div>
+                          <div className="font-bold my-0.5">{d.contacted_count}</div>
+                          <div className="text-[7.5px] text-theme-txt3">{d.display_date}</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
@@ -421,87 +507,94 @@ export default function WeeklyGoalsView() {
             </div>
 
             <form onSubmit={handleSaveGoals} className="p-6 space-y-4 text-xs">
-              <p className="text-theme-txt2 text-xs">
-                Ajusta las metas diarias y semanales esperadas para cada comercial. El progreso se actualiza en tiempo real.
+              <p className="text-xs text-theme-txt2 leading-relaxed">
+                Ajusta las metas comerciales por miembro del equipo. Estos objetivos regirán los indicadores del Sprint y las alertas del sistema.
               </p>
 
-              <div>
-                <label className="text-[11px] font-mono uppercase text-[#f59e0b] font-bold block mb-1">
-                  ⚡ Meta Diaria de Contactados (Por día)
+              {/* Daily Contacted Goal Input */}
+              <div className="p-3 bg-[#f59e0b]/10 border border-[#f59e0b]/30 rounded-xl">
+                <label className="text-[11px] font-mono uppercase text-[#f59e0b] block mb-1 font-bold">
+                  ⚡ Meta Diaria de Contactos (Por Comercial)
                 </label>
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  value={dailyContactedGoal}
-                  onChange={(e) => setDailyContactedGoal(Number(e.target.value))}
-                  placeholder="Ej. 30"
-                  className="w-full bg-theme-sur2 border border-[#f59e0b]/40 focus:border-[#f59e0b] rounded-xl px-3.5 py-2 text-xs text-theme-txt font-mono outline-hidden font-bold"
-                />
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={1}
+                    required
+                    value={dailyGoalInput}
+                    onChange={(e) => setDailyGoalInput(parseInt(e.target.value, 10) || 0)}
+                    className="w-full bg-theme-sur border border-theme-bor focus:border-[#f59e0b] rounded-lg px-3 py-2 text-sm font-bold font-mono text-theme-txt outline-hidden"
+                  />
+                  <span className="text-xs text-theme-txt3 font-mono">leads/día</span>
+                </div>
               </div>
 
-              <div>
-                <label className="text-[11px] font-mono uppercase text-theme-txt2 block mb-1">
-                  💬 Meta Semanal de Contactados (Lunes a Viernes)
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  value={contactedGoal}
-                  onChange={(e) => setContactedGoal(Number(e.target.value))}
-                  placeholder="Ej. 150"
-                  className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3.5 py-2 text-xs text-theme-txt font-mono outline-hidden"
-                />
+              {/* Weekly Goals */}
+              <div className="space-y-3 pt-1">
+                <div>
+                  <label className="text-[11px] font-mono uppercase text-theme-txt2 block mb-1">
+                    📤 Meta Semanal de Contactados (Total Semana)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    required
+                    value={contactedGoalInput}
+                    onChange={(e) => setContactedGoalInput(parseInt(e.target.value, 10) || 0)}
+                    className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3.5 py-2 text-xs font-mono text-theme-txt outline-hidden font-bold"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-mono uppercase text-theme-txt2 block mb-1">
+                      📱 Teléfonos Obtenidos
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      required
+                      value={phonesGoalInput}
+                      onChange={(e) => setPhonesGoalInput(parseInt(e.target.value, 10) || 0)}
+                      className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3.5 py-2 text-xs font-mono text-theme-txt outline-hidden font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-mono uppercase text-theme-txt2 block mb-1">
+                      🔥 Oportunidades
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      required
+                      value={oppsGoalInput}
+                      onChange={(e) => setOppsGoalInput(parseInt(e.target.value, 10) || 0)}
+                      className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3.5 py-2 text-xs font-mono text-theme-txt outline-hidden font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-mono uppercase text-theme-txt2 block mb-1">
+                    🏆 Cierres de Ventas (Clientes)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    required
+                    value={clientsGoalInput}
+                    onChange={(e) => setClientsGoalInput(parseInt(e.target.value, 10) || 0)}
+                    className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3.5 py-2 text-xs font-mono text-theme-txt outline-hidden font-bold"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="text-[11px] font-mono uppercase text-theme-txt2 block mb-1">
-                  📱 Teléfonos / WhatsApp conseguidos en la semana
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  value={phonesGoal}
-                  onChange={(e) => setPhonesGoal(Number(e.target.value))}
-                  className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3.5 py-2 text-xs text-theme-txt font-mono outline-hidden"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-mono uppercase text-theme-txt2 block mb-1">
-                  🔥 Oportunidades calificadas en la semana
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  value={opportunitiesGoal}
-                  onChange={(e) => setOpportunitiesGoal(Number(e.target.value))}
-                  className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3.5 py-2 text-xs text-theme-txt font-mono outline-hidden"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-mono uppercase text-theme-txt2 block mb-1">
-                  🏆 Clientes cerrados en la semana
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  value={clientsGoal}
-                  onChange={(e) => setClientsGoal(Number(e.target.value))}
-                  className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3.5 py-2 text-xs text-theme-txt font-mono outline-hidden"
-                />
-              </div>
-
-              <div className="pt-3 flex items-center justify-end gap-2">
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-theme-bor">
                 <button
                   type="button"
                   onClick={() => setIsConfigOpen(false)}
-                  className="px-3.5 py-2 rounded-xl text-xs text-theme-txt2 hover:bg-theme-sur2 border border-theme-bor cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs text-theme-txt2 hover:bg-theme-sur2 border border-theme-bor cursor-pointer"
                 >
                   Cancelar
                 </button>
@@ -509,9 +602,9 @@ export default function WeeklyGoalsView() {
                 <button
                   type="submit"
                   disabled={savingGoals}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-[#00110b] bg-[#00a870] hover:bg-[#00a870]/90 disabled:opacity-50 cursor-pointer shadow-md shadow-[#00a870]/20"
+                  className="px-5 py-2 rounded-xl text-xs font-bold text-[#00110b] bg-[#00a870] hover:bg-[#00a870]/90 disabled:opacity-50 cursor-pointer shadow-md shadow-[#00a870]/20"
                 >
-                  {savingGoals ? 'Guardando...' : 'Guardar Metas'}
+                  {savingGoals ? 'Guardando...' : 'Guardar y Aplicar Metas'}
                 </button>
               </div>
             </form>

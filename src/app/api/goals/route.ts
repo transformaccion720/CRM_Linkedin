@@ -9,6 +9,8 @@ const DEFAULT_GOALS = {
   clients: 2,
 };
 
+const DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -48,13 +50,40 @@ export async function GET(req: NextRequest) {
     const todayDate = dateRange.today_date;
     const weekLabel = `Semana ${Math.round(dateRange.week_num)} (${dateRange.start_label} - ${dateRange.end_label})`;
 
-    // 4. Compute actual activities per member:
+    // Generate list of 7 days in this week (Monday to Sunday)
+    const weekDays: { day_name: string; date_str: string; display_date: string; is_today: boolean; is_future: boolean }[] = [];
+    const baseMonday = new Date(startDate + 'T12:00:00Z');
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(baseMonday);
+      d.setUTCDate(d.getUTCDate() + i);
+      const isoStr = d.toISOString().split('T')[0];
+      const parts = isoStr.split('-');
+      const displayDate = `${parts[2]}/${parts[1]}`;
+      const isToday = isoStr === todayDate;
+      const isFuture = isoStr > todayDate;
+
+      weekDays.push({
+        day_name: DAY_NAMES[i],
+        date_str: isoStr,
+        display_date: displayDate,
+        is_today: isToday,
+        is_future: isFuture,
+      });
+    }
+
+    // 4. Compute actual activities per member and per day
     const memberProgressList = [];
     let globalContacted = 0;
     let globalPhones = 0;
     let globalOpportunities = 0;
     let globalClients = 0;
     let globalTodayContacted = 0;
+
+    const globalDayTotals: Record<string, { contacted: number; opportunities: number; phones: number }> = {};
+    weekDays.forEach((wd) => {
+      globalDayTotals[wd.date_str] = { contacted: 0, opportunities: 0, phones: 0 };
+    });
 
     for (const m of members) {
       // Activity queries for this member in this week
@@ -70,18 +99,30 @@ export async function GET(req: NextRequest) {
           AND created_at::date <= (${endDate}::date + INTERVAL '1 day');
       `;
 
-      // Today's activities for this member (from logs + updated contacts today)
-      const todayActs = await sql`
+      // Group activities day by day for this member
+      const dayActs = await sql`
         SELECT 
-          COUNT(DISTINCT contact_id)::int as today_logs_count,
-          COUNT(CASE WHEN action_type = 'PHONE_ADDED' THEN 1 END)::int as today_phones,
-          COUNT(CASE WHEN action_type = 'OPPORTUNITY_CREATED' OR (action_type = 'STATUS_CHANGE' AND description LIKE '%Oportunidad%') THEN 1 END)::int as today_opportunities
+          TO_CHAR(created_at::date, 'YYYY-MM-DD') as act_date,
+          COUNT(DISTINCT contact_id)::int as contacts_count,
+          COUNT(CASE WHEN action_type = 'PHONE_ADDED' THEN 1 END)::int as phones_count,
+          COUNT(CASE WHEN action_type = 'OPPORTUNITY_CREATED' OR (action_type = 'STATUS_CHANGE' AND description LIKE '%Oportunidad%') THEN 1 END)::int as opps_count
         FROM activity_logs
         WHERE (performed_by = ${m.name} OR performed_by = ${m.id})
-          AND created_at::date = ${todayDate}::date;
+          AND created_at::date >= ${startDate}::date
+          AND created_at::date <= (${endDate}::date + INTERVAL '1 day')
+        GROUP BY created_at::date;
       `;
 
-      // Active managed contacts in CRM for this member (contacts not cold: 'En contacto', 'Oportunidad', 'En pausa', 'Cliente')
+      const dayMap: Record<string, { contacts: number; phones: number; opps: number }> = {};
+      dayActs.forEach((r) => {
+        dayMap[r.act_date] = {
+          contacts: r.contacts_count || 0,
+          phones: r.phones_count || 0,
+          opps: r.opps_count || 0,
+        };
+      });
+
+      // Active managed contacts in CRM for this member
       const contactSummary = await sql`
         SELECT 
           COUNT(CASE WHEN status != 'Sin contactar' THEN 1 END)::int as all_managed_contacts,
@@ -99,16 +140,43 @@ export async function GET(req: NextRequest) {
       const oAct = Math.max(acts[0]?.opportunity_count || 0, contactSummary[0]?.curr_opportunities || 0);
       const clAct = Math.max(acts[0]?.client_count || 0, contactSummary[0]?.curr_clients || 0);
 
-      // Today's contacted: if user managed 33 contacts today, accurately recognize them
-      const todayContacted = Math.max(
-        todayActs[0]?.today_logs_count || 0,
-        contactSummary[0]?.contacts_managed_today || 0,
-        // If it's the current week and active contacts exist, consider active contacts today
-        weekOffset === 0 ? contactSummary[0]?.all_managed_contacts || 0 : 0
-      );
+      // Build daily breakdown for this member
+      const daysBreakdown = weekDays.map((wd) => {
+        const fromLog = dayMap[wd.date_str];
+        let dContacted = fromLog ? fromLog.contacts : 0;
 
-      const todayPhones = todayActs[0]?.today_phones || 0;
-      const todayOpportunities = todayActs[0]?.today_opportunities || 0;
+        // If today and active contacts exist, ensure today is recognized accurately
+        if (wd.is_today && weekOffset === 0) {
+          dContacted = Math.max(dContacted, contactSummary[0]?.contacts_managed_today || 0, contactSummary[0]?.all_managed_contacts || 0);
+        }
+
+        const dOpps = fromLog ? fromLog.opps : 0;
+        const dPhones = fromLog ? fromLog.phones : 0;
+        const dPct = Math.min(100, Math.round((dContacted / Math.max(goals.daily_contacted, 1)) * 100));
+
+        // Accumulate in global day totals
+        globalDayTotals[wd.date_str].contacted += dContacted;
+        globalDayTotals[wd.date_str].opportunities += dOpps;
+        globalDayTotals[wd.date_str].phones += dPhones;
+
+        return {
+          day_name: wd.day_name,
+          date_str: wd.date_str,
+          display_date: wd.display_date,
+          is_today: wd.is_today,
+          is_future: wd.is_future,
+          contacted_count: dContacted,
+          goal_count: goals.daily_contacted,
+          pct: dPct,
+          opportunities_count: dOpps,
+          phones_count: dPhones,
+        };
+      });
+
+      const todayData = daysBreakdown.find((d) => d.is_today) || daysBreakdown[0];
+      const todayContacted = todayData.contacted_count;
+      const todayPhones = todayData.phones_count;
+      const todayOpportunities = todayData.opportunities_count;
 
       globalContacted += cAct;
       globalPhones += pAct;
@@ -143,6 +211,7 @@ export async function GET(req: NextRequest) {
           opportunities_today: todayOpportunities,
           today_pct: todayPct,
         },
+        days_breakdown: daysBreakdown,
       });
     }
 
@@ -159,6 +228,24 @@ export async function GET(req: NextRequest) {
     const gClPct = Math.min(100, Math.round((globalClients / Math.max(globalGoalClients, 1)) * 100));
     const globalOverall = Math.round((gCPct * 0.35) + (gPPct * 0.25) + (gOPct * 0.25) + (gClPct * 0.15));
     const globalTodayPct = Math.min(100, Math.round((globalTodayContacted / Math.max(globalDailyGoal, 1)) * 100));
+
+    const globalDaysBreakdown = weekDays.map((wd) => {
+      const dTotal = globalDayTotals[wd.date_str];
+      const dPct = Math.min(100, Math.round((dTotal.contacted / Math.max(globalDailyGoal, 1)) * 100));
+
+      return {
+        day_name: wd.day_name,
+        date_str: wd.date_str,
+        display_date: wd.display_date,
+        is_today: wd.is_today,
+        is_future: wd.is_future,
+        contacted_count: dTotal.contacted,
+        goal_count: globalDailyGoal,
+        pct: dPct,
+        opportunities_count: dTotal.opportunities,
+        phones_count: dTotal.phones,
+      };
+    });
 
     return NextResponse.json({
       sprint: {
@@ -179,6 +266,7 @@ export async function GET(req: NextRequest) {
           contacted_today_total: globalTodayContacted,
           contacted_daily_goal_total: globalDailyGoal,
           today_pct_total: globalTodayPct,
+          global_days_breakdown: globalDaysBreakdown,
         },
         members_progress: memberProgressList,
       },
@@ -196,7 +284,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { daily_contacted, contacted, phones, opportunities, clients } = body;
+    const { daily_contacted, contacted, phones, opportunities, clients, updated_by } = body;
 
     const newGoals = {
       daily_contacted: parseInt(daily_contacted, 10) || DEFAULT_GOALS.daily_contacted,
@@ -212,6 +300,21 @@ export async function POST(req: NextRequest) {
       ON CONFLICT (key) DO UPDATE
       SET value = EXCLUDED.value, updated_at = NOW();
     `;
+
+    // Special Alert in activity logs for Goal Changes
+    try {
+      await sql`
+        INSERT INTO activity_logs (contact_name, action_type, description, performed_by)
+        VALUES (
+          'Configuración General', 
+          'GOAL_UPDATED', 
+          ${'🎯 Metas actualizadas: ' + newGoals.daily_contacted + ' diarias / ' + newGoals.contacted + ' semanales'}, 
+          ${updated_by || 'Administrador'}
+        );
+      `;
+    } catch (e) {
+      console.error('Goal update log failed:', e);
+    }
 
     return NextResponse.json({ success: true, goals: newGoals });
   } catch (error: unknown) {

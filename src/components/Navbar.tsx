@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Upload, CheckCircle2, RefreshCw, Users, Kanban, BarChart2, PieChart, Download, Sun, Moon, Settings, Menu, Filter, UserPlus, UserCog, Target, MessageSquare, FolderOpen } from 'lucide-react';
+import { Upload, CheckCircle2, RefreshCw, Users, Kanban, BarChart2, PieChart, Download, Sun, Moon, Settings, Menu, Filter, UserPlus, UserCog, Target, MessageSquare, FolderOpen, Calendar } from 'lucide-react';
 import ActivityBell from '@/components/ActivityBell';
+import FollowUpBell from '@/components/FollowUpBell';
 import { TeamMember } from '@/lib/types';
 
 interface NavbarProps {
@@ -14,8 +15,9 @@ interface NavbarProps {
   onExport: () => void;
   onOpenTemplateManager?: () => void;
   onToggleMobileSidebar?: () => void;
-  activeTab: 'contactos' | 'segmentos' | 'funnel' | 'objetivos' | 'mensajeria' | 'recursos' | 'analytics' | 'ejecutivo';
-  setActiveTab: (tab: 'contactos' | 'segmentos' | 'funnel' | 'objetivos' | 'mensajeria' | 'recursos' | 'analytics' | 'ejecutivo') => void;
+  onOpenContactDrawer?: (contactId: string) => void;
+  activeTab: 'contactos' | 'segmentos' | 'funnel' | 'objetivos' | 'seguimientos' | 'mensajeria' | 'recursos' | 'analytics' | 'ejecutivo';
+  setActiveTab: (tab: 'contactos' | 'segmentos' | 'funnel' | 'objetivos' | 'seguimientos' | 'mensajeria' | 'recursos' | 'analytics' | 'ejecutivo') => void;
   totalContacts: number;
   currentUser?: TeamMember | null;
 }
@@ -29,6 +31,7 @@ export default function Navbar({
   onExport,
   onOpenTemplateManager,
   onToggleMobileSidebar,
+  onOpenContactDrawer,
   activeTab,
   setActiveTab,
   totalContacts,
@@ -89,6 +92,12 @@ export default function Navbar({
 
           {/* Activity Notifications Bell */}
           <ActivityBell onRefreshTrigger={onRefresh} />
+
+          {/* Special Follow-ups & Reminders Alert Bell */}
+          <FollowUpBell
+            onOpenCalendarTab={() => setActiveTab('seguimientos')}
+            onOpenContactDrawer={onOpenContactDrawer}
+          />
 
           {/* Manage Team Members button */}
           {onOpenTeamManager && (
@@ -243,6 +252,19 @@ export default function Navbar({
         >
           <Target className="w-3.5 h-3.5 text-[#00a870]" />
           <span>Objetivos Semanales</span>
+        </button>
+
+        {/* Seguimientos & Calendario Tab */}
+        <button
+          onClick={() => setActiveTab('seguimientos')}
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 text-xs font-medium border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === 'seguimientos'
+              ? 'border-[#ff6d3b] text-[#ff6d3b] font-semibold'
+              : 'border-transparent text-theme-txt2 hover:text-theme-txt hover:bg-theme-sur2'
+          }`}
+        >
+          <Calendar className="w-3.5 h-3.5 text-[#ff6d3b]" />
+          <span>Seguimientos (Agenda)</span>
         </button>
 
         {/* Mensajería & Hilos de Conversación */}

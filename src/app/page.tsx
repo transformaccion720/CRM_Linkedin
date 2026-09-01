@@ -11,6 +11,7 @@ import FunnelView from '@/components/FunnelView';
 import WeeklyGoalsView from '@/components/WeeklyGoalsView';
 import AnalyticsView from '@/components/AnalyticsView';
 import ExecutiveDashboard from '@/components/ExecutiveDashboard';
+import FollowUpsCalendarView from '@/components/FollowUpsCalendarView';
 import MessagingInboxView from '@/components/MessagingInboxView';
 import ResourcesDirectoryView from '@/components/ResourcesDirectoryView';
 import ContactDrawer from '@/components/ContactDrawer';
@@ -48,7 +49,7 @@ export default function Home() {
   const [activeTemplateId, setActiveTemplateId] = useState<string>(DEFAULT_TEMPLATES[0].id);
 
   // Tabs & Views
-  const [activeTab, setActiveTab] = useState<'contactos' | 'segmentos' | 'funnel' | 'objetivos' | 'mensajeria' | 'recursos' | 'analytics' | 'ejecutivo'>('contactos');
+  const [activeTab, setActiveTab] = useState<'contactos' | 'segmentos' | 'funnel' | 'objetivos' | 'seguimientos' | 'mensajeria' | 'recursos' | 'analytics' | 'ejecutivo'>('contactos');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
 
   // Filters
@@ -336,6 +337,10 @@ export default function Home() {
           fetchTeamMembers();
         }}
         onExport={handleExportCSV}
+        onOpenContactDrawer={(cId) => {
+          const found = contacts.find((c) => c.id === cId);
+          if (found) setSelectedContact(found);
+        }}
         totalContacts={stats?.total || 0}
         currentUser={currentUser}
       />
@@ -532,6 +537,18 @@ export default function Home() {
           )}
 
           {activeTab === 'objetivos' && <WeeklyGoalsView />}
+
+          {activeTab === 'seguimientos' && (
+            <FollowUpsCalendarView
+              currentUser={currentUser}
+              teamMembers={teamMembers}
+              onOpenContactDrawer={(cId) => {
+                const found = contacts.find((c) => c.id === cId);
+                if (found) setSelectedContact(found);
+              }}
+              onOpenTemplates={setTemplateContact}
+            />
+          )}
 
           {activeTab === 'mensajeria' && (
             <MessagingInboxView

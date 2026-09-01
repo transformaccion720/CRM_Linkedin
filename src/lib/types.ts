@@ -21,7 +21,7 @@ export interface ActivityLog {
   id: string;
   contact_id?: string | null;
   contact_name: string;
-  action_type: 'STATUS_CHANGE' | 'DATA_UPDATE' | 'PHONE_ADDED' | 'EMAIL_ADDED' | 'NOTE_ADDED' | 'CONTACTED_OUTREACH' | 'OPPORTUNITY_CREATED' | 'CLIENT_WON' | 'LEAD_PAUSED';
+  action_type: 'STATUS_CHANGE' | 'DATA_UPDATE' | 'PHONE_ADDED' | 'EMAIL_ADDED' | 'NOTE_ADDED' | 'CONTACTED_OUTREACH' | 'OPPORTUNITY_CREATED' | 'CLIENT_WON' | 'LEAD_PAUSED' | 'GOAL_UPDATED';
   description: string;
   performed_by: string;
   created_at: string;
@@ -35,7 +35,7 @@ export interface ContactMessage {
   contact_position?: string | null;
   contact_linkedin_url?: string | null;
   sender_name: string;
-  direction: 'OUTBOUND' | 'INBOUND'; // OUTBOUND = Enviado por comercial, INBOUND = Respuesta del prospecto
+  direction: 'OUTBOUND' | 'INBOUND';
   channel: 'LINKEDIN' | 'WHATSAPP' | 'EMAIL';
   message_text: string;
   template_name?: string | null;
@@ -47,7 +47,7 @@ export interface CommercialResource {
   title: string;
   description?: string | null;
   category: 'BROCHURE' | 'VIDEO' | 'FLYER' | 'PROPOSAL' | 'LINK';
-  file_url?: string | null; // URL en base64 o link externo (Drive/YouTube/Loom)
+  file_url?: string | null;
   file_name?: string | null;
   file_size?: string | null;
   external_link?: string | null;
@@ -99,6 +99,19 @@ export interface WeeklyGoal {
   clients: number;
 }
 
+export interface DayBreakdown {
+  day_name: string; // 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'
+  date_str: string; // '2026-08-31'
+  display_date: string; // '31/08'
+  is_today: boolean;
+  is_future: boolean;
+  contacted_count: number;
+  goal_count: number;
+  pct: number;
+  opportunities_count: number;
+  phones_count: number;
+}
+
 export interface DailyGoalProgress {
   contacted_today: number;
   contacted_daily_goal: number;
@@ -120,6 +133,7 @@ export interface WeeklySprintProgress {
   clients_goal: number;
   overall_pct: number;
   daily_progress: DailyGoalProgress;
+  days_breakdown: DayBreakdown[];
 }
 
 export interface WeeklySprintData {
@@ -140,8 +154,26 @@ export interface WeeklySprintData {
     contacted_today_total: number;
     contacted_daily_goal_total: number;
     today_pct_total: number;
+    global_days_breakdown: DayBreakdown[];
   };
   members_progress: WeeklySprintProgress[];
+}
+
+export interface FollowUpReminder {
+  id: string;
+  first_name: string;
+  last_name: string | null;
+  company: string | null;
+  position: string | null;
+  phone?: string | null;
+  linkedin_url: string | null;
+  status: ContactStatus;
+  priority: number;
+  follow_up_date: string;
+  assigned_to: string;
+  notes: string | null;
+  is_overdue: boolean;
+  is_today: boolean;
 }
 
 export interface ContactStats {
