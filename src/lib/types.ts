@@ -100,9 +100,9 @@ export interface WeeklyGoal {
 }
 
 export interface DayBreakdown {
-  day_name: string; // 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'
-  date_str: string; // '2026-08-31'
-  display_date: string; // '31/08'
+  day_name: string;
+  date_str: string;
+  display_date: string;
   is_today: boolean;
   is_future: boolean;
   contacted_count: number;
@@ -174,6 +174,8 @@ export interface FollowUpReminder {
   notes: string | null;
   is_overdue: boolean;
   is_today: boolean;
+  days_diff: number; // positive = future days, negative = overdue days, 0 = today
+  time_bucket: 'overdue' | 'today' | 'plus_1_day' | 'plus_3_days' | 'plus_1_week' | 'plus_1_month' | 'future';
 }
 
 export interface ContactStats {

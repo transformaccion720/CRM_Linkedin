@@ -91,7 +91,10 @@ export default function Navbar({
           )}
 
           {/* Activity Notifications Bell */}
-          <ActivityBell onRefreshTrigger={onRefresh} />
+          <ActivityBell 
+            onRefreshTrigger={onRefresh} 
+            onOpenContactDrawer={onOpenContactDrawer}
+          />
 
           {/* Special Follow-ups & Reminders Alert Bell */}
           <FollowUpBell

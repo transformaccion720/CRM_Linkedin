@@ -1,14 +1,15 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Check, Clock, Sparkles, User, RefreshCw, X, CheckCheck, Trash2 } from 'lucide-react';
+import { Bell, Check, Clock, Sparkles, User, RefreshCw, X, CheckCheck, Trash2, ChevronRight, ExternalLink } from 'lucide-react';
 import { ActivityLog } from '@/lib/types';
 
 interface ActivityBellProps {
   onRefreshTrigger?: () => void;
+  onOpenContactDrawer?: (contactId: string) => void;
 }
 
-export default function ActivityBell({ onRefreshTrigger }: ActivityBellProps) {
+export default function ActivityBell({ onRefreshTrigger, onOpenContactDrawer }: ActivityBellProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -18,7 +19,7 @@ export default function ActivityBell({ onRefreshTrigger }: ActivityBellProps) {
   const fetchActivities = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/activities?limit=30');
+      const res = await fetch('/api/activities?limit=40');
       if (res.ok) {
         const data = await res.json();
         const acts: ActivityLog[] = data.activities || [];
@@ -62,7 +63,6 @@ export default function ActivityBell({ onRefreshTrigger }: ActivityBellProps) {
     const nextState = !isOpen;
     setIsOpen(nextState);
     if (nextState) {
-      // Clear counter immediately upon opening and update last seen
       setUnreadCount(0);
       localStorage.setItem('crm_last_seen_activity', new Date().toISOString());
     }
@@ -98,18 +98,29 @@ export default function ActivityBell({ onRefreshTrigger }: ActivityBellProps) {
     }
   };
 
+  const handleActivityClick = (a: ActivityLog) => {
+    if (a.contact_id && onOpenContactDrawer) {
+      setIsOpen(false);
+      onOpenContactDrawer(a.contact_id);
+    }
+  };
+
   const getActionBadge = (type: string) => {
     switch (type) {
       case 'STATUS_CHANGE':
         return { label: 'Estado', bg: 'bg-[#2979ff]/15 text-[#2979ff] border-[#2979ff]/30' };
+      case 'CONTACTED_OUTREACH':
+        return { label: 'Mensaje Enviado', bg: 'bg-[#00a870]/15 text-[#00a870] border-[#00a870]/30' };
       case 'PHONE_ADDED':
         return { label: 'Teléfono', bg: 'bg-[#00a870]/15 text-[#00a870] border-[#00a870]/30' };
       case 'EMAIL_ADDED':
         return { label: 'Email', bg: 'bg-[#ff6d3b]/15 text-[#ff6d3b] border-[#ff6d3b]/30' };
       case 'NOTE_ADDED':
-        return { label: 'Notas', bg: 'bg-[#a855f7]/15 text-[#a855f7] border-[#a855f7]/30' };
+        return { label: 'Nota / Respuesta', bg: 'bg-[#a855f7]/15 text-[#a855f7] border-[#a855f7]/30' };
+      case 'GOAL_UPDATED':
+        return { label: '🎯 Metas', bg: 'bg-[#f59e0b]/15 text-[#f59e0b] border-[#f59e0b]/30' };
       default:
-        return { label: 'Datos', bg: 'bg-theme-sur2 text-theme-txt border-theme-bor' };
+        return { label: 'Gestión', bg: 'bg-theme-sur2 text-theme-txt border-theme-bor' };
     }
   };
 
@@ -146,7 +157,7 @@ export default function ActivityBell({ onRefreshTrigger }: ActivityBellProps) {
                 title="Marcar todas como leídas"
               >
                 <CheckCheck className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Leídas</span>
+                <span className="hidden sm:inline">Marcar Leídas</span>
               </button>
 
               <button
@@ -176,15 +187,20 @@ export default function ActivityBell({ onRefreshTrigger }: ActivityBellProps) {
             ) : (
               activities.map((a) => {
                 const badge = getActionBadge(a.action_type);
+                const hasContactLink = Boolean(a.contact_id);
 
                 return (
                   <div
                     key={a.id}
-                    className="p-2.5 bg-theme-sur2/70 border border-theme-bor rounded-xl text-xs space-y-1 shadow-2xs hover:border-theme-bor2 transition-colors group relative"
+                    onClick={() => handleActivityClick(a)}
+                    className={`p-2.5 bg-theme-sur2/70 border border-theme-bor rounded-xl text-xs space-y-1 shadow-2xs hover:border-[#00a870]/40 transition-colors group relative ${
+                      hasContactLink ? 'cursor-pointer' : ''
+                    }`}
                   >
                     <div className="flex items-center justify-between gap-1.5">
-                      <span className="font-bold text-theme-txt truncate max-w-[190px]">
-                        {a.contact_name}
+                      <span className="font-bold text-theme-txt truncate max-w-[190px] flex items-center gap-1">
+                        <span>{a.contact_name}</span>
+                        {hasContactLink && <ChevronRight className="w-3 h-3 text-[#00a870] opacity-70 group-hover:opacity-100" />}
                       </span>
                       <div className="flex items-center gap-1.5">
                         <span
@@ -222,7 +238,7 @@ export default function ActivityBell({ onRefreshTrigger }: ActivityBellProps) {
           {/* Footer */}
           <div className="p-2 px-4 border-t border-theme-bor bg-theme-sur text-center shrink-0">
             <span className="text-[10px] font-mono text-theme-txt3">
-              Notificaciones en tiempo real
+              Notificaciones y auditoría en tiempo real
             </span>
           </div>
         </div>
