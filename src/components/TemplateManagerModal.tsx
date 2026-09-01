@@ -98,6 +98,17 @@ export default function TemplateManagerModal({
           </button>
         </div>
 
+        {/* Top Save Confirmation Banner */}
+        {savedSuccess && (
+          <div className="bg-[#00e5a0] text-[#00110b] font-bold px-6 py-2.5 flex items-center justify-between text-xs animate-in slide-in-from-top duration-200 shadow-md">
+            <div className="flex items-center gap-2">
+              <Check className="w-4 h-4 stroke-[3]" />
+              <span>¡Plantilla guardada y sincronizada correctamente en la base de datos!</span>
+            </div>
+            <span className="text-[10.5px] opacity-80 font-mono">Actualizado</span>
+          </div>
+        )}
+
         {/* Modal Body */}
         <div className="flex-1 flex overflow-hidden min-h-0">
           {/* Left List of Templates */}
@@ -108,7 +119,7 @@ export default function TemplateManagerModal({
               </span>
               <button
                 onClick={handleStartCreate}
-                className="p-1 text-xs bg-[#00e5a0]/15 text-[#00e5a0] hover:bg-[#00e5a0]/25 rounded-md flex items-center gap-1 font-semibold cursor-pointer"
+                className="p-1.5 text-xs bg-[#00e5a0]/15 text-[#00e5a0] hover:bg-[#00e5a0]/25 rounded-lg flex items-center gap-1 font-semibold cursor-pointer border border-[#00e5a0]/30"
                 title="Crear nueva plantilla"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -125,8 +136,9 @@ export default function TemplateManagerModal({
                   <div
                     key={t.id}
                     onClick={() => {
-                      setEditingTemplate(t);
+                      setEditingTemplate({ ...t });
                       setIsCreatingNew(false);
+                      setSavedSuccess(false);
                     }}
                     className={`p-3 rounded-xl border text-xs cursor-pointer transition-all ${
                       isSelectedForEdit
@@ -158,9 +170,9 @@ export default function TemplateManagerModal({
                           e.stopPropagation();
                           onSelectActiveTemplate(t.id);
                         }}
-                        className={`text-[10px] font-medium px-2 py-0.5 rounded ${
+                        className={`text-[10px] font-medium px-2 py-0.5 rounded cursor-pointer ${
                           isActive
-                            ? 'text-[#00e5a0] bg-[#00e5a0]/15'
+                            ? 'text-[#00e5a0] bg-[#00e5a0]/15 font-bold'
                             : 'text-theme-txt2 hover:text-[#00e5a0] bg-theme-sur2'
                         }`}
                       >
@@ -172,7 +184,7 @@ export default function TemplateManagerModal({
                           e.stopPropagation();
                           handleDelete(t.id);
                         }}
-                        className="text-theme-txt3 hover:text-[#ff6d3b] p-1"
+                        className="text-theme-txt3 hover:text-[#ff6d3b] p-1 cursor-pointer"
                         title="Eliminar plantilla"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -193,7 +205,7 @@ export default function TemplateManagerModal({
                     {isCreatingNew ? 'Crear Nueva Plantilla Comercial' : 'Editar Plantilla'}
                   </h4>
                   <div className="flex items-center gap-1 text-[11px] font-mono text-theme-txt3">
-                    <span>Variables disponibles:</span>
+                    <span>Variables:</span>
                     <code className="text-[#00e5a0] bg-theme-sur2 px-1 rounded">{'{nombre}'}</code>
                     <code className="text-[#2979ff] bg-theme-sur2 px-1 rounded">{'{empresa}'}</code>
                     <code className="text-[#ff6d3b] bg-theme-sur2 px-1 rounded">{'{cargo}'}</code>
@@ -273,23 +285,34 @@ export default function TemplateManagerModal({
                   />
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2">
-                  <button
-                    onClick={() => {
-                      setEditingTemplate(null);
-                      setIsCreatingNew(false);
-                    }}
-                    className="px-4 py-2 rounded-lg text-xs font-medium text-theme-txt2 bg-theme-sur2 hover:bg-theme-sur3"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleSaveCurrent}
-                    className="px-5 py-2 rounded-lg text-xs font-bold text-[#00110b] bg-[#00e5a0] hover:bg-[#00e5a0]/90 flex items-center gap-1.5 shadow-md shadow-[#00e5a0]/20 cursor-pointer"
-                  >
-                    <Save className="w-3.5 h-3.5" />
-                    <span>Guardar Plantilla</span>
-                  </button>
+                <div className="flex items-center justify-between pt-2">
+                  <div>
+                    {savedSuccess && (
+                      <span className="text-xs text-[#00e5a0] font-bold flex items-center gap-1.5 bg-[#00e5a0]/15 px-3 py-1.5 rounded-xl border border-[#00e5a0]/30 shadow-xs">
+                        <Check className="w-4 h-4 stroke-[3]" />
+                        <span>¡Guardado correctamente!</span>
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setEditingTemplate(null);
+                        setIsCreatingNew(false);
+                      }}
+                      className="px-4 py-2 rounded-lg text-xs font-medium text-theme-txt2 bg-theme-sur2 hover:bg-theme-sur3 cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleSaveCurrent}
+                      className="px-5 py-2 rounded-lg text-xs font-bold text-[#00110b] bg-[#00e5a0] hover:bg-[#00e5a0]/90 flex items-center gap-1.5 shadow-md shadow-[#00e5a0]/20 cursor-pointer"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      <span>Guardar Plantilla</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -325,7 +348,7 @@ export default function TemplateManagerModal({
               {savedSuccess && (
                 <span className="text-xs text-[#00e5a0] flex items-center gap-1 font-medium">
                   <Check className="w-3.5 h-3.5" />
-                  <span>¡Plantilla guardada con éxito!</span>
+                  <span>¡Sincronizado!</span>
                 </span>
               )}
             </div>

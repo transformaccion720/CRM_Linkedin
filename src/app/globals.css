@@ -39,7 +39,10 @@
 html, body {
   background-color: var(--bg) !important;
   color: var(--txt) !important;
-  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+input, textarea, select, button {
+  transform: translateZ(0);
 }
 
 /* Dynamic theme helpers */

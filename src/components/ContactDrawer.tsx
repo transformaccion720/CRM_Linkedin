@@ -44,8 +44,12 @@ export default function ContactDrawer({
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // Track currently loaded contact ID to only reset form when opening a DIFFERENT contact
+  const loadedContactIdRef = React.useRef<string | null>(null);
+
   React.useEffect(() => {
-    if (contact) {
+    if (contact && contact.id !== loadedContactIdRef.current) {
+      loadedContactIdRef.current = contact.id;
       setFirstName(contact.first_name || '');
       setLastName(contact.last_name || '');
       setCompany(contact.company || '');
@@ -82,6 +86,7 @@ export default function ContactDrawer({
 
   const handleSave = async () => {
     setSaving(true);
+    setSaveSuccess(false);
     try {
       let currentTags = [...tags];
       const pendingTag = newTagInput.trim();
@@ -117,8 +122,6 @@ export default function ContactDrawer({
       if (res.ok && data.contact) {
         onUpdate(data.contact);
         setSaveSuccess(true);
-        // Persist confirmation without quick flickering (10 seconds)
-        setTimeout(() => setSaveSuccess(false), 10000);
       }
     } catch (e) {
       console.error('Error guardando:', e);
