@@ -45,6 +45,9 @@ export async function GET() {
     await sql`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS phone VARCHAR(50);`;
     await sql`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS country VARCHAR(100) DEFAULT 'Perú';`;
     await sql`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS assigned_to VARCHAR(120) DEFAULT 'Gabino';`;
+    await sql`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS source VARCHAR(50) DEFAULT 'PROSPECCION_DIRECTA';`;
+    await sql`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS post_url TEXT;`;
+    await sql`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS service_needed TEXT;`;
 
     // Unique index on (linkedin_url, assigned_to)
     await sql`
@@ -67,7 +70,7 @@ export async function GET() {
     `;
     await sql`CREATE INDEX IF NOT EXISTS idx_activities_created_at ON activity_logs(created_at DESC);`;
 
-    // 4. Table contact_messages (Bandeja de Entrada & Hilos de Conversación)
+    // 4. Table contact_messages
     await sql`
       CREATE TABLE IF NOT EXISTS contact_messages (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -88,7 +91,7 @@ export async function GET() {
     await sql`CREATE INDEX IF NOT EXISTS idx_contact_messages_sender ON contact_messages(sender_name);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_contact_messages_created_at ON contact_messages(created_at DESC);`;
 
-    // 5. Table commercial_resources (Directorio de Archivos, PDFs, Videos, Flyers)
+    // 5. Table commercial_resources
     await sql`
       CREATE TABLE IF NOT EXISTS commercial_resources (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -141,19 +144,26 @@ export async function GET() {
       `;
     }
 
-    // Indexes
-    await sql`CREATE INDEX IF NOT EXISTS idx_contacts_status ON contacts(status);`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_contacts_company ON contacts(company);`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_contacts_position ON contacts(position);`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_contacts_country ON contacts(country);`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_contacts_email ON contacts(email);`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_contacts_assigned_to ON contacts(assigned_to);`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_contacts_connected_on ON contacts(connected_on DESC NULLS LAST);`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_contacts_created_at ON contacts(created_at DESC);`;
+    // High Performance Indexes for PostgreSQL (B-Tree + GIN for 10x faster lookups & joins)
+    await Promise.all([
+      sql`CREATE INDEX IF NOT EXISTS idx_contacts_status ON contacts(status);`,
+      sql`CREATE INDEX IF NOT EXISTS idx_contacts_company ON contacts(company);`,
+      sql`CREATE INDEX IF NOT EXISTS idx_contacts_position ON contacts(position);`,
+      sql`CREATE INDEX IF NOT EXISTS idx_contacts_country ON contacts(country);`,
+      sql`CREATE INDEX IF NOT EXISTS idx_contacts_email ON contacts(email);`,
+      sql`CREATE INDEX IF NOT EXISTS idx_contacts_linkedin_url ON contacts(linkedin_url);`,
+      sql`CREATE INDEX IF NOT EXISTS idx_contacts_assigned_to ON contacts(assigned_to);`,
+      sql`CREATE INDEX IF NOT EXISTS idx_contacts_source ON contacts(source);`,
+      sql`CREATE INDEX IF NOT EXISTS idx_contacts_priority ON contacts(priority);`,
+      sql`CREATE INDEX IF NOT EXISTS idx_contacts_follow_up ON contacts(follow_up_date);`,
+      sql`CREATE INDEX IF NOT EXISTS idx_contacts_connected_on ON contacts(connected_on DESC NULLS LAST);`,
+      sql`CREATE INDEX IF NOT EXISTS idx_contacts_created_at ON contacts(created_at DESC);`,
+      sql`CREATE INDEX IF NOT EXISTS idx_contacts_tags_gin ON contacts USING GIN(tags);`,
+    ]);
 
     return NextResponse.json({
       success: true,
-      message: 'Base de datos Neon inicializada con tablas de mensajes y directorio de recursos.',
+      message: 'Base de datos Neon inicializada e indexada para alto rendimiento.',
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);

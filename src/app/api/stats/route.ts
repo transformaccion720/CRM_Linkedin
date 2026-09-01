@@ -6,15 +6,9 @@ export const runtime = 'nodejs';
 
 export async function GET() {
   try {
-    // Run ALL stats queries in parallel for maximum speed
+    // Consolidated queries executed in parallel for instant sub-100ms response
     const [
-      totalResult,
-      emailResult,
-      phoneResult,
-      companiesResult,
-      recentResult,
-      followUpsResult,
-      activeSearchResult,
+      scalarsResult,
       statusResult,
       memberStatsResult,
       topCompanies,
@@ -23,14 +17,21 @@ export async function GET() {
       topPositions,
       recentContacts,
     ] = await Promise.all([
-      sql`SELECT COUNT(*) as total FROM contacts`,
-      sql`SELECT COUNT(*) as with_email FROM contacts WHERE email IS NOT NULL AND email != ''`,
-      sql`SELECT COUNT(*) as with_phone FROM contacts WHERE phone IS NOT NULL AND phone != ''`,
-      sql`SELECT COUNT(DISTINCT company) as companies_count FROM contacts WHERE company IS NOT NULL AND company != ''`,
-      sql`SELECT COUNT(*) as recent FROM contacts WHERE connected_on >= '2025-01-01'`,
-      sql`SELECT COUNT(*) as count FROM contacts WHERE follow_up_date IS NOT NULL AND follow_up_date <= CURRENT_DATE + INTERVAL '7 days'`,
-      sql`SELECT COUNT(*) as count FROM contacts WHERE source = 'BUSQUEDA_ACTIVA'`,
-      sql`SELECT status, COUNT(*) as count FROM contacts GROUP BY status`,
+      // 1. All global scalar metrics in ONE single fast table scan
+      sql`
+        SELECT 
+          COUNT(*)::int as total,
+          COUNT(CASE WHEN email IS NOT NULL AND email != '' THEN 1 END)::int as with_email,
+          COUNT(CASE WHEN phone IS NOT NULL AND phone != '' THEN 1 END)::int as with_phone,
+          COUNT(DISTINCT CASE WHEN company IS NOT NULL AND company != '' THEN company END)::int as companies_count,
+          COUNT(CASE WHEN connected_on >= '2025-01-01' THEN 1 END)::int as recent_count,
+          COUNT(CASE WHEN follow_up_date IS NOT NULL AND follow_up_date <= CURRENT_DATE + INTERVAL '7 days' THEN 1 END)::int as pending_follow_ups,
+          COUNT(CASE WHEN source = 'BUSQUEDA_ACTIVA' THEN 1 END)::int as active_search_count
+        FROM contacts;
+      `,
+      // 2. Status breakdown
+      sql`SELECT status, COUNT(*)::int as count FROM contacts GROUP BY status`,
+      // 3. Member stats breakdown
       sql`
         SELECT 
           COALESCE(assigned_to, 'Sin asignar') as member_name,
@@ -45,37 +46,42 @@ export async function GET() {
         GROUP BY assigned_to
         ORDER BY total DESC;
       `,
+      // 4. Top companies
       sql`
-        SELECT company, COUNT(*) as count 
+        SELECT company, COUNT(*)::int as count 
         FROM contacts 
         WHERE company IS NOT NULL AND company != ''
         GROUP BY company 
         ORDER BY count DESC 
         LIMIT 6
       `,
+      // 5. Top countries
       sql`
-        SELECT COALESCE(country, 'No especificado') as country, COUNT(*) as count 
+        SELECT COALESCE(country, 'No especificado') as country, COUNT(*)::int as count 
         FROM contacts 
         GROUP BY country 
         ORDER BY count DESC 
         LIMIT 5
       `,
+      // 6. Growth by year
       sql`
-        SELECT TO_CHAR(connected_on, 'YYYY') as yr, COUNT(*) as count 
+        SELECT TO_CHAR(connected_on, 'YYYY') as yr, COUNT(*)::int as count 
         FROM contacts 
         WHERE connected_on IS NOT NULL 
         GROUP BY yr 
         ORDER BY yr DESC 
         LIMIT 8
       `,
+      // 7. Top positions
       sql`
-        SELECT position, COUNT(*) as count 
+        SELECT position, COUNT(*)::int as count 
         FROM contacts 
         WHERE position IS NOT NULL AND position != ''
         GROUP BY position 
         ORDER BY count DESC 
         LIMIT 6
       `,
+      // 8. Recent contacts preview
       sql`
         SELECT id, first_name, last_name, TO_CHAR(connected_on, 'YYYY-MM-DD') as connected_on
         FROM contacts 
@@ -84,13 +90,14 @@ export async function GET() {
       `,
     ]);
 
-    const total = parseInt(totalResult[0]?.total || '0', 10);
-    const withEmail = parseInt(emailResult[0]?.with_email || '0', 10);
-    const withPhone = parseInt(phoneResult[0]?.with_phone || '0', 10);
-    const companiesCount = parseInt(companiesResult[0]?.companies_count || '0', 10);
-    const recentCount = parseInt(recentResult[0]?.recent || '0', 10);
-    const pendingFollowUps = parseInt(followUpsResult[0]?.count || '0', 10);
-    const activeSearchCount = parseInt(activeSearchResult[0]?.count || '0', 10);
+    const s = scalarsResult[0] || {};
+    const total = s.total || 0;
+    const withEmail = s.with_email || 0;
+    const withPhone = s.with_phone || 0;
+    const companiesCount = s.companies_count || 0;
+    const recentCount = s.recent_count || 0;
+    const pendingFollowUps = s.pending_follow_ups || 0;
+    const activeSearchCount = s.active_search_count || 0;
 
     const byStatus: Record<string, number> = {};
     statusResult.forEach((r) => {

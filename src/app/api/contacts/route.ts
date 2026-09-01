@@ -17,10 +17,24 @@ export async function GET(req: NextRequest) {
 
     const searchPattern = search ? `%${search.toLowerCase()}%` : null;
 
-    // Run main query and filter option queries IN PARALLEL
-    const [rows, yearsResult, companiesResult, positionsResult, tagsResult] = await Promise.all([
-      // Main contacts query — shared_with computed via LEFT JOIN aggregate instead of correlated subquery
+    // Run contacts query and consolidated filter metadata in parallel (only 2 round trips)
+    const [rows, metaResult] = await Promise.all([
+      // 1. High-performance contacts query with pre-aggregated CTEs for instant shared contacts detection
       sql`
+        WITH shared_by_url AS (
+          SELECT linkedin_url, ARRAY_AGG(DISTINCT assigned_to) as members
+          FROM contacts
+          WHERE linkedin_url IS NOT NULL AND linkedin_url != '' AND assigned_to IS NOT NULL
+          GROUP BY linkedin_url
+          HAVING COUNT(DISTINCT assigned_to) > 1
+        ),
+        shared_by_email AS (
+          SELECT LOWER(email) as email_clean, ARRAY_AGG(DISTINCT assigned_to) as members
+          FROM contacts
+          WHERE email IS NOT NULL AND email != '' AND assigned_to IS NOT NULL
+          GROUP BY LOWER(email)
+          HAVING COUNT(DISTINCT assigned_to) > 1
+        )
         SELECT 
           c.id, c.first_name, c.last_name, c.linkedin_url, c.email, c.phone, c.company, c.position, c.country,
           TO_CHAR(c.connected_on, 'YYYY-MM-DD') as connected_on,
@@ -28,26 +42,16 @@ export async function GET(req: NextRequest) {
           TO_CHAR(c.follow_up_date, 'YYYY-MM-DD') as follow_up_date,
           c.tags, c.assigned_to, c.source, c.post_url, c.service_needed,
           c.created_at, c.updated_at,
-          COALESCE(sw.shared_names, ARRAY[]::text[]) as shared_with
+          ARRAY_REMOVE(
+            ARRAY(
+              SELECT DISTINCT x 
+              FROM unnest(COALESCE(su.members, ARRAY[]::text[]) || COALESCE(se.members, ARRAY[]::text[])) as x
+            ),
+            c.assigned_to
+          ) as shared_with
         FROM contacts c
-        LEFT JOIN LATERAL (
-          SELECT ARRAY_AGG(DISTINCT c2.assigned_to) as shared_names
-          FROM contacts c2
-          WHERE c2.id != c.id
-            AND c2.assigned_to IS NOT NULL
-            AND c2.assigned_to != c.assigned_to
-            AND (
-              (c.linkedin_url IS NOT NULL AND c.linkedin_url != '' AND c2.linkedin_url = c.linkedin_url)
-              OR (
-                LOWER(TRIM(c2.first_name)) = LOWER(TRIM(c.first_name))
-                AND LOWER(TRIM(COALESCE(c2.last_name, ''))) = LOWER(TRIM(COALESCE(c.last_name, '')))
-                AND (
-                  (c.email IS NOT NULL AND c.email != '' AND LOWER(c2.email) = LOWER(c.email))
-                  OR (c.company IS NOT NULL AND c.company != '' AND LOWER(c2.company) = LOWER(c.company))
-                )
-              )
-            )
-        ) sw ON true
+        LEFT JOIN shared_by_url su ON c.linkedin_url = su.linkedin_url
+        LEFT JOIN shared_by_email se ON LOWER(c.email) = se.email_clean
         WHERE 
           (${searchPattern}::text IS NULL OR (
             LOWER(c.first_name) LIKE ${searchPattern} OR 
@@ -83,52 +87,26 @@ export async function GET(req: NextRequest) {
           c.created_at DESC
         LIMIT 3500;
       `,
-
-      // Filter: years
+      // 2. Filter options consolidated in ONE query
       sql`
-        SELECT DISTINCT TO_CHAR(connected_on, 'YYYY') as yr 
-        FROM contacts 
-        WHERE connected_on IS NOT NULL 
-          AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo})
-        ORDER BY yr DESC
-      `,
-
-      // Filter: companies
-      sql`
-        SELECT DISTINCT company
-        FROM contacts 
-        WHERE company IS NOT NULL AND TRIM(company) != ''
-          AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo})
-        ORDER BY company ASC
-      `,
-
-      // Filter: positions
-      sql`
-        SELECT DISTINCT position
-        FROM contacts 
-        WHERE position IS NOT NULL AND TRIM(position) != ''
-          AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo})
-        ORDER BY position ASC
-      `,
-
-      // Filter: tags
-      sql`
-        SELECT DISTINCT unnest(tags) as tag
-        FROM contacts
-        WHERE tags IS NOT NULL AND array_length(tags, 1) > 0
-          AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo})
-        ORDER BY tag ASC;
-      `,
+        SELECT 
+          ARRAY(SELECT DISTINCT TO_CHAR(connected_on, 'YYYY') FROM contacts WHERE connected_on IS NOT NULL AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo}) ORDER BY 1 DESC) as years,
+          ARRAY(SELECT DISTINCT company FROM contacts WHERE company IS NOT NULL AND TRIM(company) != '' AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo}) ORDER BY 1 ASC) as companies,
+          ARRAY(SELECT DISTINCT position FROM contacts WHERE position IS NOT NULL AND TRIM(position) != '' AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo}) ORDER BY 1 ASC) as positions,
+          ARRAY(SELECT DISTINCT unnest(tags) FROM contacts WHERE tags IS NOT NULL AND array_length(tags, 1) > 0 AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR assigned_to = ${assignedTo}) ORDER BY 1 ASC) as tags
+      `
     ]);
+
+    const meta = metaResult[0] || {};
 
     return NextResponse.json(
       {
         contacts: rows,
         filterOptions: {
-          years: yearsResult.map((r) => r.yr).filter(Boolean),
-          companies: companiesResult.map((r) => r.company).filter(Boolean),
-          positions: positionsResult.map((r) => r.position).filter(Boolean),
-          tags: tagsResult.map((r) => r.tag).filter(Boolean),
+          years: (meta.years || []).filter(Boolean),
+          companies: (meta.companies || []).filter(Boolean),
+          positions: (meta.positions || []).filter(Boolean),
+          tags: (meta.tags || []).filter(Boolean),
         },
       },
       {
