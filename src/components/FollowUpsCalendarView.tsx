@@ -180,6 +180,7 @@ export default function FollowUpsCalendarView({
       company: r.company,
       position: r.position,
       linkedin_url: r.linkedin_url,
+      email: null,
       phone: r.phone,
       status: r.status,
       priority: r.priority,
