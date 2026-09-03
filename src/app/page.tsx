@@ -271,6 +271,27 @@ export default function Home() {
   }, [templates, activeTemplateId]);
 
   // Stabilized callbacks for modals to prevent parent re-renders from propagating
+  const handleOpenContactById = useCallback(async (contactId: string) => {
+    if (!contactId) return;
+    const found = contacts.find((c) => c.id === contactId);
+    if (found) {
+      setSelectedContact(found);
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/contacts/${contactId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.contact) {
+          setSelectedContact(data.contact);
+        }
+      }
+    } catch (err) {
+      console.error('Error opening contact drawer by id:', err);
+    }
+  }, [contacts]);
+
   const handleCloseDrawer = useCallback(() => setSelectedContact(null), []);
   const handleDrawerOpenTemplates = useCallback((c: Contact) => {
     setSelectedContact(null);
@@ -347,10 +368,7 @@ export default function Home() {
         theme={theme}
         toggleTheme={toggleTheme}
         currentUser={currentUser}
-        onOpenContactDrawer={(cId) => {
-          const found = contacts.find((c) => c.id === cId);
-          if (found) setSelectedContact(found);
-        }}
+        onOpenContactDrawer={handleOpenContactById}
       />
 
       {/* Main Layout Area */}
@@ -475,10 +493,7 @@ export default function Home() {
             <FollowUpsCalendarView
               currentUser={currentUser}
               teamMembers={teamMembers}
-              onOpenContactDrawer={(cId) => {
-                const found = contacts.find((c) => c.id === cId);
-                if (found) setSelectedContact(found);
-              }}
+              onOpenContactDrawer={handleOpenContactById}
               onOpenTemplates={setTemplateContact}
             />
           )}
@@ -487,10 +502,7 @@ export default function Home() {
             <MessagingInboxView
               currentUser={currentUser}
               teamMembers={teamMembers}
-              onOpenContactDrawer={(cId) => {
-                const found = contacts.find((c) => c.id === cId);
-                if (found) setSelectedContact(found);
-              }}
+              onOpenContactDrawer={handleOpenContactById}
             />
           )}
 

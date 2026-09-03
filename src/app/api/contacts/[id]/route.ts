@@ -1,5 +1,62 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+export const dynamic = 'force-dynamic';
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+
+    const rows = await sql`
+      WITH shared_by_url AS (
+        SELECT linkedin_url, ARRAY_AGG(DISTINCT assigned_to) as members
+        FROM contacts
+        WHERE linkedin_url IS NOT NULL AND linkedin_url != '' AND assigned_to IS NOT NULL
+        GROUP BY linkedin_url
+        HAVING COUNT(DISTINCT assigned_to) > 1
+      ),
+      shared_by_email AS (
+        SELECT LOWER(email) as email_clean, ARRAY_AGG(DISTINCT assigned_to) as members
+        FROM contacts
+        WHERE email IS NOT NULL AND email != '' AND assigned_to IS NOT NULL
+        GROUP BY LOWER(email)
+        HAVING COUNT(DISTINCT assigned_to) > 1
+      )
+      SELECT 
+        c.id, c.first_name, c.last_name, c.linkedin_url, c.email, c.phone, c.company, c.position, c.country,
+        TO_CHAR(c.connected_on, 'YYYY-MM-DD') as connected_on,
+        c.status, c.notes, c.priority, 
+        TO_CHAR(c.follow_up_date, 'YYYY-MM-DD') as follow_up_date,
+        c.tags, c.assigned_to, c.source, c.post_url, c.service_needed,
+        c.created_at, c.updated_at,
+        ARRAY_REMOVE(
+          ARRAY(
+            SELECT DISTINCT x 
+            FROM unnest(COALESCE(su.members, ARRAY[]::text[]) || COALESCE(se.members, ARRAY[]::text[])) as x
+          ),
+          c.assigned_to
+        ) as shared_with
+      FROM contacts c
+      LEFT JOIN shared_by_url su ON c.linkedin_url = su.linkedin_url
+      LEFT JOIN shared_by_email se ON LOWER(c.email) = se.email_clean
+      WHERE c.id = ${id}
+      LIMIT 1;
+    `;
+
+    if (rows.length === 0) {
+      return NextResponse.json({ error: 'Contacto no encontrado' }, { status: 404 });
+    }
+
+    return NextResponse.json({ contact: rows[0] }, {
+      headers: { 'Cache-Control': 'no-store, max-age=0' }
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
 
 export async function PATCH(
   req: NextRequest,

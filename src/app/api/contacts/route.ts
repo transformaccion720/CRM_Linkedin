@@ -81,11 +81,11 @@ export async function GET(req: NextRequest) {
           )
         ORDER BY 
           CASE WHEN c.source = 'BUSQUEDA_ACTIVA' THEN 0 ELSE 1 END,
-          CASE WHEN c.follow_up_date IS NOT NULL AND c.follow_up_date <= CURRENT_DATE THEN 0 ELSE 1 END,
+          CASE WHEN c.follow_up_date IS NOT NULL THEN 0 ELSE 1 END,
           c.priority DESC,
           c.connected_on DESC NULLS LAST, 
           c.created_at DESC
-        LIMIT 3500;
+        LIMIT 8000;
       `,
       // 2. Filter options consolidated in ONE query
       sql`
