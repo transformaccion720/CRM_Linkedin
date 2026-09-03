@@ -18,7 +18,7 @@ const COLUMNS: { status: ContactStatus; title: string; color: string; badgeBg: s
   { status: 'En contacto', title: 'En Contacto', color: '#2979ff', badgeBg: 'bg-[#2979ff]/15' },
   { status: 'Oportunidad', title: 'Oportunidad', color: '#ff6d3b', badgeBg: 'bg-[#ff6d3b]/15' },
   { status: 'Cliente', title: 'Cliente / Cerrado', color: '#00e5a0', badgeBg: 'bg-[#00e5a0]/15' },
-  { status: 'En pausa', title: 'En Pausa', color: '#f59e0b', badgeBg: 'bg-[#f59e0b]/15' },
+  { status: 'Seguimiento', title: 'Seguimiento', color: '#f59e0b', badgeBg: 'bg-[#f59e0b]/15' },
 ];
 
 const INITIAL_PAGE_SIZE = 40;
@@ -40,7 +40,7 @@ export default function PipelineView({
     'En contacto': INITIAL_PAGE_SIZE,
     'Oportunidad': INITIAL_PAGE_SIZE,
     'Cliente': INITIAL_PAGE_SIZE,
-    'En pausa': INITIAL_PAGE_SIZE,
+    'Seguimiento': INITIAL_PAGE_SIZE,
   });
 
   const groupedContacts = useMemo(() => {
@@ -49,11 +49,11 @@ export default function PipelineView({
       'En contacto': [],
       'Oportunidad': [],
       'Cliente': [],
-      'En pausa': [],
+      'Seguimiento': [],
     };
 
     for (const c of contacts) {
-      let st = c.status || 'Sin contactar';
+      let st = c.status === 'En pausa' ? 'Seguimiento' : (c.status || 'Sin contactar');
       if (!map[st]) st = 'Sin contactar';
       map[st].push(c);
     }

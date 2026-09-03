@@ -206,13 +206,21 @@ export default function FollowUpsCalendarView({
 
       // 2. Priority filter
       if (priorityFilter !== 'all') {
-        const pNum = parseInt(priorityFilter, 10);
-        if (r.priority !== pNum) return false;
+        if (priorityFilter === '2_3') {
+          if (r.priority < 2) return false;
+        } else {
+          const pNum = parseInt(priorityFilter, 10);
+          if (r.priority !== pNum) return false;
+        }
       }
 
       // 3. Status filter
-      if (statusFilter !== 'all' && r.status !== statusFilter) {
-        return false;
+      if (statusFilter !== 'all') {
+        if (statusFilter === 'Seguimiento') {
+          if (r.status !== 'Seguimiento' && r.status !== 'En pausa') return false;
+        } else if (r.status !== statusFilter) {
+          return false;
+        }
       }
 
       // 4. Search query
@@ -443,7 +451,7 @@ export default function FollowUpsCalendarView({
       </div>
 
       {/* Quick Time-Bucket Tabs */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2.5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
         {/* Todos */}
         <button
           onClick={() => setActiveSegment('all')}
@@ -555,6 +563,22 @@ export default function FollowUpsCalendarView({
           </div>
           <span className="text-[10.5px] text-theme-txt3 block">En 8 a 30 días</span>
         </button>
+
+        {/* 7. Próximo Mes / Futuro */}
+        <button
+          onClick={() => setActiveSegment('future')}
+          className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+            activeSegment === 'future'
+              ? 'bg-[#a855f7]/15 border-[#a855f7] shadow-xs'
+              : 'bg-theme-sur border-theme-bor hover:border-theme-bor2'
+          }`}
+        >
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] font-mono uppercase text-[#a855f7] font-bold">📆 Próx. Mes</span>
+            <span className="text-base font-extrabold font-mono text-[#a855f7]">{stats.future}</span>
+          </div>
+          <span className="text-[10.5px] text-theme-txt3 block">+30 días a futuro</span>
+        </button>
       </div>
 
       {/* Multi-Dimensional Smart Filter Toolbar */}
@@ -591,6 +615,7 @@ export default function FollowUpsCalendarView({
                 className="bg-transparent text-theme-txt outline-hidden cursor-pointer text-xs"
               >
                 <option value="all">Prioridad: Todas</option>
+                <option value="2_3">🔥 Posibles Compradores (2⭐ y 3⭐)</option>
                 <option value="3">⭐⭐⭐ Alta (3 estrellas)</option>
                 <option value="2">⭐⭐ Media (2 estrellas)</option>
                 <option value="1">⭐ Normal (1 estrella)</option>
@@ -610,7 +635,7 @@ export default function FollowUpsCalendarView({
                 <option value="En contacto">En contacto</option>
                 <option value="Oportunidad">Oportunidad</option>
                 <option value="Cliente">Cliente</option>
-                <option value="En pausa">En pausa</option>
+                <option value="Seguimiento">Seguimiento</option>
               </select>
             </div>
           </div>

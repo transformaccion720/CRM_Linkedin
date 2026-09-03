@@ -31,7 +31,7 @@ export default function FunnelView({
     'En contacto': contacts.filter((c) => c.status === 'En contacto'),
     'Oportunidad': contacts.filter((c) => c.status === 'Oportunidad'),
     'Cliente': contacts.filter((c) => c.status === 'Cliente'),
-    'En pausa': contacts.filter((c) => c.status === 'En pausa'),
+    'Seguimiento': contacts.filter((c) => c.status === 'Seguimiento' || c.status === 'En pausa'),
     'Descartado': contacts.filter((c) => c.status === 'Descartado'),
   }), [contacts]);
 
@@ -237,15 +237,15 @@ export default function FunnelView({
         {/* Secondary Auxiliary Statuses */}
         <div className="pt-3 border-t border-theme-bor flex items-center justify-between text-xs">
           <button
-            onClick={() => setActiveStage(activeStage === 'En pausa' ? 'all' : 'En pausa')}
+            onClick={() => setActiveStage(activeStage === 'Seguimiento' ? 'all' : 'Seguimiento')}
             className={`px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 ${
-              activeStage === 'En pausa'
+              activeStage === 'Seguimiento'
                 ? 'bg-[#f59e0b]/20 text-[#f59e0b] border-[#f59e0b] shadow-xs'
                 : 'bg-theme-sur text-theme-txt2 border-theme-bor hover:border-theme-bor2'
             }`}
           >
-            <span>⏸️ En Pausa</span>
-            <span className="font-mono text-[10px] font-bold">({byStage['En pausa'].length})</span>
+            <span>🔁 Seguimiento</span>
+            <span className="font-mono text-[10px] font-bold">({byStage['Seguimiento']?.length || 0})</span>
           </button>
 
           <button

@@ -23,36 +23,41 @@ export async function GET(req: NextRequest) {
         (c.follow_up_date - t.today_lima) as days_diff
       FROM contacts c
       CROSS JOIN ref_today t
-      WHERE c.follow_up_date IS NOT NULL
+      WHERE (c.follow_up_date IS NOT NULL OR c.status = 'Seguimiento')
         AND (${memberName === '' || memberName === 'all'}::boolean OR c.assigned_to = ${memberName})
-      ORDER BY c.follow_up_date ASC, c.priority DESC
-      LIMIT 300;
+      ORDER BY 
+        CASE WHEN c.follow_up_date IS NULL THEN 1 ELSE 0 END,
+        c.follow_up_date ASC, 
+        c.priority DESC
+      LIMIT 500;
     `;
 
     // Strictly separate segments without overlapping
     const formattedRows = rows.map((r: any) => {
-      const diff = parseInt(r.days_diff, 10) || 0;
+      const diff = r.days_diff !== null ? (parseInt(r.days_diff, 10) || 0) : null;
       let bucket: 'overdue' | 'today' | 'plus_1_day' | 'plus_3_days' | 'plus_1_week' | 'plus_1_month' | 'future' = 'future';
 
-      if (diff < 0) {
+      if (diff === null) {
+        bucket = 'future'; // Seguimiento sin fecha específica aún
+      } else if (diff < 0) {
         bucket = 'overdue';
       } else if (diff === 0) {
         bucket = 'today';
       } else if (diff === 1) {
-        bucket = 'plus_1_day'; // Strictly tomorrow (1 day ahead)
+        bucket = 'plus_1_day'; // Estrictamente mañana (1 día)
       } else if (diff >= 2 && diff <= 3) {
-        bucket = 'plus_3_days'; // Strictly in 2 to 3 days (does NOT include tomorrow)
+        bucket = 'plus_3_days'; // Estrictamente en 2 a 3 días
       } else if (diff >= 4 && diff <= 7) {
-        bucket = 'plus_1_week'; // Strictly in 4 to 7 days
+        bucket = 'plus_1_week'; // Estrictamente en 4 a 7 días
       } else if (diff >= 8 && diff <= 30) {
-        bucket = 'plus_1_month'; // Strictly in 8 to 30 days
+        bucket = 'plus_1_month'; // Estrictamente en 8 a 30 días
       } else {
-        bucket = 'future'; // More than 30 days ahead
+        bucket = 'future'; // Próximo mes o más de 30 días
       }
 
       return {
         ...r,
-        days_diff: diff,
+        days_diff: diff !== null ? diff : 30,
         time_bucket: bucket,
       };
     });

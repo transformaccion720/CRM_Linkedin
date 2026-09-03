@@ -62,11 +62,11 @@ export async function GET(req: NextRequest) {
             LOWER(COALESCE(c.phone, '')) LIKE ${searchPattern} OR
             LOWER(COALESCE(c.service_needed, '')) LIKE ${searchPattern}
           ))
-          AND (${status === '' || status === 'all'}::boolean OR c.status = ${status})
+          AND (${status === '' || status === 'all'}::boolean OR c.status = ${status} OR (${status === 'Seguimiento'}::boolean AND c.status IN ('Seguimiento', 'En pausa')))
           AND (${company === '' || company === 'all'}::boolean OR c.company = ${company})
           AND (${position === '' || position === 'all'}::boolean OR c.position = ${position})
           AND (${year === '' || year === 'all'}::boolean OR TO_CHAR(c.connected_on, 'YYYY') = ${year})
-          AND (${priority === '' || priority === 'all'}::boolean OR c.priority = ${parseInt(priority || '1', 10)})
+          AND (${priority === '' || priority === 'all'}::boolean OR (${priority === '2_3'}::boolean AND c.priority >= 2) OR c.priority = ${parseInt(priority || '1', 10)})
           AND (${assignedTo === '' || assignedTo === 'all'}::boolean OR c.assigned_to = ${assignedTo})
           AND (${source === '' || source === 'all'}::boolean OR c.source = ${source})
           AND (${tag === '' || tag === 'all'}::boolean OR ${tag} = ANY(c.tags))
@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
             (${viewFilter === 'noemail'}::boolean AND (c.email IS NULL OR c.email = '')) OR
             (${viewFilter === 'recent'}::boolean AND c.connected_on >= '2025-01-01') OR
             (${viewFilter === 'follow_up'}::boolean AND c.follow_up_date IS NOT NULL AND c.follow_up_date <= CURRENT_DATE + INTERVAL '7 days') OR
-            (${viewFilter === 'star3'}::boolean AND c.priority = 3)
+            (${viewFilter === 'star3'}::boolean AND c.priority >= 2)
           )
         ORDER BY 
           CASE WHEN c.source = 'BUSQUEDA_ACTIVA' THEN 0 ELSE 1 END,

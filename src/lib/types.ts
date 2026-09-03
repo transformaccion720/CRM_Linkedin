@@ -3,6 +3,7 @@ export type ContactStatus =
   | 'En contacto'
   | 'Oportunidad'
   | 'Cliente'
+  | 'Seguimiento'
   | 'Descartado'
   | 'En pausa';
 

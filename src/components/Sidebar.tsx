@@ -161,7 +161,7 @@ function SidebarInner({
         }`}
       >
         <Star className="w-3.5 h-3.5 shrink-0 text-[#f59e0b] fill-[#f59e0b]" />
-        <span className="truncate">Prioridad Alta (3⭐)</span>
+        <span className="truncate">Posibles Compradores (2-3⭐)</span>
       </div>
 
       {/* Con Email */}

@@ -443,15 +443,21 @@ function ContactDrawerInner({
             <div>
               <label className="text-[11px] font-medium text-theme-txt2 mb-1 block">Estado del Lead</label>
               <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as ContactStatus)}
+                value={status === 'En pausa' ? 'Seguimiento' : status}
+                onChange={(e) => {
+                  const newSt = e.target.value as ContactStatus;
+                  setStatus(newSt);
+                  if (newSt === 'Seguimiento' && !followUpDate) {
+                    setQuickFollowUp(30);
+                  }
+                }}
                 className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3 py-1.5 text-xs text-theme-txt outline-hidden cursor-pointer"
               >
                 <option value="Sin contactar">Sin contactar</option>
                 <option value="En contacto">En contacto</option>
                 <option value="Oportunidad">Oportunidad</option>
                 <option value="Cliente">Cliente</option>
-                <option value="En pausa">En pausa</option>
+                <option value="Seguimiento">Seguimiento</option>
                 <option value="Descartado">Descartado</option>
               </select>
             </div>

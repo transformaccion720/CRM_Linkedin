@@ -41,7 +41,7 @@ export async function GET() {
           COUNT(CASE WHEN status = 'En contacto' THEN 1 END)::int as in_contact,
           COUNT(CASE WHEN status = 'Oportunidad' THEN 1 END)::int as opportunity,
           COUNT(CASE WHEN status = 'Cliente' THEN 1 END)::int as client,
-          COUNT(CASE WHEN status = 'En pausa' THEN 1 END)::int as paused
+          COUNT(CASE WHEN status IN ('Seguimiento', 'En pausa') THEN 1 END)::int as paused
         FROM contacts
         GROUP BY assigned_to
         ORDER BY total DESC;

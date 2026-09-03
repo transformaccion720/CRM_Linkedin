@@ -138,7 +138,7 @@ export async function PATCH(
         if (status === 'En contacto') actionType = 'CONTACTED_OUTREACH';
         if (status === 'Oportunidad') actionType = 'OPPORTUNITY_CREATED';
         if (status === 'Cliente') actionType = 'CLIENT_WON';
-        if (status === 'En pausa') actionType = 'LEAD_PAUSED';
+        if (status === 'Seguimiento' || status === 'En pausa') actionType = 'LEAD_FOLLOWUP';
 
         await sql`
           INSERT INTO activity_logs (contact_id, contact_name, action_type, description, performed_by)
