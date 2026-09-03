@@ -13,12 +13,12 @@ interface TeamManagerModalProps {
 
 const PRESET_COLORS = ['#00a870', '#2979ff', '#ff6d3b', '#a855f7', '#ec4899', '#f59e0b'];
 
-function TeamManagerModalInner({
-  isOpen,
-  onClose,
-  teamMembers,
-  onRefreshTeam,
-}: TeamManagerModalProps) {
+interface AddMemberFormProps {
+  onSuccess: () => void;
+}
+
+// Isolated form subcomponent: typing inside inputs only re-renders this form
+const AddMemberForm = memo(function AddMemberForm({ onSuccess }: AddMemberFormProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('Comercial B2B');
@@ -26,8 +26,6 @@ function TeamManagerModalInner({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-
-  if (!isOpen) return null;
 
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +50,7 @@ function TeamManagerModalInner({
       setEmail('');
       setSuccess(true);
       setTimeout(() => setSuccess(false), 2500);
-      onRefreshTeam();
+      onSuccess();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al guardar';
       setError(msg);
@@ -60,6 +58,106 @@ function TeamManagerModalInner({
       setLoading(false);
     }
   };
+
+  return (
+    <form onSubmit={handleAddMember} className="p-4 bg-theme-sur2/70 border border-theme-bor rounded-xl space-y-3">
+      <span className="text-xs font-bold text-theme-txt flex items-center gap-1.5">
+        <UserPlus className="w-4 h-4 text-[#00a870]" />
+        <span>Añadir Nuevo Miembro al Equipo</span>
+      </span>
+
+      {error && (
+        <div className="p-2.5 rounded-lg bg-[#ff6d3b]/10 text-xs text-[#ff6d3b] border border-[#ff6d3b]/30">
+          {error}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+        <div>
+          <label className="text-[10px] font-mono uppercase tracking-wider text-theme-txt2 block mb-1">
+            Nombre *
+          </label>
+          <input
+            type="text"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Ej. Andrea, Carlos"
+            className="w-full bg-theme-sur border border-theme-bor focus:border-[#00a870] rounded-lg px-2.5 py-1.5 text-xs text-theme-txt outline-hidden"
+          />
+        </div>
+
+        <div>
+          <label className="text-[10px] font-mono uppercase tracking-wider text-theme-txt2 block mb-1">
+            Correo Electrónico
+          </label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="comercial@empresa.com"
+            className="w-full bg-theme-sur border border-theme-bor focus:border-[#00a870] rounded-lg px-2.5 py-1.5 text-xs text-theme-txt outline-hidden"
+          />
+        </div>
+
+        <div>
+          <label className="text-[10px] font-mono uppercase tracking-wider text-theme-txt2 block mb-1">
+            Rol / Especialidad
+          </label>
+          <input
+            type="text"
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            placeholder="Ej. Consultoría, Ágil"
+            className="w-full bg-theme-sur border border-theme-bor focus:border-[#00a870] rounded-lg px-2.5 py-1.5 text-xs text-theme-txt outline-hidden"
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between pt-1">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-theme-txt2 font-mono">Color:</span>
+          <div className="flex items-center gap-1.5">
+            {PRESET_COLORS.map((c) => (
+              <button
+                type="button"
+                key={c}
+                onClick={() => setColor(c)}
+                className={`w-5 h-5 rounded-full cursor-pointer transition-transform ${
+                  color === c ? 'scale-125 ring-2 ring-white' : 'opacity-70 hover:opacity-100'
+                }`}
+                style={{ backgroundColor: c }}
+              />
+            ))}
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="px-4 py-1.5 rounded-lg text-xs font-bold text-[#00110b] bg-[#00a870] hover:bg-[#00a870]/90 disabled:opacity-50 transition-all cursor-pointer shadow-xs"
+        >
+          {loading ? 'Guardando...' : 'Añadir Miembro'}
+        </button>
+      </div>
+
+      {success && (
+        <p className="text-xs text-[#00a870] flex items-center gap-1 font-medium">
+          <Check className="w-3.5 h-3.5" />
+          <span>¡Miembro agregado correctamente!</span>
+        </p>
+      )}
+    </form>
+  );
+});
+
+function TeamManagerModalInner({
+  isOpen,
+  onClose,
+  teamMembers,
+  onRefreshTeam,
+}: TeamManagerModalProps) {
+  if (!isOpen) return null;
 
   const handleDeleteMember = async (id: string, memberName: string) => {
     if (id === 'gabino') {
@@ -79,7 +177,7 @@ function TeamManagerModalInner({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4">
       <div className="bg-theme-sur border border-theme-bor rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col text-theme-txt animate-in fade-in zoom-in-95 duration-150 max-h-[85vh]">
         {/* Header */}
         <div className="p-4 px-6 border-b border-theme-bor flex items-center justify-between bg-theme-sur shrink-0">
@@ -102,95 +200,8 @@ function TeamManagerModalInner({
         </div>
 
         <div className="p-6 space-y-6 overflow-y-auto flex-1">
-          {/* Add member form */}
-          <form onSubmit={handleAddMember} className="p-4 bg-theme-sur2/70 border border-theme-bor rounded-xl space-y-3">
-            <span className="text-xs font-bold text-theme-txt flex items-center gap-1.5">
-              <UserPlus className="w-4 h-4 text-[#00a870]" />
-              <span>Añadir Nuevo Miembro al Equipo</span>
-            </span>
-
-            {error && (
-              <div className="p-2.5 rounded-lg bg-[#ff6d3b]/10 text-xs text-[#ff6d3b] border border-[#ff6d3b]/30">
-                {error}
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              <div>
-                <label className="text-[10px] font-mono uppercase tracking-wider text-theme-txt2 block mb-1">
-                  Nombre *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Ej. Andrea, Carlos"
-                  className="w-full bg-theme-sur border border-theme-bor focus:border-[#00a870] rounded-lg px-2.5 py-1.5 text-xs text-theme-txt outline-hidden"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-mono uppercase tracking-wider text-theme-txt2 block mb-1">
-                  Correo Electrónico
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="comercial@empresa.com"
-                  className="w-full bg-theme-sur border border-theme-bor focus:border-[#00a870] rounded-lg px-2.5 py-1.5 text-xs text-theme-txt outline-hidden"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-mono uppercase tracking-wider text-theme-txt2 block mb-1">
-                  Rol / Especialidad
-                </label>
-                <input
-                  type="text"
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  placeholder="Ej. Consultoría, Ágil"
-                  className="w-full bg-theme-sur border border-theme-bor focus:border-[#00a870] rounded-lg px-2.5 py-1.5 text-xs text-theme-txt outline-hidden"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-1">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-theme-txt2 font-mono">Color:</span>
-                <div className="flex items-center gap-1.5">
-                  {PRESET_COLORS.map((c) => (
-                    <button
-                      type="button"
-                      key={c}
-                      onClick={() => setColor(c)}
-                      className={`w-5 h-5 rounded-full cursor-pointer transition-transform ${
-                        color === c ? 'scale-125 ring-2 ring-white' : 'opacity-70 hover:opacity-100'
-                      }`}
-                      style={{ backgroundColor: c }}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="px-4 py-1.5 rounded-lg text-xs font-bold text-[#00110b] bg-[#00a870] hover:bg-[#00a870]/90 disabled:opacity-50 transition-all cursor-pointer shadow-xs"
-              >
-                {loading ? 'Guardando...' : 'Añadir Miembro'}
-              </button>
-            </div>
-
-            {success && (
-              <p className="text-xs text-[#00a870] flex items-center gap-1 font-medium">
-                <Check className="w-3.5 h-3.5" />
-                <span>¡Miembro agregado correctamente!</span>
-              </p>
-            )}
-          </form>
+          {/* Add member form isolated component */}
+          <AddMemberForm onSuccess={onRefreshTeam} />
 
           {/* Members list */}
           <div className="space-y-3">
@@ -269,4 +280,3 @@ function TeamManagerModalInner({
 
 const TeamManagerModal = memo(TeamManagerModalInner);
 export default TeamManagerModal;
-

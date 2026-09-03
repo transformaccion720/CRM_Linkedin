@@ -70,7 +70,7 @@ export default function MessageTemplatesModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4">
       <div className="bg-theme-sur border border-theme-bor rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col text-theme-txt animate-in fade-in zoom-in-95 duration-150">
         {/* Header with clear Name, Position and Company */}
         <div className="p-4 px-6 border-b border-theme-bor flex items-center justify-between bg-theme-sur">

@@ -41,9 +41,6 @@ html, body {
   color: var(--txt) !important;
 }
 
-input, textarea, select, button {
-  transform: translateZ(0);
-}
 
 /* Dynamic theme helpers */
 .bg-theme-bg { background-color: var(--bg) !important; }

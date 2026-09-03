@@ -51,7 +51,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#2979ff]/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* Login Card */}
-      <div className="w-full max-w-md bg-[#111723]/90 border border-[#1e293b] rounded-3xl p-8 shadow-2xl backdrop-blur-xl relative z-10 space-y-6">
+      <div className="w-full max-w-md bg-[#111723] border border-[#1e293b] rounded-3xl p-8 shadow-2xl relative z-10 space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#00a870]/20 to-[#2979ff]/20 border border-[#00a870]/30 shadow-lg mb-2">

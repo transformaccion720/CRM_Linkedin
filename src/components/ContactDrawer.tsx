@@ -95,16 +95,20 @@ function ContactDrawerInner({
     onClose();
   };
 
-  if (!isOpen || !contact) return null;
+  // Filter available tags that are not already added to this contact (memoized for instant typing)
+  const tagSuggestions = useMemo(() => {
+    if (!availableTags || availableTags.length === 0) return [];
+    const cleanNew = newTagInput.trim().toLowerCase();
+    return availableTags.filter((t) => {
+      if (!t) return false;
+      const cleanT = t.trim();
+      if (tags.includes(cleanT)) return false;
+      if (!cleanNew) return true;
+      return cleanT.toLowerCase().includes(cleanNew);
+    });
+  }, [availableTags, tags, newTagInput]);
 
-  // Filter available tags that are not already added to this contact
-  const tagSuggestions = availableTags.filter((t) => {
-    if (!t) return false;
-    const cleanT = t.trim();
-    if (tags.includes(cleanT)) return false;
-    if (!newTagInput.trim()) return true;
-    return cleanT.toLowerCase().includes(newTagInput.toLowerCase().trim());
-  });
+  if (!isOpen || !contact) return null;
 
   const handleAddTag = (tagToAdd?: string) => {
     const trimmed = (tagToAdd || newTagInput).trim();
@@ -181,7 +185,7 @@ function ContactDrawerInner({
     : `BD de ${contact.assigned_to || 'Kiara / Gabino'}`;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-black/50 backdrop-blur-xs flex justify-end animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 overflow-hidden bg-black/60 flex justify-end animate-in fade-in duration-150">
       <div className="w-full max-w-lg bg-theme-sur border-l border-theme-bor h-full flex flex-col shadow-2xl animate-in slide-in-from-right duration-200 overflow-y-auto">
         {/* Header */}
         <div className="p-4 px-6 border-b border-theme-bor flex items-center justify-between bg-theme-sur sticky top-0 z-10 shrink-0">

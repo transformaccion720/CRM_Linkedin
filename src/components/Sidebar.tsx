@@ -323,7 +323,7 @@ function SidebarInner({
 
       {/* Mobile drawer overlay */}
       {isMobileOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs md:hidden flex">
+        <div className="fixed inset-0 z-50 bg-black/60 md:hidden flex">
           <aside className="w-64 max-w-[80vw] bg-theme-sur border-r border-theme-bor flex flex-col overflow-y-auto p-4 text-xs h-full shadow-2xl animate-in slide-in-from-left duration-200">
             {content}
           </aside>

@@ -14,14 +14,6 @@ export default function WeeklyGoalsView() {
   const [isConfigOpen, setIsConfigOpen] = useState<boolean>(false);
   const [selectedDayBreakdown, setSelectedDayBreakdown] = useState<DayBreakdown | null>(null);
 
-  // Form states for manual goal configuration
-  const [dailyGoalInput, setDailyGoalInput] = useState<number>(30);
-  const [contactedGoalInput, setContactedGoalInput] = useState<number>(150);
-  const [phonesGoalInput, setPhonesGoalInput] = useState<number>(25);
-  const [oppsGoalInput, setOppsGoalInput] = useState<number>(8);
-  const [clientsGoalInput, setClientsGoalInput] = useState<number>(2);
-  const [savingGoals, setSavingGoals] = useState<boolean>(false);
-
   const fetchSprintData = async () => {
     setLoading(true);
     try {
@@ -29,13 +21,6 @@ export default function WeeklyGoalsView() {
       if (res.ok) {
         const data = await res.json();
         setSprintData(data.sprint);
-        if (data.sprint?.goals) {
-          setDailyGoalInput(data.sprint.goals.daily_contacted || 30);
-          setContactedGoalInput(data.sprint.goals.contacted || 150);
-          setPhonesGoalInput(data.sprint.goals.phones || 25);
-          setOppsGoalInput(data.sprint.goals.opportunities || 8);
-          setClientsGoalInput(data.sprint.goals.clients || 2);
-        }
       }
     } catch (e) {
       console.error('Error fetching weekly sprint goals:', e);
@@ -47,33 +32,6 @@ export default function WeeklyGoalsView() {
   useEffect(() => {
     fetchSprintData();
   }, [weekOffset]);
-
-  const handleSaveGoals = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSavingGoals(true);
-    try {
-      const res = await fetch('/api/goals', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          daily_contacted: dailyGoalInput,
-          contacted: contactedGoalInput,
-          phones: phonesGoalInput,
-          opportunities: oppsGoalInput,
-          clients: clientsGoalInput,
-        }),
-      });
-
-      if (res.ok) {
-        setIsConfigOpen(false);
-        fetchSprintData();
-      }
-    } catch (e) {
-      console.error('Error saving goals:', e);
-    } finally {
-      setSavingGoals(false);
-    }
-  };
 
   const getStatusColor = (pct: number) => {
     if (pct >= 100) return { bg: 'bg-[#00a870]', text: 'text-[#00a870]', border: 'border-[#00a870]/30', label: 'Meta Superada 🚀' };
@@ -489,128 +447,195 @@ export default function WeeklyGoalsView() {
         </div>
       </div>
 
-      {/* Goal Configuration Modal */}
-      {isConfigOpen && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-theme-sur border border-theme-bor rounded-2xl w-full max-w-md shadow-2xl overflow-hidden text-theme-txt animate-in fade-in zoom-in-95 duration-150">
-            <div className="p-4 px-6 border-b border-theme-bor flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Target className="w-5 h-5 text-[#00a870]" />
-                <h3 className="font-bold text-sm text-theme-txt">Definir Metas Diarias & Semanales</h3>
-              </div>
-              <button
-                onClick={() => setIsConfigOpen(false)}
-                className="p-1 text-theme-txt2 hover:text-theme-txt rounded-lg hover:bg-theme-sur2 cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveGoals} className="p-6 space-y-4 text-xs">
-              <p className="text-xs text-theme-txt2 leading-relaxed">
-                Ajusta las metas comerciales por miembro del equipo. Estos objetivos regirán los indicadores del Sprint y las alertas del sistema.
-              </p>
-
-              {/* Daily Contacted Goal Input */}
-              <div className="p-3 bg-[#f59e0b]/10 border border-[#f59e0b]/30 rounded-xl">
-                <label className="text-[11px] font-mono uppercase text-[#f59e0b] block mb-1 font-bold">
-                  ⚡ Meta Diaria de Contactos (Por Comercial)
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    min={1}
-                    required
-                    value={dailyGoalInput}
-                    onChange={(e) => setDailyGoalInput(parseInt(e.target.value, 10) || 0)}
-                    className="w-full bg-theme-sur border border-theme-bor focus:border-[#f59e0b] rounded-lg px-3 py-2 text-sm font-bold font-mono text-theme-txt outline-hidden"
-                  />
-                  <span className="text-xs text-theme-txt3 font-mono">leads/día</span>
-                </div>
-              </div>
-
-              {/* Weekly Goals */}
-              <div className="space-y-3 pt-1">
-                <div>
-                  <label className="text-[11px] font-mono uppercase text-theme-txt2 block mb-1">
-                    📤 Meta Semanal de Contactados (Total Semana)
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    required
-                    value={contactedGoalInput}
-                    onChange={(e) => setContactedGoalInput(parseInt(e.target.value, 10) || 0)}
-                    className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3.5 py-2 text-xs font-mono text-theme-txt outline-hidden font-bold"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[11px] font-mono uppercase text-theme-txt2 block mb-1">
-                      📱 Teléfonos Obtenidos
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      required
-                      value={phonesGoalInput}
-                      onChange={(e) => setPhonesGoalInput(parseInt(e.target.value, 10) || 0)}
-                      className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3.5 py-2 text-xs font-mono text-theme-txt outline-hidden font-bold"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] font-mono uppercase text-theme-txt2 block mb-1">
-                      🔥 Oportunidades
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      required
-                      value={oppsGoalInput}
-                      onChange={(e) => setOppsGoalInput(parseInt(e.target.value, 10) || 0)}
-                      className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3.5 py-2 text-xs font-mono text-theme-txt outline-hidden font-bold"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-[11px] font-mono uppercase text-theme-txt2 block mb-1">
-                    🏆 Cierres de Ventas (Clientes)
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    required
-                    value={clientsGoalInput}
-                    onChange={(e) => setClientsGoalInput(parseInt(e.target.value, 10) || 0)}
-                    className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3.5 py-2 text-xs font-mono text-theme-txt outline-hidden font-bold"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-2 border-t border-theme-bor">
-                <button
-                  type="button"
-                  onClick={() => setIsConfigOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs text-theme-txt2 hover:bg-theme-sur2 border border-theme-bor cursor-pointer"
-                >
-                  Cancelar
-                </button>
-
-                <button
-                  type="submit"
-                  disabled={savingGoals}
-                  className="px-5 py-2 rounded-xl text-xs font-bold text-[#00110b] bg-[#00a870] hover:bg-[#00a870]/90 disabled:opacity-50 cursor-pointer shadow-md shadow-[#00a870]/20"
-                >
-                  {savingGoals ? 'Guardando...' : 'Guardar y Aplicar Metas'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Goal Configuration Modal - Isolated state with 60fps typing */}
+      <GoalConfigModal
+        isOpen={isConfigOpen}
+        onClose={() => setIsConfigOpen(false)}
+        initialGoals={sprintData?.goals}
+        onSaved={fetchSprintData}
+      />
     </div>
   );
 }
+
+interface GoalConfigModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  initialGoals?: WeeklyGoal | null;
+  onSaved: () => void;
+}
+
+const GoalConfigModal = React.memo(function GoalConfigModal({
+  isOpen,
+  onClose,
+  initialGoals,
+  onSaved,
+}: GoalConfigModalProps) {
+  const [dailyGoal, setDailyGoal] = useState<number>(30);
+  const [contactedGoal, setContactedGoal] = useState<number>(150);
+  const [phonesGoal, setPhonesGoal] = useState<number>(25);
+  const [oppsGoal, setOppsGoal] = useState<number>(8);
+  const [clientsGoal, setClientsGoal] = useState<number>(2);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (initialGoals) {
+      setDailyGoal(initialGoals.daily_contacted || 30);
+      setContactedGoal(initialGoals.contacted || 150);
+      setPhonesGoal(initialGoals.phones || 25);
+      setOppsGoal(initialGoals.opportunities || 8);
+      setClientsGoal(initialGoals.clients || 2);
+    }
+  }, [initialGoals]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const res = await fetch('/api/goals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          daily_contacted: dailyGoal,
+          contacted: contactedGoal,
+          phones: phonesGoal,
+          opportunities: oppsGoal,
+          clients: clientsGoal,
+        }),
+      });
+
+      if (res.ok) {
+        onClose();
+        onSaved();
+      }
+    } catch (e) {
+      console.error('Error saving goals:', e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4">
+      <div className="bg-theme-sur border border-theme-bor rounded-2xl w-full max-w-md shadow-2xl overflow-hidden text-theme-txt animate-in fade-in zoom-in-95 duration-150">
+        <div className="p-4 px-6 border-b border-theme-bor flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Target className="w-5 h-5 text-[#00a870]" />
+            <h3 className="font-bold text-sm text-theme-txt">Definir Metas Diarias & Semanales</h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1 text-theme-txt2 hover:text-theme-txt rounded-lg hover:bg-theme-sur2 cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
+          <p className="text-xs text-theme-txt2 leading-relaxed">
+            Ajusta las metas comerciales por miembro del equipo. Estos objetivos regirán los indicadores del Sprint y las alertas del sistema.
+          </p>
+
+          {/* Daily Contacted Goal Input */}
+          <div className="p-3 bg-[#f59e0b]/10 border border-[#f59e0b]/30 rounded-xl">
+            <label className="text-[11px] font-mono uppercase text-[#f59e0b] block mb-1 font-bold">
+              ⚡ Meta Diaria de Contactos (Por Comercial)
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={1}
+                required
+                value={dailyGoal}
+                onChange={(e) => setDailyGoal(parseInt(e.target.value, 10) || 0)}
+                className="w-full bg-theme-sur border border-theme-bor focus:border-[#f59e0b] rounded-lg px-3 py-2 text-sm font-bold font-mono text-theme-txt outline-hidden"
+              />
+              <span className="text-xs text-theme-txt3 font-mono">leads/día</span>
+            </div>
+          </div>
+
+          {/* Weekly Goals */}
+          <div className="space-y-3 pt-1">
+            <div>
+              <label className="text-[11px] font-mono uppercase text-theme-txt2 block mb-1">
+                📤 Meta Semanal de Contactados (Total Semana)
+              </label>
+              <input
+                type="number"
+                min={1}
+                required
+                value={contactedGoal}
+                onChange={(e) => setContactedGoal(parseInt(e.target.value, 10) || 0)}
+                className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3.5 py-2 text-xs font-mono text-theme-txt outline-hidden font-bold"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[11px] font-mono uppercase text-theme-txt2 block mb-1">
+                  📱 Teléfonos Obtenidos
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  required
+                  value={phonesGoal}
+                  onChange={(e) => setPhonesGoal(parseInt(e.target.value, 10) || 0)}
+                  className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3.5 py-2 text-xs font-mono text-theme-txt outline-hidden font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-mono uppercase text-theme-txt2 block mb-1">
+                  🔥 Oportunidades
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  required
+                  value={oppsGoal}
+                  onChange={(e) => setOppsGoal(parseInt(e.target.value, 10) || 0)}
+                  className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3.5 py-2 text-xs font-mono text-theme-txt outline-hidden font-bold"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[11px] font-mono uppercase text-theme-txt2 block mb-1">
+                🏆 Cierres de Ventas (Clientes)
+              </label>
+              <input
+                type="number"
+                min={0}
+                required
+                value={clientsGoal}
+                onChange={(e) => setClientsGoal(parseInt(e.target.value, 10) || 0)}
+                className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3.5 py-2 text-xs font-mono text-theme-txt outline-hidden font-bold"
+              />
+            </div>
+          </div>
+
+          <div className="pt-2 flex items-center justify-end gap-2 border-t border-theme-bor">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-xl text-xs text-theme-txt2 hover:bg-theme-sur2 border border-theme-bor cursor-pointer"
+            >
+              Cancelar
+            </button>
+
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-5 py-2 rounded-xl text-xs font-bold text-[#00110b] bg-[#00a870] hover:bg-[#00a870]/90 disabled:opacity-50 cursor-pointer shadow-md shadow-[#00a870]/20"
+            >
+              {saving ? 'Guardando...' : 'Guardar y Aplicar Metas'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+});

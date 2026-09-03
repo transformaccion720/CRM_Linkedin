@@ -86,7 +86,7 @@ const FilterCombobox = memo(function FilterCombobox({
 
       {/* Dropdown with Micro Search Bar (Positioned strictly in front with high z-index and elevation) */}
       {isOpen && (
-        <div className="absolute left-0 top-full mt-1.5 w-72 bg-theme-sur border border-theme-bor2 rounded-2xl shadow-2xl z-50 p-2.5 space-y-2 animate-in fade-in zoom-in-95 duration-150 ring-1 ring-black/20 backdrop-blur-md">
+        <div className="absolute left-0 top-full mt-1.5 w-72 bg-theme-sur border border-theme-bor2 rounded-2xl shadow-2xl z-50 p-2.5 space-y-2 animate-in fade-in zoom-in-95 duration-100 ring-1 ring-black/20">
           {/* Micro Search Input */}
           <div className="relative">
             <Search className="w-3.5 h-3.5 text-theme-txt3 absolute left-2.5 top-1/2 -translate-y-1/2" />
@@ -224,32 +224,32 @@ function ContactTableInner({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
 
-  // Complete alphabetically sorted list of positions, companies and tags
+  // Complete alphabetically sorted list of positions, companies and tags (fast memoization)
   const uniquePositions = useMemo(() => {
     if (filterOptions?.positions && filterOptions.positions.length > 0) {
-      return [...filterOptions.positions].sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+      return filterOptions.positions;
     }
     const set = new Set<string>();
     contacts.forEach((c) => { if (c.position) set.add(c.position); });
-    return Array.from(set).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+    return Array.from(set).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
   }, [contacts, filterOptions?.positions]);
 
   const uniqueCompanies = useMemo(() => {
     if (filterOptions?.companies && filterOptions.companies.length > 0) {
-      return [...filterOptions.companies].sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+      return filterOptions.companies;
     }
     const set = new Set<string>();
     contacts.forEach((c) => { if (c.company) set.add(c.company); });
-    return Array.from(set).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+    return Array.from(set).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
   }, [contacts, filterOptions?.companies]);
 
   const uniqueTags = useMemo(() => {
     if (filterOptions?.tags && filterOptions.tags.length > 0) {
-      return [...filterOptions.tags].sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+      return filterOptions.tags;
     }
     const set = new Set<string>();
     contacts.forEach((c) => { c.tags?.forEach((t) => set.add(t)); });
-    return Array.from(set).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+    return Array.from(set).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
   }, [contacts, filterOptions?.tags]);
 
   const hasActiveColumnFilters = Boolean(positionFilter || companyFilter || tagFilter);

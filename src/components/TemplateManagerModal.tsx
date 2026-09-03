@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, memo } from 'react';
+import React, { useState, useEffect, memo, useCallback } from 'react';
 import { MessageTemplate } from '@/lib/templates';
 import { X, Plus, Trash2, Edit3, Save, RotateCcw, Check, Sparkles, FolderKanban } from 'lucide-react';
 
@@ -13,6 +13,149 @@ interface TemplateManagerModalProps {
   onSaveTemplates: (templates: MessageTemplate[]) => void;
   onResetTemplates: () => void;
 }
+
+interface TemplateEditorPanelProps {
+  template: MessageTemplate;
+  isCreatingNew: boolean;
+  onSave: (updated: MessageTemplate) => void;
+  onCancel: () => void;
+  savedSuccess: boolean;
+}
+
+// Isolated editor panel: typing inside the form only re-renders this subcomponent
+const TemplateEditorPanel = memo(function TemplateEditorPanel({
+  template,
+  isCreatingNew,
+  onSave,
+  onCancel,
+  savedSuccess,
+}: TemplateEditorPanelProps) {
+  const [draft, setDraft] = useState<MessageTemplate>(template);
+
+  // Sync when selecting a different template
+  useEffect(() => {
+    setDraft(template);
+  }, [template.id]);
+
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    onSave(draft);
+  };
+
+  return (
+    <div className="space-y-4 flex-1 flex flex-col">
+      <div className="flex items-center justify-between">
+        <h4 className="font-bold text-sm text-theme-txt">
+          {isCreatingNew ? 'Crear Nueva Plantilla Comercial' : 'Editar Plantilla'}
+        </h4>
+        <div className="flex items-center gap-1 text-[11px] font-mono text-theme-txt3">
+          <span>Variables:</span>
+          <code className="text-[#00e5a0] bg-theme-sur2 px-1 rounded">{'{nombre}'}</code>
+          <code className="text-[#2979ff] bg-theme-sur2 px-1 rounded">{'{empresa}'}</code>
+          <code className="text-[#ff6d3b] bg-theme-sur2 px-1 rounded">{'{cargo}'}</code>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div>
+          <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 block mb-1">
+            Nombre de la Plantilla
+          </label>
+          <input
+            type="text"
+            value={draft.name}
+            onChange={(e) => setDraft((prev) => ({ ...prev, name: e.target.value }))}
+            className="w-full bg-theme-sur2 border border-theme-bor rounded-lg px-3 py-1.5 text-xs text-theme-txt outline-hidden focus:border-[#00e5a0]"
+          />
+        </div>
+
+        <div>
+          <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 block mb-1">
+            Servicio / Categoría
+          </label>
+          <select
+            value={draft.category}
+            onChange={(e) =>
+              setDraft((prev) => ({
+                ...prev,
+                category: e.target.value as MessageTemplate['category'],
+              }))
+            }
+            className="w-full bg-theme-sur2 border border-theme-bor rounded-lg px-3 py-1.5 text-xs text-theme-txt outline-hidden cursor-pointer"
+          >
+            <option value="Lanzamiento Ágil">Lanzamiento Ágil</option>
+            <option value="Consultoría">Consultoría</option>
+            <option value="Soluciones Digitales">Soluciones Digitales</option>
+            <option value="Entrenamiento">Entrenamiento</option>
+            <option value="General">General</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 block mb-1">
+            Audiencia Objetivo
+          </label>
+          <select
+            value={draft.targetAudience}
+            onChange={(e) =>
+              setDraft((prev) => ({
+                ...prev,
+                targetAudience: e.target.value as MessageTemplate['targetAudience'],
+              }))
+            }
+            className="w-full bg-theme-sur2 border border-theme-bor rounded-lg px-3 py-1.5 text-xs text-theme-txt outline-hidden cursor-pointer"
+          >
+            <option value="Venta Directa / Profesional">Venta Directa / Profesional</option>
+            <option value="Líderes / Gerentes (Equipos)">Líderes / Gerentes (Equipos)</option>
+            <option value="C-Level / Decisor">C-Level / Decisor</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="flex-1 flex flex-col">
+        <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 block mb-1">
+          Cuerpo del Mensaje (Argumento Comercial)
+        </label>
+        <textarea
+          rows={6}
+          value={draft.text}
+          onChange={(e) => setDraft((prev) => ({ ...prev, text: e.target.value }))}
+          placeholder="Escribe el mensaje aquí. Usa {nombre}, {empresa}, {cargo} para personalización automática..."
+          className="w-full flex-1 bg-theme-sur2 border border-theme-bor focus:border-[#00e5a0] rounded-xl p-3.5 text-xs text-theme-txt leading-relaxed outline-hidden transition-all resize-none font-sans"
+        />
+      </div>
+
+      <div className="flex items-center justify-between pt-2">
+        <div>
+          {savedSuccess && (
+            <span className="text-xs text-[#00e5a0] font-bold flex items-center gap-1.5 bg-[#00e5a0]/15 px-3 py-1.5 rounded-xl border border-[#00e5a0]/30 shadow-xs">
+              <Check className="w-4 h-4 stroke-[3]" />
+              <span>¡Guardado correctamente!</span>
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2 rounded-lg text-xs font-medium text-theme-txt2 bg-theme-sur2 hover:bg-theme-sur3 cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSubmit()}
+            className="px-5 py-2 rounded-lg text-xs font-bold text-[#00110b] bg-[#00e5a0] hover:bg-[#00e5a0]/90 flex items-center gap-1.5 shadow-md shadow-[#00e5a0]/20 cursor-pointer"
+          >
+            <Save className="w-3.5 h-3.5" />
+            <span>Guardar Plantilla</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+});
 
 function TemplateManagerModalInner({
   isOpen,
@@ -40,14 +183,13 @@ function TemplateManagerModalInner({
     setIsCreatingNew(true);
   };
 
-  const handleSaveCurrent = () => {
-    if (!editingTemplate) return;
+  const handleSaveCurrent = (updatedTemplate: MessageTemplate) => {
     let updated: MessageTemplate[];
     if (isCreatingNew) {
-      updated = [...templates, editingTemplate];
-      onSelectActiveTemplate(editingTemplate.id);
+      updated = [...templates, updatedTemplate];
+      onSelectActiveTemplate(updatedTemplate.id);
     } else {
-      updated = templates.map((t) => (t.id === editingTemplate.id ? editingTemplate : t));
+      updated = templates.map((t) => (t.id === updatedTemplate.id ? updatedTemplate : t));
     }
     onSaveTemplates(updated);
     setEditingTemplate(null);
@@ -74,7 +216,7 @@ function TemplateManagerModalInner({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4">
       <div className="bg-theme-sur border border-theme-bor rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col text-theme-txt max-h-[85vh] animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
         <div className="p-4 px-6 border-b border-theme-bor flex items-center justify-between bg-theme-sur">
@@ -199,122 +341,17 @@ function TemplateManagerModalInner({
           {/* Right Editor Area */}
           <div className="flex-1 p-6 overflow-y-auto flex flex-col justify-between space-y-4">
             {editingTemplate ? (
-              <div className="space-y-4 flex-1 flex flex-col">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-sm text-theme-txt">
-                    {isCreatingNew ? 'Crear Nueva Plantilla Comercial' : 'Editar Plantilla'}
-                  </h4>
-                  <div className="flex items-center gap-1 text-[11px] font-mono text-theme-txt3">
-                    <span>Variables:</span>
-                    <code className="text-[#00e5a0] bg-theme-sur2 px-1 rounded">{'{nombre}'}</code>
-                    <code className="text-[#2979ff] bg-theme-sur2 px-1 rounded">{'{empresa}'}</code>
-                    <code className="text-[#ff6d3b] bg-theme-sur2 px-1 rounded">{'{cargo}'}</code>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 block mb-1">
-                      Nombre de la Plantilla
-                    </label>
-                    <input
-                      type="text"
-                      value={editingTemplate.name}
-                      onChange={(e) =>
-                        setEditingTemplate({ ...editingTemplate, name: e.target.value })
-                      }
-                      className="w-full bg-theme-sur2 border border-theme-bor rounded-lg px-3 py-1.5 text-xs text-theme-txt outline-hidden focus:border-[#00e5a0]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 block mb-1">
-                      Servicio / Categoría
-                    </label>
-                    <select
-                      value={editingTemplate.category}
-                      onChange={(e) =>
-                        setEditingTemplate({
-                          ...editingTemplate,
-                          category: e.target.value as MessageTemplate['category'],
-                        })
-                      }
-                      className="w-full bg-theme-sur2 border border-theme-bor rounded-lg px-3 py-1.5 text-xs text-theme-txt outline-hidden cursor-pointer"
-                    >
-                      <option value="Lanzamiento Ágil">Lanzamiento Ágil</option>
-                      <option value="Consultoría">Consultoría</option>
-                      <option value="Soluciones Digitales">Soluciones Digitales</option>
-                      <option value="Entrenamiento">Entrenamiento</option>
-                      <option value="General">General</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 block mb-1">
-                      Audiencia Objetivo
-                    </label>
-                    <select
-                      value={editingTemplate.targetAudience}
-                      onChange={(e) =>
-                        setEditingTemplate({
-                          ...editingTemplate,
-                          targetAudience: e.target.value as MessageTemplate['targetAudience'],
-                        })
-                      }
-                      className="w-full bg-theme-sur2 border border-theme-bor rounded-lg px-3 py-1.5 text-xs text-theme-txt outline-hidden cursor-pointer"
-                    >
-                      <option value="Venta Directa / Profesional">Venta Directa / Profesional</option>
-                      <option value="Líderes / Gerentes (Equipos)">Líderes / Gerentes (Equipos)</option>
-                      <option value="C-Level / Decisor">C-Level / Decisor</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="flex-1 flex flex-col">
-                  <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 block mb-1">
-                    Cuerpo del Mensaje (Argumento Comercial)
-                  </label>
-                  <textarea
-                    rows={6}
-                    value={editingTemplate.text}
-                    onChange={(e) =>
-                      setEditingTemplate({ ...editingTemplate, text: e.target.value })
-                    }
-                    placeholder="Escribe el mensaje aquí. Usa {nombre}, {empresa}, {cargo} para personalización automática..."
-                    className="w-full flex-1 bg-theme-sur2 border border-theme-bor focus:border-[#00e5a0] rounded-xl p-3.5 text-xs text-theme-txt leading-relaxed outline-hidden transition-all resize-none font-sans"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between pt-2">
-                  <div>
-                    {savedSuccess && (
-                      <span className="text-xs text-[#00e5a0] font-bold flex items-center gap-1.5 bg-[#00e5a0]/15 px-3 py-1.5 rounded-xl border border-[#00e5a0]/30 shadow-xs">
-                        <Check className="w-4 h-4 stroke-[3]" />
-                        <span>¡Guardado correctamente!</span>
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => {
-                        setEditingTemplate(null);
-                        setIsCreatingNew(false);
-                      }}
-                      className="px-4 py-2 rounded-lg text-xs font-medium text-theme-txt2 bg-theme-sur2 hover:bg-theme-sur3 cursor-pointer"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      onClick={handleSaveCurrent}
-                      className="px-5 py-2 rounded-lg text-xs font-bold text-[#00110b] bg-[#00e5a0] hover:bg-[#00e5a0]/90 flex items-center gap-1.5 shadow-md shadow-[#00e5a0]/20 cursor-pointer"
-                    >
-                      <Save className="w-3.5 h-3.5" />
-                      <span>Guardar Plantilla</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <TemplateEditorPanel
+                key={editingTemplate.id}
+                template={editingTemplate}
+                isCreatingNew={isCreatingNew}
+                onSave={handleSaveCurrent}
+                onCancel={() => {
+                  setEditingTemplate(null);
+                  setIsCreatingNew(false);
+                }}
+                savedSuccess={savedSuccess}
+              />
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center text-center p-12 text-theme-txt2">
                 <Sparkles className="w-10 h-10 mb-3 text-[#00e5a0]" />
