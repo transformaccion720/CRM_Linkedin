@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
-import { DEFAULT_TEMPLATES } from '@/lib/templates';
+import { DEFAULT_TEMPLATES, MessageTemplate } from '@/lib/templates';
 
 export async function GET() {
   try {
@@ -30,20 +30,38 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Templates debe ser un array' }, { status: 400 });
     }
 
-    // Replace all templates with current state
-    await sql`DELETE FROM templates;`;
+    // Sanitize templates and guarantee non-null values
+    const sanitized = templates.map((t: Partial<MessageTemplate>, idx: number) => {
+      const id = String(t.id || `template-${Date.now()}-${idx}`);
+      const name = String(t.name || `Plantilla ${idx + 1}`).trim();
+      const category = String(t.category || 'General').trim();
+      const targetAudience = String(t.targetAudience || 'Venta Directa / Profesional').trim();
+      const text = String(t.text || '').trim();
+      const isActive = activeTemplateId ? id === activeTemplateId : Boolean(t.isActive);
+      return { id, name, category, targetAudience, text, isActive };
+    });
 
-    for (const t of templates) {
-      const isActive = t.id === activeTemplateId;
-      await sql`
-        INSERT INTO templates (id, name, category, target_audience, text, is_active)
-        VALUES (${t.id}, ${t.name}, ${t.category}, ${t.targetAudience}, ${t.text}, ${isActive});
-      `;
-    }
+    // Execute DELETE and batch INSERTS in a single atomic Neon transaction
+    const queries = [
+      sql`DELETE FROM templates;`,
+      ...sanitized.map((t) =>
+        sql`
+          INSERT INTO templates (id, name, category, target_audience, text, is_active, updated_at)
+          VALUES (${t.id}, ${t.name}, ${t.category}, ${t.targetAudience}, ${t.text}, ${t.isActive}, NOW());
+        `
+      ),
+    ];
 
-    return NextResponse.json({ success: true, message: 'Plantillas guardadas en Neon DB' });
+    await sql.transaction(queries);
+
+    return NextResponse.json({ 
+      success: true, 
+      count: sanitized.length,
+      message: `${sanitized.length} plantillas guardadas atómicamente en Neon DB` 
+    });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
+    console.error('Error saving templates in Neon DB:', message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

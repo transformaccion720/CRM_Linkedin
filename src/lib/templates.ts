@@ -1,11 +1,32 @@
+export type TemplateCategory =
+  | 'Consultoría'
+  | 'Soluciones Digitales'
+  | 'Entrenamiento / Certificación'
+  | 'Entrenamiento'
+  | 'Lanzamiento Ágil'
+  | 'General';
+
+export type TemplateTargetAudience =
+  | 'Venta Directa / Profesional'
+  | 'Líderes / Gerentes (Equipos)'
+  | 'C-Level / Decisor';
+
 export interface MessageTemplate {
   id: string;
   name: string;
-  category: 'Lanzamiento Ágil' | 'Consultoría' | 'Soluciones Digitales' | 'Entrenamiento' | 'General';
-  targetAudience: 'Venta Directa / Profesional' | 'Líderes / Gerentes (Equipos)' | 'C-Level / Decisor';
+  category: TemplateCategory;
+  targetAudience: TemplateTargetAudience;
   text: string;
   isActive?: boolean;
 }
+
+export const TEMPLATE_CATEGORIES: { id: TemplateCategory | 'ALL'; label: string; icon: string }[] = [
+  { id: 'ALL', label: 'Todas las Plantillas', icon: '📋' },
+  { id: 'Consultoría', label: 'Consultoría', icon: '💼' },
+  { id: 'Soluciones Digitales', label: 'Soluciones Digitales', icon: '⚡' },
+  { id: 'Entrenamiento / Certificación', label: 'Entrenamiento / Certificación', icon: '🎓' },
+  { id: 'Lanzamiento Ágil', label: 'Lanzamiento Ágil', icon: '🚀' },
+];
 
 export const DEFAULT_TEMPLATES: MessageTemplate[] = [
   // 1. Lanzamiento: Gestión de Proyectos Ágiles (Venta Directa)
@@ -40,11 +61,11 @@ export const DEFAULT_TEMPLATES: MessageTemplate[] = [
     targetAudience: 'Líderes / Gerentes (Equipos)',
     text: 'Hola {nombre}, ¿cómo estás? En {empresa}, ¿han explorado este año nuevas iniciativas en soluciones digitales o automatización de flujos? Desarrollamos tecnología a medida para reducir tiempos operativos. Con gusto podemos agendar un café virtual de 10 min.',
   },
-  // 5. Entrenamiento Corporativo
+  // 5. Entrenamiento y Certificación
   {
     id: 'training-corporate',
     name: 'Entrenamiento y Up-skilling Corporativo',
-    category: 'Entrenamiento',
+    category: 'Entrenamiento / Certificación',
     targetAudience: 'Líderes / Gerentes (Equipos)',
     text: 'Hola {nombre}, un gusto saludarte. Diseñamos programas prácticos de entrenamiento corporativo para equipos en agilidad, innovación y liderazgo operativo. Si en {empresa} están buscando potenciar las capacidades de sus líderes, me encantaría compartirte nuestros casos de éxito.',
   },

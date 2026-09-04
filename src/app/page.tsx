@@ -127,18 +127,30 @@ export default function Home() {
   }, []);
 
   // Save updated templates
-  const handleSaveTemplates = async (updated: MessageTemplate[]) => {
-    setTemplates(updated);
+  const handleSaveTemplates = useCallback(async (updated: MessageTemplate[], activeId?: string) => {
+    const targetActiveId = activeId ?? activeTemplateId;
+    if (activeId) {
+      setActiveTemplateId(activeId);
+    }
+    const withActive = updated.map((t) => ({
+      ...t,
+      isActive: targetActiveId ? t.id === targetActiveId : Boolean(t.isActive),
+    }));
+    setTemplates(withActive);
+
     try {
-      await fetch('/api/templates', {
+      const res = await fetch('/api/templates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ templates: updated }),
+        body: JSON.stringify({ templates: withActive, activeTemplateId: targetActiveId }),
       });
+      if (!res.ok) {
+        console.error('Error in POST /api/templates response:', await res.text());
+      }
     } catch (e) {
       console.error('Error saving templates:', e);
     }
-  };
+  }, [activeTemplateId]);
 
   // Reset templates to defaults
   const handleResetTemplates = async () => {
@@ -148,7 +160,7 @@ export default function Home() {
       await fetch('/api/templates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ templates: DEFAULT_TEMPLATES }),
+        body: JSON.stringify({ templates: DEFAULT_TEMPLATES, activeTemplateId: DEFAULT_TEMPLATES[0].id }),
       });
     } catch (e) {
       console.error('Error resetting templates:', e);
@@ -156,14 +168,21 @@ export default function Home() {
   };
 
   // Set active template
-  const handleSelectActiveTemplate = (id: string) => {
+  const handleSelectActiveTemplate = useCallback((id: string) => {
     setActiveTemplateId(id);
-    const updated = templates.map((t) => ({
-      ...t,
-      isActive: t.id === id,
-    }));
-    handleSaveTemplates(updated);
-  };
+    setTemplates((prev) => {
+      const updated = prev.map((t) => ({
+        ...t,
+        isActive: t.id === id,
+      }));
+      fetch('/api/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ templates: updated, activeTemplateId: id }),
+      }).catch((e) => console.error('Error updating active template:', e));
+      return updated;
+    });
+  }, []);
 
   // Fetch team members
   const fetchTeamMembers = useCallback(async () => {

@@ -5,6 +5,8 @@ import { Contact } from '@/lib/types';
 import { MessageTemplate } from '@/lib/templates';
 import { X, Copy, ExternalLink, Check, MessageSquare, Settings, Briefcase, Building2 } from 'lucide-react';
 
+import { getCategoryBadge } from './TemplateManagerModal';
+
 interface MessageTemplatesModalProps {
   contact: Contact | null;
   isOpen: boolean;
@@ -25,11 +27,19 @@ export default function MessageTemplatesModal({
   onMarkContacted,
 }: MessageTemplatesModalProps) {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>(activeTemplateId || templates[0]?.id);
+  const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const [customText, setCustomText] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
   const [autoMark, setAutoMark] = useState<boolean>(true);
 
   if (!isOpen || !contact) return null;
+
+  const visibleTemplates = templates.filter((t) => {
+    if (categoryFilter === 'ALL') return true;
+    if (t.category === categoryFilter) return true;
+    if (categoryFilter === 'Entrenamiento / Certificación' && (t.category === 'Entrenamiento' || (t.name && t.name.toLowerCase().includes('certi')))) return true;
+    return false;
+  });
 
   const currentTemplate = templates.find((t) => t.id === selectedTemplateId) || templates[0];
 
@@ -121,31 +131,100 @@ export default function MessageTemplatesModal({
 
         {/* Body */}
         <div className="p-6 space-y-5 flex-1 overflow-y-auto max-h-[70vh]">
-          {/* Template pills with high-contrast badge colors */}
+          {/* Template pills with category segmentation tabs */}
           <div>
-            <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 block mb-2">
-              Selecciona el Mensaje de tu Campaña
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {templates.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => handleSelectTemplate(t)}
-                  className={`p-3 rounded-xl text-left border transition-all text-xs cursor-pointer ${
-                    selectedTemplateId === t.id
-                      ? 'bg-[#00a870]/10 border-[#00a870] text-theme-txt font-medium shadow-xs ring-1 ring-[#00a870]/40'
-                      : 'bg-theme-sur2 border-theme-bor text-theme-txt2 hover:border-theme-bor2 hover:text-theme-txt'
-                  }`}
-                >
-                  <div className="font-semibold text-theme-txt mb-1 truncate">{t.name}</div>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[10px] font-mono font-bold text-[#00a870] bg-[#00a870]/15 px-2 py-0.5 rounded">
-                      {t.category}
-                    </span>
-                    <span className="text-[9.5px] text-theme-txt2 truncate">{t.targetAudience}</span>
-                  </div>
-                </button>
-              ))}
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 font-bold">
+                Selecciona el Mensaje de tu Campaña ({visibleTemplates.length}/{templates.length})
+              </label>
+              <span className="text-[10px] text-theme-txt3 font-mono">
+                Segmento: <b className="text-theme-txt">{categoryFilter === 'ALL' ? 'Todas' : categoryFilter}</b>
+              </span>
+            </div>
+
+            {/* Segment Filter Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 mb-2.5 no-scrollbar">
+              <button
+                type="button"
+                onClick={() => setCategoryFilter('ALL')}
+                className={`text-[10px] font-mono px-2 py-1 rounded-md whitespace-nowrap transition-all cursor-pointer font-bold ${
+                  categoryFilter === 'ALL'
+                    ? 'bg-theme-txt text-theme-sur shadow-xs'
+                    : 'bg-theme-sur2 text-theme-txt2 hover:text-theme-txt border border-theme-bor'
+                }`}
+              >
+                Todas ({templates.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setCategoryFilter('Consultoría')}
+                className={`text-[10px] font-mono px-2 py-1 rounded-md whitespace-nowrap transition-all cursor-pointer font-bold flex items-center gap-1 ${
+                  categoryFilter === 'Consultoría'
+                    ? 'bg-[#f59e0b] text-[#1a1000] shadow-xs'
+                    : 'bg-theme-sur2 text-theme-txt2 hover:text-[#f59e0b] border border-theme-bor'
+                }`}
+              >
+                <span>💼 Consultoría</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCategoryFilter('Soluciones Digitales')}
+                className={`text-[10px] font-mono px-2 py-1 rounded-md whitespace-nowrap transition-all cursor-pointer font-bold flex items-center gap-1 ${
+                  categoryFilter === 'Soluciones Digitales'
+                    ? 'bg-[#00d2ff] text-[#001a24] shadow-xs'
+                    : 'bg-theme-sur2 text-theme-txt2 hover:text-[#00d2ff] border border-theme-bor'
+                }`}
+              >
+                <span>⚡ Sol. Digitales</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCategoryFilter('Entrenamiento / Certificación')}
+                className={`text-[10px] font-mono px-2 py-1 rounded-md whitespace-nowrap transition-all cursor-pointer font-bold flex items-center gap-1 ${
+                  categoryFilter === 'Entrenamiento / Certificación'
+                    ? 'bg-[#00e5a0] text-[#001a12] shadow-xs'
+                    : 'bg-theme-sur2 text-theme-txt2 hover:text-[#00e5a0] border border-theme-bor'
+                }`}
+              >
+                <span>🎓 Entrenamiento/Cert.</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCategoryFilter('Lanzamiento Ágil')}
+                className={`text-[10px] font-mono px-2 py-1 rounded-md whitespace-nowrap transition-all cursor-pointer font-bold flex items-center gap-1 ${
+                  categoryFilter === 'Lanzamiento Ágil'
+                    ? 'bg-[#ff6d3b] text-white shadow-xs'
+                    : 'bg-theme-sur2 text-theme-txt2 hover:text-[#ff6d3b] border border-theme-bor'
+                }`}
+              >
+                <span>🚀 Ágil</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-0.5">
+              {visibleTemplates.map((t) => {
+                const badge = getCategoryBadge(t.category);
+                const isSelected = selectedTemplateId === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => handleSelectTemplate(t)}
+                    className={`p-3 rounded-xl text-left border transition-all text-xs cursor-pointer ${
+                      isSelected
+                        ? 'bg-[#00a870]/10 border-[#00a870] text-theme-txt font-medium shadow-xs ring-1 ring-[#00a870]/40'
+                        : 'bg-theme-sur2 border-theme-bor text-theme-txt2 hover:border-theme-bor2 hover:text-theme-txt'
+                    }`}
+                  >
+                    <div className="font-semibold text-theme-txt mb-1 truncate">{t.name}</div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`text-[9.5px] font-mono font-bold px-1.5 py-0.2 rounded border ${badge.color}`}>
+                        {badge.label}
+                      </span>
+                      <span className="text-[9.5px] text-theme-txt2 truncate">{t.targetAudience}</span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
