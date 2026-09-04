@@ -228,9 +228,6 @@ function TemplateManagerModalInner({
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  if (!isOpen) return null;
-
-  // Compute count per category
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = { ALL: templates.length };
     templates.forEach((t) => {
@@ -319,6 +316,8 @@ function TemplateManagerModalInner({
       }
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4 backdrop-blur-xs">
