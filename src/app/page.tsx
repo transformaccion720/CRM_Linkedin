@@ -153,7 +153,7 @@ export default function Home() {
   }, [activeTemplateId]);
 
   // Reset templates to defaults
-  const handleResetTemplates = async () => {
+  const handleResetTemplates = useCallback(async () => {
     setTemplates(DEFAULT_TEMPLATES);
     setActiveTemplateId(DEFAULT_TEMPLATES[0].id);
     try {
@@ -165,7 +165,7 @@ export default function Home() {
     } catch (e) {
       console.error('Error resetting templates:', e);
     }
-  };
+  }, []);
 
   // Set active template
   const handleSelectActiveTemplate = useCallback((id: string) => {
@@ -550,69 +550,83 @@ export default function Home() {
       </div>
 
       {/* Detail Drawer */}
-      <ContactDrawer
-        contact={selectedContact}
-        teamMembers={teamMembers}
-        availableTags={filterOptions.tags}
-        isOpen={Boolean(selectedContact)}
-        onClose={handleCloseDrawer}
-        onOpenTemplates={handleDrawerOpenTemplates}
-        onUpdate={handleDrawerUpdate}
-      />
+      {Boolean(selectedContact) && (
+        <ContactDrawer
+          contact={selectedContact}
+          teamMembers={teamMembers}
+          availableTags={filterOptions.tags}
+          isOpen={Boolean(selectedContact)}
+          onClose={handleCloseDrawer}
+          onOpenTemplates={handleDrawerOpenTemplates}
+          onUpdate={handleDrawerUpdate}
+        />
+      )}
 
       {/* Profile & Security Modal */}
-      <ProfileModal
-        isOpen={isProfileOpen}
-        onClose={handleCloseProfile}
-        currentUser={currentUser}
-        onUpdateUser={setCurrentUser}
-        onLogout={handleLogout}
-      />
+      {isProfileOpen && (
+        <ProfileModal
+          isOpen={isProfileOpen}
+          onClose={handleCloseProfile}
+          currentUser={currentUser}
+          onUpdateUser={setCurrentUser}
+          onLogout={handleLogout}
+        />
+      )}
 
       {/* Zernio & LinkedIn Messaging Assistant Modal */}
-      <ZernioLinkedInModal
-        contact={templateContact}
-        isOpen={Boolean(templateContact)}
-        currentUser={currentUser}
-        templates={templates}
-        onClose={handleCloseZernio}
-        onMarkContacted={handleZernioMarkContacted}
-      />
+      {Boolean(templateContact) && (
+        <ZernioLinkedInModal
+          contact={templateContact}
+          isOpen={Boolean(templateContact)}
+          currentUser={currentUser}
+          templates={templates}
+          onClose={handleCloseZernio}
+          onMarkContacted={handleZernioMarkContacted}
+        />
+      )}
 
       {/* Template Manager Configuration Modal */}
-      <TemplateManagerModal
-        isOpen={isTemplateManagerOpen}
-        templates={templates}
-        activeTemplateId={activeTemplateId}
-        onSelectActiveTemplate={handleSelectActiveTemplate}
-        onSaveTemplates={handleSaveTemplates}
-        onResetTemplates={handleResetTemplates}
-        onClose={handleCloseTemplateManager}
-      />
+      {isTemplateManagerOpen && (
+        <TemplateManagerModal
+          isOpen={isTemplateManagerOpen}
+          templates={templates}
+          activeTemplateId={activeTemplateId}
+          onSelectActiveTemplate={handleSelectActiveTemplate}
+          onSaveTemplates={handleSaveTemplates}
+          onResetTemplates={handleResetTemplates}
+          onClose={handleCloseTemplateManager}
+        />
+      )}
 
       {/* Team Management Modal */}
-      <TeamManagerModal
-        isOpen={isTeamManagerOpen}
-        teamMembers={teamMembers}
-        onClose={handleCloseTeamManager}
-        onRefreshTeam={fetchTeamMembers}
-      />
+      {isTeamManagerOpen && (
+        <TeamManagerModal
+          isOpen={isTeamManagerOpen}
+          teamMembers={teamMembers}
+          onClose={handleCloseTeamManager}
+          onRefreshTeam={fetchTeamMembers}
+        />
+      )}
 
       {/* New Contact Manual Modal */}
-      <NewContactModal
-        isOpen={isNewContactOpen}
-        teamMembers={teamMembers}
-        onClose={handleCloseNewContact}
-        onSuccess={handleNewContactSuccess}
-      />
+      {isNewContactOpen && (
+        <NewContactModal
+          isOpen={isNewContactOpen}
+          teamMembers={teamMembers}
+          onClose={handleCloseNewContact}
+          onSuccess={handleNewContactSuccess}
+        />
+      )}
 
       {/* CSV Uploader */}
-      <CsvUploader
-        isOpen={isImportOpen}
-        teamMembers={teamMembers}
-        onClose={handleCloseImport}
-        onSuccess={handleImportSuccess}
-      />
+      {isImportOpen && (
+        <CsvUploader
+          isOpen={isImportOpen}
+          teamMembers={teamMembers}
+          onClose={handleCloseImport}
+          onSuccess={handleImportSuccess}
+        />
+      )}
     </div>
   );
 }

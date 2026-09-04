@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, memo, useMemo } from 'react';
+import React, { useState, useEffect, memo, useMemo, useCallback } from 'react';
 import { MessageTemplate, TemplateCategory, TEMPLATE_CATEGORIES } from '@/lib/templates';
 import { X, Plus, Trash2, Save, RotateCcw, Check, Sparkles, FolderKanban, Search, Briefcase, Zap, GraduationCap, Rocket, Layers } from 'lucide-react';
 
@@ -177,7 +177,7 @@ const TemplateEditorPanel = memo(function TemplateEditorPanel({
           value={draft.text}
           onChange={(e) => setDraft((prev) => ({ ...prev, text: e.target.value }))}
           placeholder="Escribe el mensaje aquí. Usa {nombre}, {empresa}, {cargo} para personalización automática al contactar..."
-          className="w-full flex-1 bg-theme-sur2 border border-theme-bor focus:border-[#00e5a0] rounded-xl p-3.5 text-xs text-theme-txt leading-relaxed outline-hidden transition-all resize-none font-sans"
+          className="w-full flex-1 bg-theme-sur2 border border-theme-bor focus:border-[#00e5a0] rounded-xl p-3.5 text-xs text-theme-txt leading-relaxed outline-hidden resize-none font-sans"
         />
       </div>
 
@@ -257,8 +257,7 @@ function TemplateManagerModalInner({
     });
   }, [templates, selectedCategory, searchQuery]);
 
-  const handleStartCreate = () => {
-    // Default to currently selected category filter if specific
+  const handleStartCreate = useCallback(() => {
     const defaultCat: TemplateCategory =
       selectedCategory !== 'ALL' && ['Consultoría', 'Soluciones Digitales', 'Entrenamiento / Certificación', 'Lanzamiento Ágil'].includes(selectedCategory)
         ? (selectedCategory as TemplateCategory)
@@ -276,9 +275,9 @@ function TemplateManagerModalInner({
     setEditingTemplate(newTpl);
     setIsCreatingNew(true);
     setSavedSuccess(false);
-  };
+  }, [selectedCategory, templates.length]);
 
-  const handleSaveCurrent = (updatedTemplate: MessageTemplate) => {
+  const handleSaveCurrent = useCallback((updatedTemplate: MessageTemplate) => {
     let updated: MessageTemplate[];
     let newActiveId: string | undefined = undefined;
 
@@ -286,7 +285,7 @@ function TemplateManagerModalInner({
       const newTemplate: MessageTemplate = {
         ...updatedTemplate,
         id: updatedTemplate.id || `template-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        isActive: templates.length === 0, // active if first template
+        isActive: templates.length === 0,
       };
       updated = [...templates, newTemplate];
       if (templates.length === 0) newActiveId = newTemplate.id;
@@ -294,15 +293,19 @@ function TemplateManagerModalInner({
       updated = templates.map((t) => (t.id === updatedTemplate.id ? updatedTemplate : t));
     }
 
-    // Atomic save without race condition
     onSaveTemplates(updated, newActiveId);
     setEditingTemplate(null);
     setIsCreatingNew(false);
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2500);
-  };
+  }, [isCreatingNew, templates, onSaveTemplates]);
 
-  const handleDelete = (id: string) => {
+  const handleCancelEdit = useCallback(() => {
+    setEditingTemplate(null);
+    setIsCreatingNew(false);
+  }, []);
+
+  const handleDelete = useCallback((id: string) => {
     if (templates.length <= 1) {
       alert('Debes mantener al menos una plantilla registrada.');
       return;
@@ -311,16 +314,14 @@ function TemplateManagerModalInner({
       const updated = templates.filter((t) => t.id !== id);
       const newActive = activeTemplateId === id ? updated[0]?.id : undefined;
       onSaveTemplates(updated, newActive);
-      if (editingTemplate?.id === id) {
-        setEditingTemplate(null);
-      }
+      setEditingTemplate((prev) => (prev?.id === id ? null : prev));
     }
-  };
+  }, [templates, activeTemplateId, onSaveTemplates]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4 backdrop-blur-xs">
+    <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4">
       <div className="bg-theme-sur border border-theme-bor rounded-2xl w-full max-w-5xl shadow-2xl overflow-hidden flex flex-col text-theme-txt max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
         <div className="p-4 px-6 border-b border-theme-bor flex items-center justify-between bg-theme-sur shrink-0">
@@ -551,10 +552,7 @@ function TemplateManagerModalInner({
                 template={editingTemplate}
                 isCreatingNew={isCreatingNew}
                 onSave={handleSaveCurrent}
-                onCancel={() => {
-                  setEditingTemplate(null);
-                  setIsCreatingNew(false);
-                }}
+                onCancel={handleCancelEdit}
                 savedSuccess={savedSuccess}
               />
             ) : (

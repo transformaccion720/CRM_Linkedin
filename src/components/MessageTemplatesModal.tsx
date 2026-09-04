@@ -241,7 +241,7 @@ export default function MessageTemplatesModal({
               rows={5}
               value={activeMessage}
               onChange={(e) => setCustomText(e.target.value)}
-              className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl p-3.5 text-xs text-theme-txt leading-relaxed outline-hidden transition-all resize-none font-sans"
+              className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl p-3.5 text-xs text-theme-txt leading-relaxed outline-hidden resize-none font-sans"
             />
           </div>
 
