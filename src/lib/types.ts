@@ -109,6 +109,14 @@ export interface WeeklyGoal {
   phones: number;
   opportunities: number;
   clients: number;
+  assignee?: string;
+  mode?: string;
+}
+
+export interface SegmentedWeeklyGoals {
+  b2b: WeeklyGoal;
+  b2c: WeeklyGoal;
+  global: WeeklyGoal;
 }
 
 export interface DayBreakdown {

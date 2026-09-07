@@ -2,11 +2,30 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 
 const DEFAULT_GOALS = {
-  daily_contacted: 30,
-  contacted: 150,
-  phones: 25,
-  opportunities: 8,
-  clients: 2,
+  b2b: {
+    daily_contacted: 15,
+    contacted: 75,
+    phones: 15,
+    opportunities: 5,
+    clients: 1,
+    assignee: 'Gabino',
+  },
+  b2c: {
+    daily_contacted: 30,
+    contacted: 150,
+    phones: 25,
+    opportunities: 10,
+    clients: 3,
+    assignee: 'Kiara',
+  },
+  global: {
+    daily_contacted: 45,
+    contacted: 225,
+    phones: 40,
+    opportunities: 15,
+    clients: 4,
+    mode: 'mutual',
+  },
 };
 
 const DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -18,19 +37,38 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const weekOffset = parseInt(searchParams.get('weekOffset') || '0', 10);
+    const segment = searchParams.get('segment') || 'all'; // 'all' | 'B2B' | 'B2C'
 
     // 1. Fetch configured goals from settings table
     const settingsRows = await sql`
       SELECT value FROM settings WHERE key = 'weekly_goals' LIMIT 1;
     `;
-    let goals = DEFAULT_GOALS;
+
+    let storedGoals = DEFAULT_GOALS;
     if (settingsRows.length > 0 && settingsRows[0].value) {
-      goals = {
-        ...DEFAULT_GOALS,
-        ...settingsRows[0].value,
-        daily_contacted: settingsRows[0].value.daily_contacted || Math.round((settingsRows[0].value.contacted || 150) / 5),
-      };
+      const val = settingsRows[0].value;
+      if (val.b2b || val.b2c || val.global) {
+        storedGoals = {
+          b2b: { ...DEFAULT_GOALS.b2b, ...(val.b2b || {}) },
+          b2c: { ...DEFAULT_GOALS.b2c, ...(val.b2c || {}) },
+          global: { ...DEFAULT_GOALS.global, ...(val.global || {}) },
+        };
+      } else {
+        // Backwards compatibility with flat structure
+        storedGoals = {
+          b2b: { ...DEFAULT_GOALS.b2b },
+          b2c: { ...DEFAULT_GOALS.b2c },
+          global: { ...DEFAULT_GOALS.global, ...val },
+        };
+      }
     }
+
+    // Active goals to apply based on segment
+    const activeGoals = segment === 'B2B' 
+      ? storedGoals.b2b 
+      : segment === 'B2C' 
+      ? storedGoals.b2c 
+      : storedGoals.global;
 
     // 2. Fetch team members
     const members = await sql`
@@ -94,31 +132,35 @@ export async function GET(req: NextRequest) {
     });
 
     for (const m of members) {
-      // Activity queries for this member in this week (America/Lima)
+      // Activity queries for this member in this week, filtered by segment if specified
       const acts = await sql`
         SELECT 
-          COUNT(DISTINCT contact_id)::int as distinct_contacts_touched,
-          COUNT(CASE WHEN action_type = 'PHONE_ADDED' THEN 1 END)::int as phone_count,
-          COUNT(CASE WHEN action_type = 'OPPORTUNITY_CREATED' OR (action_type = 'STATUS_CHANGE' AND description LIKE '%Oportunidad%') THEN 1 END)::int as opportunity_count,
-          COUNT(CASE WHEN action_type = 'CLIENT_WON' OR (action_type = 'STATUS_CHANGE' AND description LIKE '%Cliente%') THEN 1 END)::int as client_count
-        FROM activity_logs
-        WHERE (performed_by = ${m.name} OR performed_by = ${m.id})
-          AND (created_at AT TIME ZONE 'America/Lima')::date >= ${startDate}::date
-          AND (created_at AT TIME ZONE 'America/Lima')::date <= ${endDate}::date;
+          COUNT(DISTINCT a.contact_id)::int as distinct_contacts_touched,
+          COUNT(CASE WHEN a.action_type = 'PHONE_ADDED' THEN 1 END)::int as phone_count,
+          COUNT(CASE WHEN a.action_type = 'OPPORTUNITY_CREATED' OR (a.action_type = 'STATUS_CHANGE' AND a.description LIKE '%Oportunidad%') THEN 1 END)::int as opportunity_count,
+          COUNT(CASE WHEN a.action_type = 'CLIENT_WON' OR (a.action_type = 'STATUS_CHANGE' AND a.description LIKE '%Cliente%') THEN 1 END)::int as client_count
+        FROM activity_logs a
+        LEFT JOIN contacts c ON a.contact_id = c.id
+        WHERE (a.performed_by = ${m.name} OR a.performed_by = ${m.id})
+          AND (${segment === 'all'}::boolean OR c.business_segment = ${segment} OR a.contact_id IS NULL)
+          AND (a.created_at AT TIME ZONE 'America/Lima')::date >= ${startDate}::date
+          AND (a.created_at AT TIME ZONE 'America/Lima')::date <= ${endDate}::date;
       `;
 
       // Group activities day by day for this member (America/Lima)
       const dayActs = await sql`
         SELECT 
-          TO_CHAR((created_at AT TIME ZONE 'America/Lima')::date, 'YYYY-MM-DD') as act_date,
-          COUNT(DISTINCT contact_id)::int as contacts_count,
-          COUNT(CASE WHEN action_type = 'PHONE_ADDED' THEN 1 END)::int as phones_count,
-          COUNT(CASE WHEN action_type = 'OPPORTUNITY_CREATED' OR (action_type = 'STATUS_CHANGE' AND description LIKE '%Oportunidad%') THEN 1 END)::int as opps_count
-        FROM activity_logs
-        WHERE (performed_by = ${m.name} OR performed_by = ${m.id})
-          AND (created_at AT TIME ZONE 'America/Lima')::date >= ${startDate}::date
-          AND (created_at AT TIME ZONE 'America/Lima')::date <= ${endDate}::date
-        GROUP BY (created_at AT TIME ZONE 'America/Lima')::date;
+          TO_CHAR((a.created_at AT TIME ZONE 'America/Lima')::date, 'YYYY-MM-DD') as act_date,
+          COUNT(DISTINCT a.contact_id)::int as contacts_count,
+          COUNT(CASE WHEN a.action_type = 'PHONE_ADDED' THEN 1 END)::int as phones_count,
+          COUNT(CASE WHEN a.action_type = 'OPPORTUNITY_CREATED' OR (a.action_type = 'STATUS_CHANGE' AND a.description LIKE '%Oportunidad%') THEN 1 END)::int as opps_count
+        FROM activity_logs a
+        LEFT JOIN contacts c ON a.contact_id = c.id
+        WHERE (a.performed_by = ${m.name} OR a.performed_by = ${m.id})
+          AND (${segment === 'all'}::boolean OR c.business_segment = ${segment} OR a.contact_id IS NULL)
+          AND (a.created_at AT TIME ZONE 'America/Lima')::date >= ${startDate}::date
+          AND (a.created_at AT TIME ZONE 'America/Lima')::date <= ${endDate}::date
+        GROUP BY (a.created_at AT TIME ZONE 'America/Lima')::date;
       `;
 
       const dayMap: Record<string, { contacts: number; phones: number; opps: number }> = {};
@@ -130,7 +172,7 @@ export async function GET(req: NextRequest) {
         };
       });
 
-      // Active managed contacts in CRM for this member
+      // Active managed contacts in CRM for this member (filtered by segment if specified)
       const contactSummary = await sql`
         SELECT 
           COUNT(CASE WHEN status != 'Sin contactar' THEN 1 END)::int as all_managed_contacts,
@@ -139,7 +181,8 @@ export async function GET(req: NextRequest) {
           COUNT(CASE WHEN status = 'Oportunidad' THEN 1 END)::int as curr_opportunities,
           COUNT(CASE WHEN status = 'Cliente' THEN 1 END)::int as curr_clients
         FROM contacts
-        WHERE assigned_to = ${m.name};
+        WHERE assigned_to = ${m.name}
+          AND (${segment === 'all'}::boolean OR business_segment = ${segment});
       `;
 
       // Cumulative contacted this week: Max of distinct activity logs or total managed contacts
@@ -148,19 +191,18 @@ export async function GET(req: NextRequest) {
       const oAct = Math.max(acts[0]?.opportunity_count || 0, contactSummary[0]?.curr_opportunities || 0);
       const clAct = Math.max(acts[0]?.client_count || 0, contactSummary[0]?.curr_clients || 0);
 
-      // Build daily breakdown for this member strictly based on logs and contact updates per day
+      // Build daily breakdown for this member
       const daysBreakdown = weekDays.map((wd) => {
         const fromLog = dayMap[wd.date_str];
         let dContacted = fromLog ? fromLog.contacts : 0;
 
-        // If today and contacts were updated today in Lima timezone
         if (wd.is_today && weekOffset === 0) {
           dContacted = Math.max(dContacted, contactSummary[0]?.contacts_managed_today || 0);
         }
 
         const dOpps = fromLog ? fromLog.opps : 0;
         const dPhones = fromLog ? fromLog.phones : 0;
-        const dPct = Math.min(100, Math.round((dContacted / Math.max(goals.daily_contacted, 1)) * 100));
+        const dPct = Math.min(100, Math.round((dContacted / Math.max(activeGoals.daily_contacted, 1)) * 100));
 
         // Accumulate in global day totals
         globalDayTotals[wd.date_str].contacted += dContacted;
@@ -174,7 +216,7 @@ export async function GET(req: NextRequest) {
           is_today: wd.is_today,
           is_future: wd.is_future,
           contacted_count: dContacted,
-          goal_count: goals.daily_contacted,
+          goal_count: activeGoals.daily_contacted,
           pct: dPct,
           opportunities_count: dOpps,
           phones_count: dPhones,
@@ -192,29 +234,29 @@ export async function GET(req: NextRequest) {
       globalClients += clAct;
       globalTodayContacted += todayContacted;
 
-      const cPct = Math.min(100, Math.round((cAct / Math.max(goals.contacted, 1)) * 100));
-      const pPct = Math.min(100, Math.round((pAct / Math.max(goals.phones, 1)) * 100));
-      const oPct = Math.min(100, Math.round((oAct / Math.max(goals.opportunities, 1)) * 100));
-      const clPct = Math.min(100, Math.round((clAct / Math.max(goals.clients, 1)) * 100));
+      const cPct = Math.min(100, Math.round((cAct / Math.max(activeGoals.contacted, 1)) * 100));
+      const pPct = Math.min(100, Math.round((pAct / Math.max(activeGoals.phones, 1)) * 100));
+      const oPct = Math.min(100, Math.round((oAct / Math.max(activeGoals.opportunities, 1)) * 100));
+      const clPct = Math.min(100, Math.round((clAct / Math.max(activeGoals.clients, 1)) * 100));
 
       const overall = Math.round((cPct * 0.35) + (pPct * 0.25) + (oPct * 0.25) + (clPct * 0.15));
-      const todayPct = Math.min(100, Math.round((todayContacted / Math.max(goals.daily_contacted, 1)) * 100));
+      const todayPct = Math.min(100, Math.round((todayContacted / Math.max(activeGoals.daily_contacted, 1)) * 100));
 
       memberProgressList.push({
         member_name: m.name,
         color: m.color || '#00a870',
         contacted_actual: cAct,
-        contacted_goal: goals.contacted,
+        contacted_goal: activeGoals.contacted,
         phones_actual: pAct,
-        phones_goal: goals.phones,
+        phones_goal: activeGoals.phones,
         opportunities_actual: oAct,
-        opportunities_goal: goals.opportunities,
+        opportunities_goal: activeGoals.opportunities,
         clients_actual: clAct,
-        clients_goal: goals.clients,
+        clients_goal: activeGoals.clients,
         overall_pct: overall,
         daily_progress: {
           contacted_today: todayContacted,
-          contacted_daily_goal: goals.daily_contacted,
+          contacted_daily_goal: activeGoals.daily_contacted,
           phones_today: todayPhones,
           opportunities_today: todayOpportunities,
           today_pct: todayPct,
@@ -224,11 +266,11 @@ export async function GET(req: NextRequest) {
     }
 
     const teamSize = Math.max(members.length, 1);
-    const globalGoalContacted = goals.contacted * teamSize;
-    const globalGoalPhones = goals.phones * teamSize;
-    const globalGoalOpportunities = goals.opportunities * teamSize;
-    const globalGoalClients = goals.clients * teamSize;
-    const globalDailyGoal = goals.daily_contacted * teamSize;
+    const globalGoalContacted = activeGoals.contacted * teamSize;
+    const globalGoalPhones = activeGoals.phones * teamSize;
+    const globalGoalOpportunities = activeGoals.opportunities * teamSize;
+    const globalGoalClients = activeGoals.clients * teamSize;
+    const globalDailyGoal = activeGoals.daily_contacted * teamSize;
 
     const gCPct = Math.min(100, Math.round((globalContacted / Math.max(globalGoalContacted, 1)) * 100));
     const gPPct = Math.min(100, Math.round((globalPhones / Math.max(globalGoalPhones, 1)) * 100));
@@ -256,11 +298,13 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json({
+      segment,
+      all_goals: storedGoals,
       sprint: {
         week_label: weekLabel,
         start_date: startDate,
         end_date: endDate,
-        goals,
+        goals: activeGoals,
         global_totals: {
           contacted_actual: globalContacted,
           contacted_goal: globalGoalContacted,
@@ -292,19 +336,43 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { daily_contacted, contacted, phones, opportunities, clients, updated_by } = body;
+    const { segment, goals, all_goals, updated_by } = body;
 
-    const newGoals = {
-      daily_contacted: parseInt(daily_contacted, 10) || DEFAULT_GOALS.daily_contacted,
-      contacted: parseInt(contacted, 10) || DEFAULT_GOALS.contacted,
-      phones: parseInt(phones, 10) || DEFAULT_GOALS.phones,
-      opportunities: parseInt(opportunities, 10) || DEFAULT_GOALS.opportunities,
-      clients: parseInt(clients, 10) || DEFAULT_GOALS.clients,
-    };
+    // Fetch existing settings
+    const settingsRows = await sql`
+      SELECT value FROM settings WHERE key = 'weekly_goals' LIMIT 1;
+    `;
+    let current = DEFAULT_GOALS;
+    if (settingsRows.length > 0 && settingsRows[0].value) {
+      const val = settingsRows[0].value;
+      if (val.b2b || val.b2c || val.global) {
+        current = {
+          b2b: { ...DEFAULT_GOALS.b2b, ...(val.b2b || {}) },
+          b2c: { ...DEFAULT_GOALS.b2c, ...(val.b2c || {}) },
+          global: { ...DEFAULT_GOALS.global, ...(val.global || {}) },
+        };
+      }
+    }
+
+    let updatedConfig = current;
+
+    if (all_goals) {
+      updatedConfig = {
+        b2b: { ...current.b2b, ...(all_goals.b2b || {}) },
+        b2c: { ...current.b2c, ...(all_goals.b2c || {}) },
+        global: { ...current.global, ...(all_goals.global || {}) },
+      };
+    } else if (segment === 'B2B' && goals) {
+      updatedConfig.b2b = { ...current.b2b, ...goals };
+    } else if (segment === 'B2C' && goals) {
+      updatedConfig.b2c = { ...current.b2c, ...goals };
+    } else if (goals) {
+      updatedConfig.global = { ...current.global, ...goals };
+    }
 
     await sql`
       INSERT INTO settings (key, value, updated_at)
-      VALUES ('weekly_goals', ${JSON.stringify(newGoals)}::jsonb, NOW())
+      VALUES ('weekly_goals', ${JSON.stringify(updatedConfig)}::jsonb, NOW())
       ON CONFLICT (key) DO UPDATE
       SET value = EXCLUDED.value, updated_at = NOW();
     `;
@@ -316,7 +384,7 @@ export async function POST(req: NextRequest) {
         VALUES (
           'Configuración General', 
           'GOAL_UPDATED', 
-          ${'🎯 Metas actualizadas: ' + newGoals.daily_contacted + ' diarias / ' + newGoals.contacted + ' semanales'}, 
+          ${'🎯 Metas comerciales actualizadas para: ' + (segment === 'B2B' ? 'B2B Corporativo' : segment === 'B2C' ? 'B2C Alumnos' : 'Consolidado')}, 
           ${updated_by || 'Administrador'}
         );
       `;
@@ -324,7 +392,7 @@ export async function POST(req: NextRequest) {
       console.error('Goal update log failed:', e);
     }
 
-    return NextResponse.json({ success: true, goals: newGoals });
+    return NextResponse.json({ success: true, all_goals: updatedConfig });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ error: message }, { status: 500 });
