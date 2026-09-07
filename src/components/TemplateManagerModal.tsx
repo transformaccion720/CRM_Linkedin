@@ -1,8 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, memo, useMemo, useCallback } from 'react';
-import { MessageTemplate, TemplateCategory, TEMPLATE_CATEGORIES } from '@/lib/templates';
-import { X, Plus, Trash2, Save, RotateCcw, Check, Sparkles, FolderKanban, Search, Briefcase, Zap, GraduationCap, Rocket, Layers } from 'lucide-react';
+import React, { useState, useEffect, memo, useMemo, useCallback, useRef } from 'react';
+import { MessageTemplate, TemplateCategory, TemplateTargetAudience, TEMPLATE_CATEGORIES } from '@/lib/templates';
+import { 
+  X, Plus, Trash2, Save, RotateCcw, Check, Sparkles, FolderKanban, Search, 
+  Briefcase, Zap, GraduationCap, Rocket, Layers, Eye, Wand2, User, Building2, 
+  Copy, ArrowRight, HelpCircle, CheckCircle2
+} from 'lucide-react';
 
 interface TemplateManagerModalProps {
   isOpen: boolean;
@@ -29,37 +33,74 @@ export function getCategoryBadge(cat?: string) {
       return {
         label: 'Consultoría',
         color: 'text-[#f59e0b] bg-[#f59e0b]/15 border-[#f59e0b]/30',
+        activeBtn: 'bg-[#f59e0b] text-[#1a1000] border-[#f59e0b]',
         icon: Briefcase,
       };
     case 'Soluciones Digitales':
       return {
-        label: 'Soluciones Digitales',
+        label: 'Sol. Digitales',
         color: 'text-[#00d2ff] bg-[#00d2ff]/15 border-[#00d2ff]/30',
+        activeBtn: 'bg-[#00d2ff] text-[#001a24] border-[#00d2ff]',
         icon: Zap,
       };
     case 'Entrenamiento / Certificación':
     case 'Entrenamiento':
       return {
-        label: 'Entrenamiento / Cert.',
+        label: 'Entrenamiento/Cert.',
         color: 'text-[#00e5a0] bg-[#00e5a0]/15 border-[#00e5a0]/30',
+        activeBtn: 'bg-[#00e5a0] text-[#001a12] border-[#00e5a0]',
         icon: GraduationCap,
       };
     case 'Lanzamiento Ágil':
       return {
-        label: 'Lanzamiento Ágil',
+        label: 'Ágil',
         color: 'text-[#ff6d3b] bg-[#ff6d3b]/15 border-[#ff6d3b]/30',
+        activeBtn: 'bg-[#ff6d3b] text-white border-[#ff6d3b]',
         icon: Rocket,
       };
     default:
       return {
         label: cat || 'General',
-        color: 'text-theme-txt2 bg-theme-sur2 border-theme-bor',
+        color: 'text-purple-400 bg-purple-500/15 border-purple-500/30',
+        activeBtn: 'bg-purple-600 text-white border-purple-600',
         icon: Layers,
       };
   }
 }
 
-// Isolated editor panel: typing inside the form only re-renders this subcomponent
+// Quick Inspiration Presets
+const INSPIRATION_PRESETS = [
+  {
+    title: '🏢 B2B: RRHH & Formación Corporativa',
+    name: 'Entrenamiento y Up-skilling Corporativo',
+    category: 'Entrenamiento / Certificación' as TemplateCategory,
+    targetAudience: 'Líderes / Gerentes (Equipos)' as TemplateTargetAudience,
+    text: 'Hola {nombre}, un gusto saludarte. Diseñamos programas prácticos de entrenamiento corporativo para equipos en agilidad, innovación y liderazgo operativo. Si en {empresa} están buscando potenciar las capacidades de sus líderes, me encantaría compartirte nuestros casos de éxito.',
+  },
+  {
+    title: '👤 B2C: Certificación Scrum & IA',
+    name: 'Certificación Internacional Scrum & IA',
+    category: 'Entrenamiento / Certificación' as TemplateCategory,
+    targetAudience: 'Venta Directa / Profesional' as TemplateTargetAudience,
+    text: 'Hola {nombre}, un gusto saludarte. Vi tu trayectoria como {cargo} y quería compartirte que acabamos de abrir vacantes con beca especial para la Certificación Internacional en Scrum & Inteligencia Artificial aplicada. ¿Te gustaría que te envíe el temario y las fechas?',
+  },
+  {
+    title: '💼 B2B: Consultoría Transformación',
+    name: 'Consultoría: Transformación y Eficiencia',
+    category: 'Consultoría' as TemplateCategory,
+    targetAudience: 'C-Level / Decisor' as TemplateTargetAudience,
+    text: 'Hola {nombre}, un placer conectar. Vengo siguiendo el crecimiento de {empresa}. Ayudamos a organizaciones a optimizar procesos críticos y estructurar modelos operativos escalables mediante consultoría de transformación empresarial. Quedo a tu disposición si te gustaría explorar sinergias.',
+  },
+  {
+    title: '⚡ Soluciones Digitales y Automatización',
+    name: 'Soluciones Digitales y Automatización de Procesos',
+    category: 'Soluciones Digitales' as TemplateCategory,
+    targetAudience: 'Líderes / Gerentes (Equipos)' as TemplateTargetAudience,
+    text: 'Hola {nombre}, ¿cómo estás? En {empresa}, ¿han explorado este año iniciativas en soluciones digitales o automatización de flujos operativos? Desarrollamos tecnología a medida para reducir tiempos manuales. Con gusto podemos agendar un café virtual breve de 10 min.',
+  },
+];
+
+// Isolated high-converting editor panel with Live Message & Card Preview matching the message sender UX
 const TemplateEditorPanel = memo(function TemplateEditorPanel({
   template,
   isCreatingNew,
@@ -68,11 +109,44 @@ const TemplateEditorPanel = memo(function TemplateEditorPanel({
   savedSuccess,
 }: TemplateEditorPanelProps) {
   const [draft, setDraft] = useState<MessageTemplate>(template);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Sync when selecting a different template
   useEffect(() => {
     setDraft(template);
   }, [template.id]);
+
+  // Insert variable tag at cursor position
+  const handleInsertVariable = (variableTag: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      setDraft((prev) => ({ ...prev, text: prev.text + ' ' + variableTag }));
+      return;
+    }
+
+    const start = textarea.selectionStart || 0;
+    const end = textarea.selectionEnd || 0;
+    const currentText = draft.text || '';
+    const newText = currentText.slice(0, start) + variableTag + currentText.slice(end);
+
+    setDraft((prev) => ({ ...prev, text: newText }));
+
+    setTimeout(() => {
+      textarea.focus();
+      const nextCursor = start + variableTag.length;
+      textarea.setSelectionRange(nextCursor, nextCursor);
+    }, 10);
+  };
+
+  const handleApplyPreset = (preset: typeof INSPIRATION_PRESETS[0]) => {
+    setDraft((prev) => ({
+      ...prev,
+      name: preset.name,
+      category: preset.category,
+      targetAudience: preset.targetAudience,
+      text: preset.text,
+    }));
+  };
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -87,106 +161,300 @@ const TemplateEditorPanel = memo(function TemplateEditorPanel({
     onSave(draft);
   };
 
+  // Live Simulated Preview Text (Matches the exact prompt screenshot with Yesenia & SANNA Salud)
+  const sampleName = 'Yesenia';
+  const sampleCompany = 'SANNA Salud';
+  const samplePosition = 'Gerente de Gestión Humana';
+
+  const simulatedMessage = (draft.text || '')
+    .replace(/{nombre}/g, sampleName)
+    .replace(/{apellido}/g, '')
+    .replace(/{empresa}/g, sampleCompany)
+    .replace(/{cargo}/g, samplePosition);
+
+  const badge = getCategoryBadge(draft.category);
+  const BadgeIcon = badge.icon;
+
+  const categories: { key: TemplateCategory; label: string; icon: any }[] = [
+    { key: 'Consultoría', label: 'Consultoría', icon: Briefcase },
+    { key: 'Soluciones Digitales', label: 'Sol. Digitales', icon: Zap },
+    { key: 'Entrenamiento / Certificación', label: 'Entrenamiento/Cert.', icon: GraduationCap },
+    { key: 'Lanzamiento Ágil', label: 'Ágil', icon: Rocket },
+    { key: 'General', label: 'General', icon: Layers },
+  ];
+
+  const audiences: { key: TemplateTargetAudience; label: string; badge: string; isB2B: boolean }[] = [
+    { key: 'Venta Directa / Profesional', label: 'Venta Directa / Profesional', badge: 'B2C Alumnos', isB2B: false },
+    { key: 'Líderes / Gerentes (Equipos)', label: 'Líderes / Gerentes (Equipos)', badge: 'B2B Equipos', isB2B: true },
+    { key: 'C-Level / Decisor', label: 'C-Level / Decisor', badge: 'B2B Corporativo', isB2B: true },
+  ];
+
   return (
-    <div className="space-y-4 flex-1 flex flex-col">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <h4 className="font-bold text-sm text-theme-txt flex items-center gap-2">
-          <span>{isCreatingNew ? 'Crear Nueva Plantilla Comercial' : 'Editar Plantilla'}</span>
-          {isCreatingNew && (
-            <span className="text-[10px] font-mono text-[#00e5a0] bg-[#00e5a0]/15 border border-[#00e5a0]/30 px-2 py-0.5 rounded-full font-bold">
-              NUEVA
-            </span>
-          )}
-        </h4>
-        <div className="flex items-center gap-1.5 text-[11px] font-mono text-theme-txt3">
-          <span>Variables:</span>
-          <code className="text-[#00e5a0] bg-theme-sur2 px-1.5 py-0.5 rounded border border-theme-bor">{'{nombre}'}</code>
-          <code className="text-[#2979ff] bg-theme-sur2 px-1.5 py-0.5 rounded border border-theme-bor">{'{empresa}'}</code>
-          <code className="text-[#ff6d3b] bg-theme-sur2 px-1.5 py-0.5 rounded border border-theme-bor">{'{cargo}'}</code>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <form onSubmit={handleSubmit} className="space-y-4 flex-1 flex flex-col">
+      {/* Header with Title & Quick Presets */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-theme-bor">
         <div>
-          <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 block mb-1 font-semibold">
-            Nombre de la Plantilla
-          </label>
-          <input
-            type="text"
-            value={draft.name}
-            onChange={(e) => setDraft((prev) => ({ ...prev, name: e.target.value }))}
-            placeholder="Ej: Consultoría en Procesos C-Level"
-            className="w-full bg-theme-sur2 border border-theme-bor rounded-lg px-3 py-2 text-xs text-theme-txt outline-hidden focus:border-[#00e5a0] transition-colors"
-          />
+          <div className="flex items-center gap-2">
+            <h4 className="font-extrabold text-sm text-theme-txt flex items-center gap-2">
+              <span>{isCreatingNew ? 'Crear Nueva Plantilla Comercial' : 'Editar Plantilla'}</span>
+            </h4>
+            {isCreatingNew ? (
+              <span className="text-[10px] font-mono text-[#00e5a0] bg-[#00e5a0]/15 border border-[#00e5a0]/30 px-2 py-0.5 rounded-full font-bold">
+                NUEVA
+              </span>
+            ) : (
+              <span className="text-[10px] font-mono text-theme-txt3 bg-theme-sur2 border border-theme-bor px-2 py-0.5 rounded-full">
+                ID: {draft.id}
+              </span>
+            )}
+          </div>
+          <p className="text-[11px] text-theme-txt2 mt-0.5">
+            Organiza el segmento, audiencia y mensaje con autocompletado en tiempo real.
+          </p>
         </div>
 
-        <div>
-          <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 block mb-1 font-semibold">
-            Segmento / Servicio
-          </label>
-          <select
-            value={draft.category}
-            onChange={(e) =>
-              setDraft((prev) => ({
-                ...prev,
-                category: e.target.value as TemplateCategory,
-              }))
-            }
-            className="w-full bg-theme-sur2 border border-theme-bor rounded-lg px-3 py-2 text-xs text-theme-txt outline-hidden cursor-pointer focus:border-[#00e5a0]"
-          >
-            <option value="Consultoría">💼 Consultoría</option>
-            <option value="Soluciones Digitales">⚡ Soluciones Digitales</option>
-            <option value="Entrenamiento / Certificación">🎓 Entrenamiento / Certificación</option>
-            <option value="Lanzamiento Ágil">🚀 Lanzamiento Ágil</option>
-            <option value="General">📌 General</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 block mb-1 font-semibold">
-            Audiencia Objetivo
-          </label>
-          <select
-            value={draft.targetAudience}
-            onChange={(e) =>
-              setDraft((prev) => ({
-                ...prev,
-                targetAudience: e.target.value as MessageTemplate['targetAudience'],
-              }))
-            }
-            className="w-full bg-theme-sur2 border border-theme-bor rounded-lg px-3 py-2 text-xs text-theme-txt outline-hidden cursor-pointer focus:border-[#00e5a0]"
-          >
-            <option value="Venta Directa / Profesional">👤 Venta Directa / Profesional</option>
-            <option value="Líderes / Gerentes (Equipos)">👥 Líderes / Gerentes (Equipos)</option>
-            <option value="C-Level / Decisor">🏢 C-Level / Decisor</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="flex-1 flex flex-col">
-        <div className="flex items-center justify-between mb-1">
-          <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 font-semibold">
-            Cuerpo del Mensaje (Argumento Comercial)
-          </label>
-          <span className="text-[10.5px] text-theme-txt3 font-mono">
-            {draft.text.length} caracteres
+        {/* Quick Inspiration Pills */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[10px] font-mono text-theme-txt3 flex items-center gap-1 font-bold">
+            <Wand2 className="w-3 h-3 text-[#00e5a0]" />
+            <span>Ejemplos:</span>
           </span>
+          <button
+            type="button"
+            onClick={() => handleApplyPreset(INSPIRATION_PRESETS[0])}
+            className="text-[10px] font-mono px-2 py-1 rounded-lg bg-theme-sur2 hover:bg-[#00e5a0]/15 text-theme-txt2 hover:text-[#00e5a0] border border-theme-bor hover:border-[#00e5a0]/30 transition-all cursor-pointer font-medium"
+            title="Cargar ejemplo B2B Formación"
+          >
+            🏢 B2B Formación
+          </button>
+          <button
+            type="button"
+            onClick={() => handleApplyPreset(INSPIRATION_PRESETS[1])}
+            className="text-[10px] font-mono px-2 py-1 rounded-lg bg-theme-sur2 hover:bg-[#00e5a0]/15 text-theme-txt2 hover:text-[#00e5a0] border border-theme-bor hover:border-[#00e5a0]/30 transition-all cursor-pointer font-medium"
+            title="Cargar ejemplo B2C Scrum"
+          >
+            👤 B2C Scrum
+          </button>
+          <button
+            type="button"
+            onClick={() => handleApplyPreset(INSPIRATION_PRESETS[2])}
+            className="text-[10px] font-mono px-2 py-1 rounded-lg bg-theme-sur2 hover:bg-[#f59e0b]/15 text-theme-txt2 hover:text-[#f59e0b] border border-theme-bor hover:border-[#f59e0b]/30 transition-all cursor-pointer font-medium"
+            title="Cargar ejemplo Consultoría"
+          >
+            💼 Consultoría
+          </button>
         </div>
-        <textarea
-          rows={7}
-          value={draft.text}
-          onChange={(e) => setDraft((prev) => ({ ...prev, text: e.target.value }))}
-          placeholder="Escribe el mensaje aquí. Usa {nombre}, {empresa}, {cargo} para personalización automática al contactar..."
-          className="w-full flex-1 bg-theme-sur2 border border-theme-bor focus:border-[#00e5a0] rounded-xl p-3.5 text-xs text-theme-txt leading-relaxed outline-hidden resize-none font-sans"
+      </div>
+
+      {/* BLOQUE 1: IDENTIFICACIÓN & NOMBRE */}
+      <div>
+        <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 block mb-1.5 font-bold">
+          1. Nombre Comercial de la Plantilla:
+        </label>
+        <input
+          type="text"
+          required
+          value={draft.name}
+          onChange={(e) => setDraft((prev) => ({ ...prev, name: e.target.value }))}
+          placeholder="Ej: Entrenamiento y Up-skilling Corporativo"
+          className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00e5a0] rounded-xl px-3.5 py-2.5 text-xs text-theme-txt font-semibold outline-hidden transition-all shadow-xs"
         />
       </div>
 
-      <div className="flex items-center justify-between pt-2">
+      {/* BLOQUE 2: SEGMENTO COMERCIAL (BOTONES VISUALES IGUAL QUE EN EL SELECTOR DE LA CAPTURA) */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 font-bold">
+            2. Segmento / Servicio:
+          </label>
+          <span className="text-[10px] font-mono text-theme-txt3">
+            Seleccionado: <b className="text-theme-txt">{draft.category}</b>
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {categories.map((c) => {
+            const isSelected = draft.category === c.key || (draft.category === 'Entrenamiento' && c.key === 'Entrenamiento / Certificación');
+            const Icon = c.icon;
+            const bStyle = getCategoryBadge(c.key);
+
+            return (
+              <button
+                key={c.key}
+                type="button"
+                onClick={() => setDraft((prev) => ({ ...prev, category: c.key }))}
+                className={`text-[11px] font-mono px-3 py-1.5 rounded-xl transition-all cursor-pointer font-bold flex items-center gap-1.5 border shadow-2xs ${
+                  isSelected
+                    ? `${bStyle.activeBtn} shadow-xs scale-102`
+                    : 'bg-theme-sur2 text-theme-txt2 hover:text-theme-txt border-theme-bor hover:border-theme-bor2'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{c.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* BLOQUE 3: AUDIENCIA OBJETIVO (B2B vs B2C) */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 font-bold">
+            3. Audiencia Objetivo & Enfoque:
+          </label>
+          <span className="text-[10px] font-mono text-theme-txt3">
+            Foco: <b className="text-theme-txt">{draft.targetAudience}</b>
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {audiences.map((aud) => {
+            const isSelected = draft.targetAudience === aud.key;
+
+            return (
+              <button
+                key={aud.key}
+                type="button"
+                onClick={() => setDraft((prev) => ({ ...prev, targetAudience: aud.key }))}
+                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                  isSelected
+                    ? 'bg-[#00a870]/10 border-[#00a870] ring-1 ring-[#00a870]/40 shadow-xs'
+                    : 'bg-theme-sur2 border-theme-bor hover:border-theme-bor2'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-1 mb-1">
+                  <span className="font-bold text-xs text-theme-txt truncate">
+                    {aud.key === 'Venta Directa / Profesional' ? '👤 Profesional' : aud.key === 'Líderes / Gerentes (Equipos)' ? '👥 Líderes / Equipos' : '🏢 C-Level / Decisor'}
+                  </span>
+                  <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded border ${
+                    aud.isB2B 
+                      ? 'bg-[#2979ff]/15 text-[#2979ff] border-[#2979ff]/30' 
+                      : 'bg-[#00a870]/15 text-[#00a870] border-[#00a870]/30'
+                  }`}>
+                    {aud.badge}
+                  </span>
+                </div>
+                <span className="text-[10px] text-theme-txt3 line-clamp-1">{aud.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* BLOQUE 4: REDACCIÓN DEL MENSAJE COMERCIAL CON VARIABLES INSERTABLES */}
+      <div className="space-y-1.5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 font-bold">
+            4. Argumento Comercial (Usa variables con un clic):
+          </label>
+          <div className="flex items-center gap-1 text-[10.5px] font-mono">
+            <span className="text-theme-txt3 font-medium">Insertar:</span>
+            <button
+              type="button"
+              onClick={() => handleInsertVariable('{nombre}')}
+              className="px-2 py-0.5 rounded-md bg-[#00a870]/15 text-[#00a870] hover:bg-[#00a870]/25 border border-[#00a870]/30 font-bold transition-all cursor-pointer"
+              title="Insertar {nombre}"
+            >
+              + {'{nombre}'}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleInsertVariable('{empresa}')}
+              className="px-2 py-0.5 rounded-md bg-[#2979ff]/15 text-[#2979ff] hover:bg-[#2979ff]/25 border border-[#2979ff]/30 font-bold transition-all cursor-pointer"
+              title="Insertar {empresa}"
+            >
+              + {'{empresa}'}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleInsertVariable('{cargo}')}
+              className="px-2 py-0.5 rounded-md bg-[#ff6d3b]/15 text-[#ff6d3b] hover:bg-[#ff6d3b]/25 border border-[#ff6d3b]/30 font-bold transition-all cursor-pointer"
+              title="Insertar {cargo}"
+            >
+              + {'{cargo}'}
+            </button>
+          </div>
+        </div>
+
+        <textarea
+          ref={textareaRef}
+          rows={5}
+          required
+          value={draft.text}
+          onChange={(e) => setDraft((prev) => ({ ...prev, text: e.target.value }))}
+          placeholder="Hola {nombre}, un gusto saludarte. Diseñamos programas prácticos de entrenamiento corporativo para equipos en agilidad... Si en {empresa} están buscando..."
+          className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl p-3.5 text-xs text-theme-txt leading-relaxed outline-hidden resize-none font-sans shadow-inner transition-colors"
+        />
+
+        <div className="flex items-center justify-between text-[10.5px] font-mono text-theme-txt3">
+          <span>{draft.text.length} caracteres redactados</span>
+          <span className="text-[#00a870] font-medium">
+            {draft.text.length > 350 ? '⚠️ Mensaje extenso (ideal <300 car.)' : '✓ Longitud óptima para LinkedIn'}
+          </span>
+        </div>
+      </div>
+
+      {/* BLOQUE 5: VISTA PREVIA EN VIVO (IDÉNTICA A LA DEL DETALLE DE ENVÍO DE LINKEDIN) */}
+      <div className="p-4 rounded-2xl bg-theme-sur2/70 border border-theme-bor space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Eye className="w-4 h-4 text-[#00a870]" />
+            <span className="text-[11px] font-mono uppercase tracking-wider text-theme-txt font-bold">
+              Vista Previa en Vivo (Como se verá al enviar):
+            </span>
+          </div>
+          <span className="text-[10px] font-mono text-theme-txt3">
+            Autocompletado con: <b className="text-theme-txt">{sampleName}</b> ({sampleCompany})
+          </span>
+        </div>
+
+        {/* 1. Tarjeta en el Selector de Plantillas */}
+        <div className="space-y-1">
+          <span className="text-[10px] font-mono uppercase text-theme-txt3 block font-semibold">
+            Apariencia en la lista de selección:
+          </span>
+          <div className="p-2.5 rounded-xl border border-[#00a870] bg-[#00a870]/10 max-w-sm shadow-xs">
+            <div className="font-bold text-xs text-theme-txt mb-0.5 truncate">
+              {draft.name || 'Sin título aún'}
+            </div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded border ${badge.color}`}>
+                {badge.label}
+              </span>
+              <span className="text-[9.5px] text-theme-txt3 truncate">{draft.targetAudience}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 2. Caja del Mensaje Terminado (Idéntica al screenshot del usuario) */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 font-bold">
+              MENSAJE LISTO PARA ENVIAR POR LINKEDIN:
+            </span>
+            <span className="text-[10px] font-mono text-theme-txt3">
+              Autocompletado con nombre y empresa
+            </span>
+          </div>
+
+          <div className="p-3.5 bg-theme-sur border border-theme-bor rounded-xl text-xs text-theme-txt leading-relaxed shadow-2xs">
+            {simulatedMessage || (
+              <span className="italic text-theme-txt3">
+                Escribe tu argumento comercial arriba para ver la simulación en tiempo real...
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* BARRA DE ACCIÓN: CANCELAR & GUARDAR */}
+      <div className="flex items-center justify-between pt-2 border-t border-theme-bor">
         <div>
           {savedSuccess && (
-            <span className="text-xs text-[#00e5a0] font-bold flex items-center gap-1.5 bg-[#00e5a0]/15 px-3 py-1.5 rounded-xl border border-[#00e5a0]/30 shadow-xs animate-in fade-in duration-150">
+            <span className="text-xs text-[#00a870] font-bold flex items-center gap-1.5 bg-[#00a870]/15 px-3 py-1.5 rounded-xl border border-[#00a870]/30 shadow-xs animate-in fade-in duration-150">
               <Check className="w-4 h-4 stroke-[3]" />
-              <span>¡Guardado correctamente en la nube!</span>
+              <span>¡Plantilla guardada y disponible de inmediato!</span>
             </span>
           )}
         </div>
@@ -195,21 +463,20 @@ const TemplateEditorPanel = memo(function TemplateEditorPanel({
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 rounded-lg text-xs font-medium text-theme-txt2 bg-theme-sur2 hover:bg-theme-sur3 cursor-pointer transition-colors"
+            className="px-4 py-2 rounded-xl text-xs font-medium text-theme-txt2 bg-theme-sur2 hover:bg-theme-sur border border-theme-bor cursor-pointer transition-colors"
           >
             Cancelar
           </button>
           <button
-            type="button"
-            onClick={() => handleSubmit()}
-            className="px-5 py-2 rounded-lg text-xs font-bold text-[#00110b] bg-[#00e5a0] hover:bg-[#00e5a0]/90 flex items-center gap-1.5 shadow-md shadow-[#00e5a0]/20 cursor-pointer transition-all active:scale-98"
+            type="submit"
+            className="px-5 py-2.5 rounded-xl text-xs font-bold text-[#00110b] bg-[#00e5a0] hover:bg-[#00e5a0]/90 flex items-center gap-2 shadow-md shadow-[#00e5a0]/25 cursor-pointer transition-all active:scale-98"
           >
-            <Save className="w-3.5 h-3.5" />
-            <span>Guardar Plantilla</span>
+            <Save className="w-4 h-4" />
+            <span>{isCreatingNew ? 'Guardar Nueva Plantilla' : 'Guardar Cambios'}</span>
           </button>
         </div>
       </div>
-    </div>
+    </form>
   );
 });
 
@@ -261,21 +528,21 @@ function TemplateManagerModalInner({
     const defaultCat: TemplateCategory =
       selectedCategory !== 'ALL' && ['Consultoría', 'Soluciones Digitales', 'Entrenamiento / Certificación', 'Lanzamiento Ágil'].includes(selectedCategory)
         ? (selectedCategory as TemplateCategory)
-        : 'Consultoría';
+        : 'Entrenamiento / Certificación';
 
     const newId = `template-${Date.now()}`;
     const newTpl: MessageTemplate = {
       id: newId,
-      name: `Plantilla ${templates.length + 1}: ${defaultCat}`,
+      name: `Nueva Plantilla: ${defaultCat}`,
       category: defaultCat,
-      targetAudience: 'Venta Directa / Profesional',
+      targetAudience: 'Líderes / Gerentes (Equipos)',
       text: 'Hola {nombre}, un gusto saludarte. Vi tu rol como {cargo} en {empresa} y quería consultarte...',
       isActive: false,
     };
     setEditingTemplate(newTpl);
     setIsCreatingNew(true);
     setSavedSuccess(false);
-  }, [selectedCategory, templates.length]);
+  }, [selectedCategory]);
 
   const handleSaveCurrent = useCallback((updatedTemplate: MessageTemplate) => {
     let updated: MessageTemplate[];
@@ -322,7 +589,7 @@ function TemplateManagerModalInner({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4">
-      <div className="bg-theme-sur border border-theme-bor rounded-2xl w-full max-w-5xl shadow-2xl overflow-hidden flex flex-col text-theme-txt max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
+      <div className="bg-theme-sur border border-theme-bor rounded-2xl w-full max-w-5xl shadow-2xl overflow-hidden flex flex-col text-theme-txt max-h-[92vh] animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
         <div className="p-4 px-6 border-b border-theme-bor flex items-center justify-between bg-theme-sur shrink-0">
           <div className="flex items-center gap-3">
@@ -331,13 +598,13 @@ function TemplateManagerModalInner({
             </div>
             <div>
               <h3 className="font-bold text-sm text-theme-txt flex items-center gap-2">
-                <span>Gestor & Segmentación de Plantillas Comerciales</span>
+                <span>Gestor & Creador de Plantillas de Prospección</span>
                 <span className="text-[10.5px] font-mono text-[#00e5a0] bg-[#00e5a0]/10 px-2 py-0.5 rounded border border-[#00e5a0]/25 font-bold">
-                  {templates.length} guardadas
+                  {templates.length} registradas
                 </span>
               </h3>
               <p className="text-xs text-theme-txt2">
-                Segmentadas por <b>Consultoría</b>, <b>Soluciones Digitales</b> y <b>Entrenamiento / Certificación</b>
+                Configuración rápida y visual con vista previa idéntica al envío de LinkedIn
               </p>
             </div>
           </div>
@@ -355,16 +622,16 @@ function TemplateManagerModalInner({
           <div className="bg-[#00e5a0] text-[#00110b] font-bold px-6 py-2.5 flex items-center justify-between text-xs animate-in slide-in-from-top duration-200 shadow-md shrink-0">
             <div className="flex items-center gap-2">
               <Check className="w-4 h-4 stroke-[3]" />
-              <span>¡Plantilla guardada atómicamente y sincronizada en Neon DB sin límites!</span>
+              <span>¡Plantilla guardada y sincronizada en tiempo real con Neon DB!</span>
             </div>
             <span className="text-[10.5px] opacity-85 font-mono">100% Persistente</span>
           </div>
         )}
 
-        {/* Modal Body */}
+        {/* Modal Body: Split view (List on left, Visual Editor on right) */}
         <div className="flex-1 flex overflow-hidden min-h-0">
           {/* Left Column: Segment tabs + Search + List of Templates */}
-          <div className="w-88 border-r border-theme-bor flex flex-col bg-theme-sur2/40 overflow-hidden shrink-0">
+          <div className="w-80 sm:w-88 border-r border-theme-bor flex flex-col bg-theme-sur2/40 overflow-hidden shrink-0">
             {/* Header with New Button */}
             <div className="p-3.5 border-b border-theme-bor space-y-2.5 bg-theme-sur/50">
               <div className="flex items-center justify-between">
@@ -393,7 +660,7 @@ function TemplateManagerModalInner({
                 />
               </div>
 
-              {/* Segment Filter Tabs */}
+              {/* Segment Filter Tabs (Pills exactly like the screenshot) */}
               <div className="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar">
                 <button
                   type="button"
@@ -491,7 +758,7 @@ function TemplateManagerModalInner({
                       }`}
                     >
                       <div className="flex items-start justify-between gap-1 mb-1">
-                        <h4 className="font-semibold text-theme-txt truncate flex-1">{t.name}</h4>
+                        <h4 className="font-bold text-theme-txt truncate flex-1">{t.name}</h4>
                         {isActive && (
                           <span className="text-[9px] font-mono text-[#00e5a0] bg-[#00e5a0]/15 border border-[#00e5a0]/30 px-1.5 py-0.2 rounded font-bold shrink-0">
                             ACTIVA
@@ -544,7 +811,7 @@ function TemplateManagerModalInner({
             </div>
           </div>
 
-          {/* Right Editor Area */}
+          {/* Right Editor Area (High-Converting Form with Live Message Preview) */}
           <div className="flex-1 p-6 overflow-y-auto flex flex-col justify-between space-y-4 bg-theme-sur">
             {editingTemplate ? (
               <TemplateEditorPanel
@@ -562,7 +829,7 @@ function TemplateManagerModalInner({
                 </div>
                 <h4 className="font-bold text-base text-theme-txt">Selecciona una plantilla o crea una nueva</h4>
                 <p className="text-xs text-theme-txt2 mt-1.5 max-w-md leading-relaxed">
-                  Personaliza y segmenta tus argumentos comerciales para <b>Consultoría</b>, <b>Soluciones Digitales</b> y <b>Entrenamiento / Certificación</b>. Puedes guardar todas las plantillas que necesites sin límite.
+                  Personaliza y segmenta tus argumentos comerciales para <b>Consultoría</b>, <b>Soluciones Digitales</b> y <b>Entrenamiento / Certificación</b> con previsualización en tiempo real.
                 </p>
                 <button
                   onClick={handleStartCreate}
@@ -590,7 +857,7 @@ function TemplateManagerModalInner({
               {savedSuccess && (
                 <span className="text-xs text-[#00e5a0] flex items-center gap-1 font-semibold">
                   <Check className="w-3.5 h-3.5 stroke-[3]" />
-                  <span>¡Sincronizado!</span>
+                  <span>¡Sincronizado con Neon DB!</span>
                 </span>
               )}
             </div>

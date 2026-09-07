@@ -677,6 +677,7 @@ export default function Home() {
           templates={templates}
           onClose={handleCloseZernio}
           onMarkContacted={handleZernioMarkContacted}
+          onOpenTemplateManager={() => setIsTemplateManagerOpen(true)}
         />
       )}
 

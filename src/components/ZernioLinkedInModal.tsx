@@ -14,6 +14,7 @@ interface ZernioLinkedInModalProps {
   currentUser: TeamMember | null;
   templates?: MessageTemplate[];
   onMarkContacted?: (id: string) => void;
+  onOpenTemplateManager?: () => void;
 }
 
 function ZernioLinkedInModalInner({
@@ -23,6 +24,7 @@ function ZernioLinkedInModalInner({
   currentUser,
   templates = [],
   onMarkContacted,
+  onOpenTemplateManager,
 }: ZernioLinkedInModalProps) {
   const [accountStatus, setAccountStatus] = useState<any>(null);
   const [loadingStatus, setLoadingStatus] = useState<boolean>(true);
@@ -181,23 +183,24 @@ function ZernioLinkedInModalInner({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4">
-      <div className="bg-theme-sur border border-theme-bor rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col text-theme-txt animate-in fade-in zoom-in-95 duration-150 max-h-[90vh]">
+      <div className="bg-theme-sur border border-theme-bor rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col text-theme-txt animate-in fade-in zoom-in-95 duration-150 max-h-[92vh]">
         {/* Header */}
         <div className="p-4 px-6 border-b border-theme-bor flex items-center justify-between bg-theme-sur shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#0a66c2]/15 border border-[#0a66c2]/30 flex items-center justify-center text-[#0a66c2] font-bold">
-              in
+            <div className="w-10 h-10 rounded-xl bg-[#00a870]/15 flex items-center justify-center text-[#00a870] border border-[#00a870]/30 shadow-xs">
+              <MessageSquare className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-sm text-theme-txt">Gestión Directa LinkedIn & Zernio</h3>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#00a870]/15 text-[#00a870] font-bold border border-[#00a870]/30 flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3" />
-                  <span>Zernio API Conectada</span>
+                <h3 className="font-bold text-sm text-theme-txt">Envío de Mensaje LinkedIn</h3>
+                <span className="text-[10px] font-mono px-2 py-0.2 rounded-full bg-[#00a870]/15 text-[#00a870] font-bold border border-[#00a870]/30">
+                  Zernio Integrado
                 </span>
               </div>
-              <p className="text-xs text-theme-txt2">
-                Prospecto: <b className="text-theme-txt">{contact.first_name} {contact.last_name || ''}</b> ({contact.company || 'Empresa no especificada'})
+              <p className="text-xs text-theme-txt2 mt-0.5">
+                Prospecto: <b className="text-theme-txt">{contact.first_name} {contact.last_name || ''}</b>
+                {contact.position ? ` • ${contact.position}` : ''}
+                {contact.company ? ` (${contact.company})` : ''}
               </p>
             </div>
           </div>
@@ -210,30 +213,18 @@ function ZernioLinkedInModalInner({
           </button>
         </div>
 
-        {/* Body */}
-        <div className="p-6 space-y-4 overflow-y-auto text-xs">
-          {/* Member Linked Account Status Card */}
-          <div className="p-3.5 bg-theme-sur2 rounded-xl border border-theme-bor flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[#00a870]/15 text-[#00a870] flex items-center justify-center font-bold text-xs">
-                {activeMemberName.slice(0, 2).toUpperCase()}
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-xs text-theme-txt">Cuenta Emisora: {activeMemberName}</span>
-                  {accountStatus?.account ? (
-                    <span className="text-[9.5px] font-mono text-[#00a870] bg-[#00a870]/15 px-1.5 py-0.2 rounded font-bold">
-                      ● {accountStatus.account.name} (Online)
-                    </span>
-                  ) : (
-                    <span className="text-[9.5px] font-mono text-[#f59e0b] bg-[#f59e0b]/15 px-1.5 py-0.2 rounded font-bold">
-                      ● Verificando cuenta
-                    </span>
-                  )}
-                </div>
-                <p className="text-[10.5px] text-theme-txt3 font-mono">
-                  {accountStatus?.accountId ? `ID Zernio: ${accountStatus.accountId}` : 'Sincronizado vía Zernio Hub'}
-                </p>
+        {/* Modal Body */}
+        <div className="p-6 space-y-4.5 flex-1 overflow-y-auto">
+          {/* Zernio Connection Status Banner */}
+          <div className="p-3 bg-theme-sur2 border border-theme-bor rounded-xl flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className={`w-2.5 h-2.5 rounded-full ${accountStatus?.connected ? 'bg-[#00a870] animate-pulse' : 'bg-[#f59e0b]'}`} />
+              <div className="text-xs">
+                <span className="font-semibold text-theme-txt">Cuenta Remitente: </span>
+                <span className="font-mono text-theme-txt2">{activeMemberName}</span>
+                <span className="text-theme-txt3 text-[11px] ml-1.5 font-mono">
+                  {accountStatus?.connected ? '(LinkedIn Conectado)' : '(Modo Semi-automático Copiar & Abrir)'}
+                </span>
               </div>
             </div>
 
@@ -242,22 +233,32 @@ function ZernioLinkedInModalInner({
               onClick={checkZernioConnection}
               disabled={loadingStatus}
               className="p-1.5 rounded-lg bg-theme-sur border border-theme-bor hover:border-[#00a870] text-theme-txt2 hover:text-theme-txt text-[10px] flex items-center gap-1 cursor-pointer"
-              title="Re-verificar conexión Zernio"
             >
               <RefreshCw className={`w-3 h-3 ${loadingStatus ? 'animate-spin' : ''}`} />
               <span>Verificar</span>
             </button>
           </div>
 
-          {/* Template Selector Pills with Segmentation Tabs */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 font-bold">
                 Seleccionar Plantilla Comercial ({visibleTemplates.length}/{templates.length}):
               </label>
-              <span className="text-[10px] text-theme-txt3 font-mono">
-                Segmento: <b className="text-theme-txt">{categoryFilter === 'ALL' ? 'Todas' : categoryFilter}</b>
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] text-theme-txt3 font-mono">
+                  Segmento: <b className="text-theme-txt">{categoryFilter === 'ALL' ? 'Todas' : categoryFilter}</b>
+                </span>
+                {onOpenTemplateManager && (
+                  <button
+                    type="button"
+                    onClick={onOpenTemplateManager}
+                    className="text-[10.5px] font-mono font-bold text-[#00a870] hover:underline flex items-center gap-1 cursor-pointer"
+                    title="Crear o gestionar plantillas"
+                  >
+                    <span>+ Nueva Plantilla</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Segment Filter Pills */}
