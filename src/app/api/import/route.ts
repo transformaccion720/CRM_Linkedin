@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import { detectBusinessSegment } from '@/lib/segmentation';
 
 function parseLinkedInDate(dateStr?: string | null): string | null {
   if (!dateStr) return null;
@@ -184,17 +185,19 @@ export async function POST(req: NextRequest) {
       const companies = toInsert.map((c) => c.company);
       const positions = toInsert.map((c) => c.position);
       const connectedOns = toInsert.map((c) => c.connectedOn);
+      const segments = toInsert.map((c) => detectBusinessSegment(c.position));
 
       const insertResult = await sql`
         INSERT INTO contacts (
           first_name, last_name, linkedin_url, email, phone, 
-          company, position, connected_on, status, assigned_to
+          company, position, connected_on, status, assigned_to, business_segment
         )
         SELECT 
           fn, ln, u, em, ph, comp, pos, 
           CASE WHEN con IS NOT NULL AND con != '' THEN con::date ELSE NULL END,
           'Sin contactar',
-          ${assignedTo}
+          ${assignedTo},
+          seg
         FROM UNNEST(
           ${firstNames}::text[],
           ${lastNames}::text[],
@@ -203,8 +206,9 @@ export async function POST(req: NextRequest) {
           ${phones}::text[],
           ${companies}::text[],
           ${positions}::text[],
-          ${connectedOns}::text[]
-        ) AS t(fn, ln, u, em, ph, comp, pos, con)
+          ${connectedOns}::text[],
+          ${segments}::text[]
+        ) AS t(fn, ln, u, em, ph, comp, pos, con, seg)
         ON CONFLICT DO NOTHING
         RETURNING id;
       `;

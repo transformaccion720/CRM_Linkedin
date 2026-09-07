@@ -64,6 +64,7 @@ export default function Home() {
   const [tagFilter, setTagFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
   const [assignedToFilter, setAssignedToFilter] = useState('');
+  const [segmentFilter, setSegmentFilter] = useState<'all' | 'B2B' | 'B2C'>('all');
 
   // 250ms Debounce for instant and lag-free searching
   useEffect(() => {
@@ -82,12 +83,18 @@ export default function Home() {
   const [isTemplateManagerOpen, setIsTemplateManagerOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  // Check saved session in localStorage
+  // Check saved session in localStorage & set intelligent role defaults
   useEffect(() => {
     try {
       const saved = localStorage.getItem('crm_auth_user');
       if (saved) {
-        setCurrentUser(JSON.parse(saved));
+        const u = JSON.parse(saved);
+        setCurrentUser(u);
+        if (u?.name?.toLowerCase().includes('kiara')) {
+          setSegmentFilter('B2C');
+        } else if (u?.name?.toLowerCase().includes('gabino')) {
+          setSegmentFilter('B2B');
+        }
       }
     } catch (e) {
       console.error('Error reading auth session:', e);
@@ -225,6 +232,7 @@ export default function Home() {
       if (tagFilter) params.set('tag', tagFilter);
       if (priorityFilter) params.set('priority', priorityFilter);
       if (assignedToFilter) params.set('assignedTo', assignedToFilter);
+      if (segmentFilter && segmentFilter !== 'all') params.set('segment', segmentFilter);
 
       const res = await fetch(`/api/contacts?${params.toString()}`);
       if (!res.ok) {
@@ -241,7 +249,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, statusFilter, viewFilter, yearFilter, companyFilter, positionFilter, tagFilter, priorityFilter, assignedToFilter]);
+  }, [debouncedSearch, statusFilter, viewFilter, yearFilter, companyFilter, positionFilter, tagFilter, priorityFilter, assignedToFilter, segmentFilter]);
 
   // Initial load
   useEffect(() => {
@@ -446,7 +454,56 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Segment Switcher: B2B vs B2C vs Todos */}
+                  <div className="flex items-center gap-1 bg-theme-sur2 border border-theme-bor p-1 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => setSegmentFilter('all')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        segmentFilter === 'all'
+                          ? 'bg-theme-sur text-theme-txt shadow-xs'
+                          : 'text-theme-txt2 hover:text-theme-txt'
+                      }`}
+                    >
+                      <span>🌐 Todos</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSegmentFilter('B2B')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        segmentFilter === 'B2B'
+                          ? 'bg-[#2979ff] text-white shadow-xs'
+                          : 'text-theme-txt2 hover:text-theme-txt'
+                      }`}
+                      title="Segmento Corporativo & RRHH (Gabino)"
+                    >
+                      <span>🏢 B2B Gabino</span>
+                      {stats?.b2bCount !== undefined && (
+                        <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${segmentFilter === 'B2B' ? 'bg-white/20 text-white' : 'bg-theme-sur text-theme-txt3'}`}>
+                          {stats.b2bCount}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSegmentFilter('B2C')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        segmentFilter === 'B2C'
+                          ? 'bg-[#00a870] text-white shadow-xs'
+                          : 'text-theme-txt2 hover:text-theme-txt'
+                      }`}
+                      title="Segmento Alumnos & Certificaciones (Kiara)"
+                    >
+                      <span>👤 B2C Kiara</span>
+                      {stats?.b2cCount !== undefined && (
+                        <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${segmentFilter === 'B2C' ? 'bg-white/20 text-white' : 'bg-theme-sur text-theme-txt3'}`}>
+                          {stats.b2cCount}
+                        </span>
+                      )}
+                    </button>
+                  </div>
+
                   <div className="flex items-center bg-theme-sur2 border border-theme-bor rounded-xl p-0.5">
                     <button
                       onClick={() => setViewMode('table')}
@@ -489,12 +546,50 @@ export default function Home() {
           )}
 
           {activeTab === 'segmentos' && (
-            <PipelineView
-              contacts={contacts}
-              onSelectContact={setSelectedContact}
-              onOpenTemplates={setTemplateContact}
-              onQuickStatusChange={handleQuickStatusChange}
-            />
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="p-3 bg-theme-sur border-b border-theme-bor flex items-center justify-between gap-3 shrink-0 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-theme-txt flex items-center gap-1.5">
+                    <span>Enfoque del Pipeline:</span>
+                  </span>
+                  <div className="flex items-center gap-1.5 bg-theme-sur2 border border-theme-bor p-1 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => setSegmentFilter('all')}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        segmentFilter === 'all' ? 'bg-theme-sur text-theme-txt shadow-xs' : 'text-theme-txt2 hover:text-theme-txt'
+                      }`}
+                    >
+                      🌐 Todos ({stats?.total || contacts.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSegmentFilter('B2B')}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        segmentFilter === 'B2B' ? 'bg-[#2979ff] text-white shadow-xs' : 'text-theme-txt2 hover:text-theme-txt'
+                      }`}
+                    >
+                      🏢 B2B Gabino ({stats?.b2bCount})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSegmentFilter('B2C')}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        segmentFilter === 'B2C' ? 'bg-[#00a870] text-white shadow-xs' : 'text-theme-txt2 hover:text-theme-txt'
+                      }`}
+                    >
+                      👤 B2C Kiara ({stats?.b2cCount})
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <PipelineView
+                contacts={contacts}
+                onSelectContact={setSelectedContact}
+                onOpenTemplates={setTemplateContact}
+                onQuickStatusChange={handleQuickStatusChange}
+              />
+            </div>
           )}
 
           {activeTab === 'funnel' && (

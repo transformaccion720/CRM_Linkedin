@@ -195,6 +195,15 @@ export default function PipelineView({
                             <div className="font-semibold text-xs text-theme-txt group-hover:text-[#00e5a0] transition-colors truncate">
                               {c.first_name} {c.last_name || ''}
                             </div>
+                            <span
+                              className={`text-[8px] font-mono font-bold px-1.5 py-0.2 rounded border shrink-0 ${
+                                c.business_segment === 'B2C'
+                                  ? 'bg-[#00a870]/15 text-[#00a870] border-[#00a870]/30'
+                                  : 'bg-[#2979ff]/15 text-[#2979ff] border-[#2979ff]/30'
+                              }`}
+                            >
+                              {c.business_segment === 'B2C' ? '👤 B2C' : '🏢 B2B'}
+                            </span>
                             {c.source === 'BUSQUEDA_ACTIVA' && (
                               <span className="text-[8px] font-bold px-1.5 py-0.2 rounded bg-[#00a870]/15 text-[#00a870] border border-[#00a870]/30 shrink-0">
                                 ✨ Nuevo

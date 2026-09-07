@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import { detectBusinessSegment } from '@/lib/segmentation';
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search')?.trim() || '';
     const status = searchParams.get('status') || '';
+    const segment = searchParams.get('segment') || '';
     const viewFilter = searchParams.get('viewFilter') || 'all';
     const year = searchParams.get('year') || '';
     const company = searchParams.get('company') || '';
@@ -40,7 +42,7 @@ export async function GET(req: NextRequest) {
           TO_CHAR(c.connected_on, 'YYYY-MM-DD') as connected_on,
           c.status, c.notes, c.priority, 
           TO_CHAR(c.follow_up_date, 'YYYY-MM-DD') as follow_up_date,
-          c.tags, c.assigned_to, c.source, c.post_url, c.service_needed,
+          c.tags, c.assigned_to, c.source, c.post_url, c.service_needed, c.business_segment,
           c.created_at, c.updated_at,
           ARRAY_REMOVE(
             ARRAY(
@@ -62,6 +64,7 @@ export async function GET(req: NextRequest) {
             LOWER(COALESCE(c.phone, '')) LIKE ${searchPattern} OR
             LOWER(COALESCE(c.service_needed, '')) LIKE ${searchPattern}
           ))
+          AND (${segment === '' || segment === 'all'}::boolean OR c.business_segment = ${segment})
           AND (${status === '' || status === 'all'}::boolean OR c.status = ${status} OR (${status === 'Seguimiento'}::boolean AND c.status IN ('Seguimiento', 'En pausa')))
           AND (${company === '' || company === 'all'}::boolean OR c.company = ${company})
           AND (${position === '' || position === 'all'}::boolean OR c.position = ${position})
@@ -143,6 +146,7 @@ export async function POST(req: NextRequest) {
       source,
       post_url,
       service_needed,
+      business_segment,
     } = body;
 
     if (!first_name) {
@@ -150,6 +154,7 @@ export async function POST(req: NextRequest) {
     }
 
     const leadSource = source || 'BUSQUEDA_ACTIVA';
+    const finalSegment = business_segment || detectBusinessSegment(position);
 
     const result = await sql`
       INSERT INTO contacts (
@@ -170,7 +175,8 @@ export async function POST(req: NextRequest) {
         assigned_to,
         source,
         post_url,
-        service_needed
+        service_needed,
+        business_segment
       )
       VALUES (
         ${first_name}, 
@@ -190,7 +196,8 @@ export async function POST(req: NextRequest) {
         ${assigned_to || 'Gabino'},
         ${leadSource},
         ${post_url || null},
-        ${service_needed || null}
+        ${service_needed || null},
+        ${finalSegment}
       )
       RETURNING *
     `;

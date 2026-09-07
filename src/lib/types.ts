@@ -7,6 +7,8 @@ export type ContactStatus =
   | 'Descartado'
   | 'En pausa';
 
+export type BusinessSegment = 'B2B' | 'B2C';
+
 export type ContactSource =
   | 'BUSQUEDA_ACTIVA' // 🎯 Prospectos detectados buscando servicios / Signal Lead
   | 'PROSPECCION_DIRECTA' // 👤 Añadido manualmente
@@ -83,6 +85,7 @@ export interface Contact {
   source?: ContactSource; // Origen del lead
   post_url?: string | null; // Link de la publicación / post de búsqueda
   service_needed?: string | null; // Servicio / necesidad específica que busca
+  business_segment?: BusinessSegment | null; // Segmento: B2B Corporativo vs B2C Alumnos/Programas
   last_interaction_date?: string | null;
   last_message_preview?: string | null;
   created_at?: string;
@@ -197,6 +200,12 @@ export interface ContactStats {
   recentCount: number;
   pendingFollowUps?: number;
   byStatus: Record<string, number>;
+  b2bCount?: number;
+  b2cCount?: number;
+  b2bByStatus?: Record<string, number>;
+  b2cByStatus?: Record<string, number>;
+  b2bFollowUps?: number;
+  b2cFollowUps?: number;
   topCompanies?: { company: string; count: string }[];
   topCountries?: { country: string; count: string }[];
   byYear?: { yr: string; count: string }[];

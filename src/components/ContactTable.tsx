@@ -383,6 +383,16 @@ function ContactTableInner({
                             </div>
 
                             <div className="flex items-center gap-1.5 flex-wrap">
+                              <span
+                                className={`inline-flex items-center px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold border ${
+                                  c.business_segment === 'B2C'
+                                    ? 'bg-[#00a870]/15 text-[#00a870] border-[#00a870]/30'
+                                    : 'bg-[#2979ff]/15 text-[#2979ff] border-[#2979ff]/30'
+                                }`}
+                                title={c.business_segment === 'B2C' ? 'B2C - Alumnos & Programas (Kiara)' : 'B2B - Corporativo & RRHH (Gabino)'}
+                              >
+                                {c.business_segment === 'B2C' ? '👤 B2C' : '🏢 B2B'}
+                              </span>
                               {c.source === 'BUSQUEDA_ACTIVA' && (
                                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[8.5px] font-bold bg-[#00a870]/15 text-[#00a870] border border-[#00a870]/30">
                                   <span>✨ Nuevo Prospecto</span>
@@ -545,7 +555,18 @@ function ContactTableInner({
                             <div className="font-semibold text-xs text-theme-txt group-hover:text-[#00a870] transition-colors truncate max-w-[140px]">
                               {c.first_name} {c.last_name || ''}
                             </div>
-                            <span className="text-[10px] text-theme-txt3 font-mono">{c.assigned_to}</span>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span
+                                className={`text-[8px] font-mono font-bold px-1.5 py-0.2 rounded border ${
+                                  c.business_segment === 'B2C'
+                                    ? 'bg-[#00a870]/15 text-[#00a870] border-[#00a870]/30'
+                                    : 'bg-[#2979ff]/15 text-[#2979ff] border-[#2979ff]/30'
+                                }`}
+                              >
+                                {c.business_segment === 'B2C' ? '👤 B2C' : '🏢 B2B'}
+                              </span>
+                              <span className="text-[10px] text-theme-txt3 font-mono">{c.assigned_to}</span>
+                            </div>
                           </div>
                         </div>
                         {c.priority && c.priority > 1 && (

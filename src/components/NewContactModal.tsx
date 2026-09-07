@@ -5,7 +5,8 @@ import {
   X, UserPlus, Building2, Briefcase, Mail, Phone, Link2, Star, Calendar, 
   Tag, Check, Loader2, UserCheck, Globe, ExternalLink, HelpCircle
 } from 'lucide-react';
-import { Contact, ContactStatus, ContactSource, TeamMember } from '@/lib/types';
+import { Contact, ContactStatus, ContactSource, TeamMember, BusinessSegment } from '@/lib/types';
+import { detectBusinessSegment } from '@/lib/segmentation';
 
 interface NewContactModalProps {
   isOpen: boolean;
@@ -35,6 +36,7 @@ function NewContactModalInner({
   const [notes, setNotes] = useState('');
   const [followUpDate, setFollowUpDate] = useState('');
   const [assignedTo, setAssignedTo] = useState('Gabino');
+  const [businessSegment, setBusinessSegment] = useState<BusinessSegment>('B2B');
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -101,6 +103,7 @@ function NewContactModalInner({
           follow_up_date: followUpDate || null,
           tags: finalTags,
           assigned_to: assignedTo.trim() || 'Gabino',
+          business_segment: businessSegment,
         }),
       });
 
@@ -200,6 +203,36 @@ function NewContactModalInner({
 
             <div>
               <label className="text-xs font-bold text-theme-txt block mb-1">
+                Segmento:
+              </label>
+              <div className="flex items-center gap-1 bg-theme-sur p-0.5 rounded-xl border border-theme-bor">
+                <button
+                  type="button"
+                  onClick={() => setBusinessSegment('B2B')}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    businessSegment === 'B2B'
+                      ? 'bg-[#2979ff] text-white shadow-xs'
+                      : 'text-theme-txt2 hover:text-theme-txt'
+                  }`}
+                >
+                  🏢 B2B
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBusinessSegment('B2C')}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    businessSegment === 'B2C'
+                      ? 'bg-[#00a870] text-white shadow-xs'
+                      : 'text-theme-txt2 hover:text-theme-txt'
+                  }`}
+                >
+                  👤 B2C
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-theme-txt block mb-1">
                 Asignado a:
               </label>
               <select
@@ -253,14 +286,25 @@ function NewContactModalInner({
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-theme-txt mb-1 flex items-center gap-1">
-                <Briefcase className="w-3.5 h-3.5 text-theme-txt3" />
-                <span>Cargo / Posición</span>
+              <label className="text-xs font-semibold text-theme-txt mb-1 flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                  <Briefcase className="w-3.5 h-3.5 text-theme-txt3" />
+                  <span>Cargo / Posición</span>
+                </span>
+                {/recurso|humano|rrhh|talento|desarrollo organizacional/i.test(position) && (
+                  <span className="text-[9px] font-mono text-[#2979ff] bg-[#2979ff]/10 px-1.5 py-0.2 rounded font-semibold">
+                    RRHH $\rightarrow$ B2B
+                  </span>
+                )}
               </label>
               <input
                 type="text"
                 value={position}
-                onChange={(e) => setPosition(e.target.value)}
+                onChange={(e) => {
+                  const newPos = e.target.value;
+                  setPosition(newPos);
+                  setBusinessSegment(detectBusinessSegment(newPos));
+                }}
                 placeholder="Ej. Gerente de RRHH / Líder TI"
                 className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3.5 py-2 text-xs text-theme-txt outline-hidden"
               />

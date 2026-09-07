@@ -6,7 +6,8 @@ import {
   Tag, Clock, Save, Edit3, MessageSquare, Check, User, Globe, AlertTriangle,
   UserCheck, Plus, ChevronDown, Sparkles
 } from 'lucide-react';
-import { Contact, ContactStatus, TeamMember } from '@/lib/types';
+import { Contact, ContactStatus, TeamMember, BusinessSegment } from '@/lib/types';
+import { detectBusinessSegment } from '@/lib/segmentation';
 
 interface ContactDrawerProps {
   contact: Contact | null;
@@ -41,6 +42,7 @@ function ContactDrawerInner({
   const [notes, setNotes] = useState('');
   const [followUpDate, setFollowUpDate] = useState('');
   const [assignedTo, setAssignedTo] = useState('Gabino');
+  const [businessSegment, setBusinessSegment] = useState<BusinessSegment>('B2B');
   const [tags, setTags] = useState<string[]>([]);
   const [newTagInput, setNewTagInput] = useState('');
   const [isTagDropdownOpen, setIsTagDropdownOpen] = useState(false);
@@ -78,6 +80,7 @@ function ContactDrawerInner({
       setPriority(contact.priority || 1);
       setPostUrl(contact.post_url || '');
       setServiceNeeded(contact.service_needed || '');
+      setBusinessSegment((contact.business_segment as BusinessSegment) || detectBusinessSegment(contact.position));
       setNotes(contact.notes || '');
       setFollowUpDate(contact.follow_up_date || '');
       setAssignedTo(contact.assigned_to || (teamMembers[0]?.name) || 'Gabino');
@@ -150,6 +153,7 @@ function ContactDrawerInner({
           priority,
           post_url: postUrl.trim() || null,
           service_needed: serviceNeeded.trim() || null,
+          business_segment: businessSegment,
           notes,
           follow_up_date: followUpDate || null,
           assigned_to: assignedTo.trim() || contact.assigned_to || 'Gabino',
@@ -251,6 +255,53 @@ function ContactDrawerInner({
             )}
           </div>
 
+          {/* Segment Selector: B2B Corporativo (Gabino) vs B2C Alumnos (Kiara) */}
+          <div className="bg-theme-sur2/70 p-3 rounded-2xl border border-theme-bor flex items-center justify-between gap-3">
+            <div>
+              <span className="text-[10px] font-mono uppercase tracking-wider text-theme-txt3 block font-bold">
+                Línea / Segmento Comercial
+              </span>
+              <span className="text-xs font-bold text-theme-txt flex items-center gap-1.5 mt-0.5">
+                {businessSegment === 'B2B' ? (
+                  <>
+                    <span className="text-sm">🏢</span>
+                    <span className="text-[#2979ff]">B2B Corporativo & RRHH</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-sm">👤</span>
+                    <span className="text-[#00a870]">B2C Alumno / Certificación</span>
+                  </>
+                )}
+              </span>
+            </div>
+
+            <div className="flex items-center bg-theme-sur p-1 rounded-xl border border-theme-bor shrink-0">
+              <button
+                type="button"
+                onClick={() => setBusinessSegment('B2B')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  businessSegment === 'B2B'
+                    ? 'bg-[#2979ff] text-white shadow-xs'
+                    : 'text-theme-txt2 hover:text-theme-txt'
+                }`}
+              >
+                🏢 B2B
+              </button>
+              <button
+                type="button"
+                onClick={() => setBusinessSegment('B2C')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  businessSegment === 'B2C'
+                    ? 'bg-[#00a870] text-white shadow-xs'
+                    : 'text-theme-txt2 hover:text-theme-txt'
+                }`}
+              >
+                👤 B2C
+              </button>
+            </div>
+          </div>
+
           {/* Editable Personal, Company & Location Info */}
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-2.5">
@@ -275,14 +326,27 @@ function ContactDrawerInner({
             </div>
 
             <div>
-              <label className="text-[11px] font-medium text-theme-txt2 mb-1 flex items-center gap-1">
-                <Briefcase className="w-3 h-3 text-theme-txt3" />
-                <span>Cargo / Posición</span>
+              <label className="text-[11px] font-medium text-theme-txt2 mb-1 flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                  <Briefcase className="w-3 h-3 text-theme-txt3" />
+                  <span>Cargo / Posición</span>
+                </span>
+                {/recurso|humano|rrhh|talento|desarrollo organizacional/i.test(position) && (
+                  <span className="text-[9.5px] font-mono text-[#2979ff] bg-[#2979ff]/10 px-1.5 py-0.2 rounded font-semibold">
+                    🎯 RRHH/Talento $\rightarrow$ B2B
+                  </span>
+                )}
               </label>
               <input
                 type="text"
                 value={position}
-                onChange={(e) => setPosition(e.target.value)}
+                onChange={(e) => {
+                  const newPos = e.target.value;
+                  setPosition(newPos);
+                  if (/recurso|humano|rrhh|talento|desarrollo organizacional/i.test(newPos)) {
+                    setBusinessSegment('B2B');
+                  }
+                }}
                 className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3 py-1.5 text-xs text-theme-txt outline-hidden"
               />
             </div>

@@ -26,11 +26,15 @@ export async function GET() {
           COUNT(DISTINCT CASE WHEN company IS NOT NULL AND company != '' THEN company END)::int as companies_count,
           COUNT(CASE WHEN connected_on >= '2025-01-01' THEN 1 END)::int as recent_count,
           COUNT(CASE WHEN follow_up_date IS NOT NULL AND follow_up_date <= CURRENT_DATE + INTERVAL '7 days' THEN 1 END)::int as pending_follow_ups,
-          COUNT(CASE WHEN source = 'BUSQUEDA_ACTIVA' THEN 1 END)::int as active_search_count
+          COUNT(CASE WHEN source = 'BUSQUEDA_ACTIVA' THEN 1 END)::int as active_search_count,
+          COUNT(CASE WHEN business_segment = 'B2B' THEN 1 END)::int as b2b_count,
+          COUNT(CASE WHEN business_segment = 'B2C' THEN 1 END)::int as b2c_count,
+          COUNT(CASE WHEN business_segment = 'B2B' AND follow_up_date IS NOT NULL AND follow_up_date <= CURRENT_DATE + INTERVAL '7 days' THEN 1 END)::int as b2b_follow_ups,
+          COUNT(CASE WHEN business_segment = 'B2C' AND follow_up_date IS NOT NULL AND follow_up_date <= CURRENT_DATE + INTERVAL '7 days' THEN 1 END)::int as b2c_follow_ups
         FROM contacts;
       `,
-      // 2. Status breakdown
-      sql`SELECT status, COUNT(*)::int as count FROM contacts GROUP BY status`,
+      // 2. Status breakdown (global + segmented)
+      sql`SELECT COALESCE(business_segment, 'B2B') as business_segment, status, COUNT(*)::int as count FROM contacts GROUP BY business_segment, status`,
       // 3. Member stats breakdown
       sql`
         SELECT 
@@ -99,9 +103,23 @@ export async function GET() {
     const pendingFollowUps = s.pending_follow_ups || 0;
     const activeSearchCount = s.active_search_count || 0;
 
+    const b2bCount = s.b2b_count || 0;
+    const b2cCount = s.b2c_count || 0;
+    const b2bFollowUps = s.b2b_follow_ups || 0;
+    const b2cFollowUps = s.b2c_follow_ups || 0;
+
     const byStatus: Record<string, number> = {};
+    const b2bByStatus: Record<string, number> = {};
+    const b2cByStatus: Record<string, number> = {};
+
     statusResult.forEach((r) => {
-      byStatus[r.status] = parseInt(r.count, 10);
+      const cnt = parseInt(r.count, 10);
+      byStatus[r.status] = (byStatus[r.status] || 0) + cnt;
+      if (r.business_segment === 'B2B') {
+        b2bByStatus[r.status] = cnt;
+      } else if (r.business_segment === 'B2C') {
+        b2cByStatus[r.status] = cnt;
+      }
     });
 
     const byMember = memberStatsResult.map((r) => ({
@@ -124,7 +142,13 @@ export async function GET() {
       recentCount,
       pendingFollowUps,
       activeSearchCount,
+      b2bCount,
+      b2cCount,
+      b2bFollowUps,
+      b2cFollowUps,
       byStatus,
+      b2bByStatus,
+      b2cByStatus,
       byMember,
       topCompanies,
       topCountries,

@@ -29,7 +29,7 @@ export async function GET(
         TO_CHAR(c.connected_on, 'YYYY-MM-DD') as connected_on,
         c.status, c.notes, c.priority, 
         TO_CHAR(c.follow_up_date, 'YYYY-MM-DD') as follow_up_date,
-        c.tags, c.assigned_to, c.source, c.post_url, c.service_needed,
+        c.tags, c.assigned_to, c.source, c.post_url, c.service_needed, c.business_segment,
         c.created_at, c.updated_at,
         ARRAY_REMOVE(
           ARRAY(
@@ -82,11 +82,12 @@ export async function PATCH(
       source,
       post_url,
       service_needed,
+      business_segment,
       performed_by 
     } = body;
 
     // Get current state before update for audit log
-    const prevRows = await sql`SELECT first_name, last_name, status, email, phone, company, position, country, assigned_to, tags, notes, source, post_url, service_needed FROM contacts WHERE id = ${id} LIMIT 1`;
+    const prevRows = await sql`SELECT first_name, last_name, status, email, phone, company, position, country, assigned_to, tags, notes, source, post_url, service_needed, business_segment FROM contacts WHERE id = ${id} LIMIT 1`;
     const prev = prevRows[0];
 
     // Ensure tags is handled safely as an array
@@ -107,6 +108,7 @@ export async function PATCH(
         source = CASE WHEN ${source !== undefined} THEN ${source} ELSE source END,
         post_url = CASE WHEN ${post_url !== undefined} THEN ${post_url} ELSE post_url END,
         service_needed = CASE WHEN ${service_needed !== undefined} THEN ${service_needed} ELSE service_needed END,
+        business_segment = CASE WHEN ${business_segment !== undefined} THEN ${business_segment} ELSE business_segment END,
         notes = CASE WHEN ${notes !== undefined} THEN ${notes} ELSE notes END,
         priority = CASE WHEN ${priority !== undefined} THEN ${priority} ELSE priority END,
         follow_up_date = CASE WHEN ${follow_up_date !== undefined} THEN ${follow_up_date} ELSE follow_up_date END,
@@ -118,7 +120,7 @@ export async function PATCH(
         TO_CHAR(connected_on, 'YYYY-MM-DD') as connected_on,
         status, notes, priority,
         TO_CHAR(follow_up_date, 'YYYY-MM-DD') as follow_up_date,
-        tags, assigned_to, source, post_url, service_needed,
+        tags, assigned_to, source, post_url, service_needed, business_segment,
         created_at, updated_at;
     `;
 
