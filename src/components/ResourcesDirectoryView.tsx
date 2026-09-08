@@ -11,6 +11,7 @@ interface ResourcesDirectoryViewProps {
 export default function ResourcesDirectoryView({ currentUser }: ResourcesDirectoryViewProps) {
   const [resources, setResources] = useState<CommercialResource[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [segmentFilter, setSegmentFilter] = useState<'all' | 'B2B' | 'B2C'>('all');
   const [search, setSearch] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -22,6 +23,7 @@ export default function ResourcesDirectoryView({ currentUser }: ResourcesDirecto
   const [newTitle, setNewTitle] = useState<string>('');
   const [newDescription, setNewDescription] = useState<string>('');
   const [newCategory, setNewCategory] = useState<'BROCHURE' | 'VIDEO' | 'FLYER' | 'PROPOSAL' | 'LINK'>('BROCHURE');
+  const [newSegment, setNewSegment] = useState<'ALL' | 'B2B' | 'B2C'>('ALL');
   const [newExternalLink, setNewExternalLink] = useState<string>('');
   
   // File upload state
@@ -38,6 +40,7 @@ export default function ResourcesDirectoryView({ currentUser }: ResourcesDirecto
     try {
       const params = new URLSearchParams();
       if (categoryFilter && categoryFilter !== 'all') params.set('category', categoryFilter);
+      if (segmentFilter && segmentFilter !== 'all') params.set('segment', segmentFilter);
       if (search) params.set('search', search);
 
       const res = await fetch(`/api/resources?${params.toString()}`);
@@ -54,7 +57,7 @@ export default function ResourcesDirectoryView({ currentUser }: ResourcesDirecto
 
   useEffect(() => {
     fetchResources();
-  }, [categoryFilter, search]);
+  }, [categoryFilter, search, segmentFilter]);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -158,6 +161,7 @@ export default function ResourcesDirectoryView({ currentUser }: ResourcesDirecto
         title: newTitle.trim(),
         description: newDescription.trim() || null,
         category: newCategory,
+        business_segment: newSegment,
         created_by: currentUser?.name || 'Gabino',
       };
 
@@ -253,6 +257,51 @@ export default function ResourcesDirectoryView({ currentUser }: ResourcesDirecto
         </div>
       </div>
 
+      {/* Segment Switcher Tabs: B2B vs B2C vs Todos */}
+      <div className="flex items-center gap-2 border-b border-theme-bor pb-3">
+        <div className="flex items-center gap-1.5 bg-theme-sur2 border border-theme-bor p-1 rounded-xl">
+          <button
+            type="button"
+            onClick={() => setSegmentFilter('all')}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              segmentFilter === 'all'
+                ? 'bg-theme-sur text-theme-txt shadow-xs'
+                : 'text-theme-txt2 hover:text-theme-txt'
+            }`}
+          >
+            🌐 Todos los Recursos
+          </button>
+          <button
+            type="button"
+            onClick={() => setSegmentFilter('B2B')}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              segmentFilter === 'B2B'
+                ? 'bg-[#2979ff] text-white shadow-xs'
+                : 'text-theme-txt2 hover:text-theme-txt'
+            }`}
+          >
+            <span>🏢 Recursos B2B Corporativo (Gabino)</span>
+            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-white/20 text-white font-bold">
+              {resources.filter(r => r.business_segment === 'B2B' || r.business_segment === 'ALL').length}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSegmentFilter('B2C')}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              segmentFilter === 'B2C'
+                ? 'bg-[#00a870] text-white shadow-xs'
+                : 'text-theme-txt2 hover:text-theme-txt'
+            }`}
+          >
+            <span>👤 Recursos B2C Alumnos (Kiara)</span>
+            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-white/20 text-white font-bold">
+              {resources.filter(r => r.business_segment === 'B2C' || r.business_segment === 'ALL').length}
+            </span>
+          </button>
+        </div>
+      </div>
+
       {/* Filter and Search Bar */}
       <div className="bg-theme-sur border border-theme-bor p-3.5 rounded-xl flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap">
@@ -324,11 +373,22 @@ export default function ResourcesDirectoryView({ currentUser }: ResourcesDirecto
                 className="bg-theme-sur border border-theme-bor hover:border-theme-bor2 rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-4 transition-all"
               >
                 <div className="space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border flex items-center gap-1 ${badge.color}`}>
-                      <Icon className="w-3 h-3" />
-                      <span>{badge.label}</span>
-                    </span>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border flex items-center gap-1 ${badge.color}`}>
+                        <Icon className="w-3 h-3" />
+                        <span>{badge.label}</span>
+                      </span>
+                      <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded border ${
+                        r.business_segment === 'B2B'
+                          ? 'bg-[#2979ff]/15 text-[#2979ff] border-[#2979ff]/30'
+                          : r.business_segment === 'B2C'
+                          ? 'bg-[#00a870]/15 text-[#00a870] border-[#00a870]/30'
+                          : 'bg-theme-sur2 text-theme-txt3 border-theme-bor'
+                      }`}>
+                        {r.business_segment === 'B2B' ? '🏢 B2B' : r.business_segment === 'B2C' ? '👤 B2C' : '🌐 General'}
+                      </span>
+                    </div>
 
                     <button
                       onClick={() => handleDeleteResource(r.id, r.title)}
@@ -553,21 +613,38 @@ export default function ResourcesDirectoryView({ currentUser }: ResourcesDirecto
                 />
               </div>
 
-              <div>
-                <label className="text-[11px] font-mono uppercase text-theme-txt2 block mb-1">
-                  Categoría del Material
-                </label>
-                <select
-                  value={newCategory}
-                  onChange={(e) => setNewCategory(e.target.value as any)}
-                  className="w-full bg-theme-sur2 border border-theme-bor rounded-xl px-3 py-2 text-xs text-theme-txt outline-hidden cursor-pointer"
-                >
-                  <option value="BROCHURE">📄 Brochure (PDF)</option>
-                  <option value="VIDEO">🎥 Video Demo / Loom / YouTube</option>
-                  <option value="FLYER">🖼️ Flyer / Imagen</option>
-                  <option value="PROPOSAL">✨ Propuesta / Deck Comercial</option>
-                  <option value="LINK">🔗 Enlace Web / Reunión</option>
-                </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-mono uppercase text-theme-txt2 block mb-1">
+                    Categoría del Material
+                  </label>
+                  <select
+                    value={newCategory}
+                    onChange={(e) => setNewCategory(e.target.value as any)}
+                    className="w-full bg-theme-sur2 border border-theme-bor rounded-xl px-3 py-2 text-xs text-theme-txt outline-hidden cursor-pointer"
+                  >
+                    <option value="BROCHURE">📄 Brochure (PDF)</option>
+                    <option value="VIDEO">🎥 Video Demo / Loom / YouTube</option>
+                    <option value="FLYER">🖼️ Flyer / Imagen</option>
+                    <option value="PROPOSAL">✨ Propuesta / Deck Comercial</option>
+                    <option value="LINK">🔗 Enlace Web / Reunión</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-mono uppercase text-theme-txt2 block mb-1">
+                    Segmento Destinatario
+                  </label>
+                  <select
+                    value={newSegment}
+                    onChange={(e) => setNewSegment(e.target.value as any)}
+                    className="w-full bg-theme-sur2 border border-theme-bor rounded-xl px-3 py-2 text-xs text-theme-txt outline-hidden cursor-pointer font-bold"
+                  >
+                    <option value="ALL">🌐 Ambos / General</option>
+                    <option value="B2B">🏢 B2B Corporativo (Gabino)</option>
+                    <option value="B2C">👤 B2C Alumnos (Kiara)</option>
+                  </select>
+                </div>
               </div>
 
               <div>

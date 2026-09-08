@@ -27,7 +27,7 @@ export async function GET(
       SELECT 
         c.id, c.first_name, c.last_name, c.linkedin_url, c.email, c.phone, c.company, c.position, c.country,
         TO_CHAR(c.connected_on, 'YYYY-MM-DD') as connected_on,
-        c.status, c.notes, c.priority, 
+        c.status, c.notes, c.priority, c.deal_value, c.next_step,
         TO_CHAR(c.follow_up_date, 'YYYY-MM-DD') as follow_up_date,
         c.tags, c.assigned_to, c.source, c.post_url, c.service_needed, c.business_segment,
         c.created_at, c.updated_at,
@@ -83,11 +83,13 @@ export async function PATCH(
       post_url,
       service_needed,
       business_segment,
+      deal_value,
+      next_step,
       performed_by 
     } = body;
 
     // Get current state before update for audit log
-    const prevRows = await sql`SELECT first_name, last_name, status, email, phone, company, position, country, assigned_to, tags, notes, source, post_url, service_needed, business_segment FROM contacts WHERE id = ${id} LIMIT 1`;
+    const prevRows = await sql`SELECT first_name, last_name, status, email, phone, company, position, country, assigned_to, tags, notes, source, post_url, service_needed, business_segment, deal_value, next_step FROM contacts WHERE id = ${id} LIMIT 1`;
     const prev = prevRows[0];
 
     // Ensure tags is handled safely as an array
@@ -109,6 +111,8 @@ export async function PATCH(
         post_url = CASE WHEN ${post_url !== undefined} THEN ${post_url} ELSE post_url END,
         service_needed = CASE WHEN ${service_needed !== undefined} THEN ${service_needed} ELSE service_needed END,
         business_segment = CASE WHEN ${business_segment !== undefined} THEN ${business_segment} ELSE business_segment END,
+        deal_value = CASE WHEN ${deal_value !== undefined} THEN ${deal_value !== null ? Number(deal_value) : 0} ELSE deal_value END,
+        next_step = CASE WHEN ${next_step !== undefined} THEN ${next_step} ELSE next_step END,
         notes = CASE WHEN ${notes !== undefined} THEN ${notes} ELSE notes END,
         priority = CASE WHEN ${priority !== undefined} THEN ${priority} ELSE priority END,
         follow_up_date = CASE WHEN ${follow_up_date !== undefined} THEN ${follow_up_date} ELSE follow_up_date END,
@@ -118,7 +122,7 @@ export async function PATCH(
       RETURNING 
         id, first_name, last_name, linkedin_url, email, phone, company, position, country,
         TO_CHAR(connected_on, 'YYYY-MM-DD') as connected_on,
-        status, notes, priority,
+        status, notes, priority, deal_value, next_step,
         TO_CHAR(follow_up_date, 'YYYY-MM-DD') as follow_up_date,
         tags, assigned_to, source, post_url, service_needed, business_segment,
         created_at, updated_at;

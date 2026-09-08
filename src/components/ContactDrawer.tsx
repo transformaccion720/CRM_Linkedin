@@ -43,6 +43,8 @@ function ContactDrawerInner({
   const [followUpDate, setFollowUpDate] = useState('');
   const [assignedTo, setAssignedTo] = useState('Gabino');
   const [businessSegment, setBusinessSegment] = useState<BusinessSegment>('B2B');
+  const [dealValue, setDealValue] = useState<string>('');
+  const [nextStep, setNextStep] = useState<string>('');
   const [tags, setTags] = useState<string[]>([]);
   const [newTagInput, setNewTagInput] = useState('');
   const [isTagDropdownOpen, setIsTagDropdownOpen] = useState(false);
@@ -81,6 +83,8 @@ function ContactDrawerInner({
       setPostUrl(contact.post_url || '');
       setServiceNeeded(contact.service_needed || '');
       setBusinessSegment((contact.business_segment as BusinessSegment) || detectBusinessSegment(contact.position));
+      setDealValue(contact.deal_value ? String(contact.deal_value) : '');
+      setNextStep(contact.next_step || '');
       setNotes(contact.notes || '');
       setFollowUpDate(contact.follow_up_date || '');
       setAssignedTo(contact.assigned_to || (teamMembers[0]?.name) || 'Gabino');
@@ -154,6 +158,8 @@ function ContactDrawerInner({
           post_url: postUrl.trim() || null,
           service_needed: serviceNeeded.trim() || null,
           business_segment: businessSegment,
+          deal_value: dealValue ? Number(dealValue) : 0,
+          next_step: nextStep.trim() || null,
           notes,
           follow_up_date: followUpDate || null,
           assigned_to: assignedTo.trim() || contact.assigned_to || 'Gabino',
@@ -181,6 +187,38 @@ function ContactDrawerInner({
     const dd = String(d.getDate()).padStart(2, '0');
     setFollowUpDate(`${yyyy}-${mm}-${dd}`);
   };
+
+  // TA720 B2B Commercial Cadence Helper (Día 0, 3-4, 7-10, 15)
+  const applyB2BCadence = (dayOffset: number, stepText: string, targetStatus?: ContactStatus) => {
+    setQuickFollowUp(dayOffset);
+    setNextStep(stepText);
+    if (targetStatus) {
+      setStatus(targetStatus);
+    }
+  };
+
+  const B2B_STAGES: { value: ContactStatus; label: string }[] = [
+    { value: 'Prospecto identificado', label: '1. Prospecto Identificado' },
+    { value: 'Contactado', label: '2. Contactado' },
+    { value: 'Conversación iniciada', label: '3. Conversación Iniciada' },
+    { value: 'Discovery / reunión', label: '4. Discovery / Reunión' },
+    { value: 'Oportunidad calificada', label: '5. Oportunidad Calificada' },
+    { value: 'Propuesta enviada', label: '6. Propuesta Enviada' },
+    { value: 'Negociación', label: '7. Negociación' },
+    { value: 'Ganada', label: '8. Ganada / Cerrada' },
+    { value: 'Perdida', label: '9. Perdida' },
+    { value: 'Pausada', label: '10. Pausada' },
+  ];
+
+  const B2C_STAGES: { value: ContactStatus; label: string }[] = [
+    { value: 'Sin contactar', label: 'Sin contactar' },
+    { value: 'En contacto', label: 'En contacto' },
+    { value: 'Seguimiento', label: 'Seguimiento' },
+    { value: 'Oportunidad', label: 'Oportunidad' },
+    { value: 'Cliente', label: 'Cliente' },
+    { value: 'En pausa', label: 'En pausa' },
+    { value: 'Descartado', label: 'Descartado' },
+  ];
 
   const isShared = contact.shared_with && contact.shared_with.length > 0;
   const isManuallyAdded = contact.source === 'BUSQUEDA_ACTIVA' || contact.source === 'PROSPECCION_DIRECTA';
@@ -505,24 +543,28 @@ function ContactDrawerInner({
           {/* Status & Priority Stars */}
           <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className="text-[11px] font-medium text-theme-txt2 mb-1 block">Estado del Lead</label>
+              <label className="text-[11px] font-medium text-theme-txt2 mb-1 flex items-center justify-between">
+                <span>Estado ({businessSegment})</span>
+                <span className="text-[9px] font-mono text-theme-txt3">
+                  {businessSegment === 'B2B' ? '10 etapas' : '7 etapas'}
+                </span>
+              </label>
               <select
-                value={status === 'En pausa' ? 'Seguimiento' : status}
+                value={status}
                 onChange={(e) => {
                   const newSt = e.target.value as ContactStatus;
                   setStatus(newSt);
-                  if (newSt === 'Seguimiento' && !followUpDate) {
-                    setQuickFollowUp(30);
+                  if ((newSt === 'Seguimiento' || newSt === 'Conversación iniciada') && !followUpDate) {
+                    setQuickFollowUp(3);
                   }
                 }}
                 className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3 py-1.5 text-xs text-theme-txt outline-hidden cursor-pointer"
               >
-                <option value="Sin contactar">Sin contactar</option>
-                <option value="En contacto">En contacto</option>
-                <option value="Oportunidad">Oportunidad</option>
-                <option value="Cliente">Cliente</option>
-                <option value="Seguimiento">Seguimiento</option>
-                <option value="Descartado">Descartado</option>
+                {(businessSegment === 'B2B' ? B2B_STAGES : B2C_STAGES).map((st) => (
+                  <option key={st.value} value={st.value}>
+                    {st.label}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -602,6 +644,95 @@ function ContactDrawerInner({
                 value={followUpDate}
                 onChange={(e) => setFollowUpDate(e.target.value)}
                 className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#ff6d3b] rounded-xl px-3 py-1.5 text-xs text-theme-txt outline-hidden"
+              />
+            </div>
+          </div>
+
+          {/* B2B Cadence Panel (Estrategia Comercial TA720: Día 0, 3-4, 7-10, 15) */}
+          {businessSegment === 'B2B' && (
+            <div className="p-3 bg-theme-sur2 border border-[#2979ff]/25 rounded-xl space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-[#2979ff] flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Cadencia Comercial B2B (TA720)</span>
+                </span>
+                <span className="text-[9.5px] font-mono text-theme-txt3">4 Hitos</span>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => applyB2BCadence(0, 'Contacto inicial realizado', 'Contactado')}
+                  className="p-2 rounded-lg bg-theme-sur hover:bg-theme-sur3 border border-theme-bor text-left transition-all cursor-pointer group"
+                >
+                  <div className="text-[10px] font-bold text-theme-txt group-hover:text-[#2979ff]">
+                    Día 0 (Hoy)
+                  </div>
+                  <div className="text-[9px] text-theme-txt3 truncate">Contacto inicial</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => applyB2BCadence(3, '1er seguimiento (Día 3-4)')}
+                  className="p-2 rounded-lg bg-theme-sur hover:bg-theme-sur3 border border-theme-bor text-left transition-all cursor-pointer group"
+                >
+                  <div className="text-[10px] font-bold text-theme-txt group-hover:text-[#2979ff]">
+                    Día 3 - 4 (+3d)
+                  </div>
+                  <div className="text-[9px] text-theme-txt3 truncate">1er seguimiento</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => applyB2BCadence(7, '2do seguimiento aportando valor (Día 7-10)')}
+                  className="p-2 rounded-lg bg-theme-sur hover:bg-theme-sur3 border border-theme-bor text-left transition-all cursor-pointer group"
+                >
+                  <div className="text-[10px] font-bold text-theme-txt group-hover:text-[#2979ff]">
+                    Día 7 - 10 (+7d)
+                  </div>
+                  <div className="text-[9px] text-theme-txt3 truncate">Aportar valor</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => applyB2BCadence(15, 'Cierre de seguimiento o pausa (Día 15)', 'Pausada')}
+                  className="p-2 rounded-lg bg-theme-sur hover:bg-theme-sur3 border border-theme-bor text-left transition-all cursor-pointer group"
+                >
+                  <div className="text-[10px] font-bold text-theme-txt group-hover:text-[#ef4444]">
+                    Día 15 (+15d)
+                  </div>
+                  <div className="text-[9px] text-theme-txt3 truncate">Cierre / Pausa</div>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Deal Value & Next Step Fields */}
+          <div className="grid grid-cols-2 gap-2.5">
+            <div>
+              <label className="text-[11px] font-medium text-theme-txt2 mb-1 flex items-center gap-1">
+                <span className="text-[#00e5a0] font-bold">$</span>
+                <span>Valor Negocio (USD)</span>
+              </label>
+              <input
+                type="number"
+                value={dealValue}
+                onChange={(e) => setDealValue(e.target.value)}
+                placeholder="Ej: 3500"
+                className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00e5a0] rounded-xl px-3 py-1.5 text-xs text-theme-txt font-mono outline-hidden"
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-medium text-theme-txt2 mb-1 flex items-center gap-1">
+                <span>⚡ Próximo Paso</span>
+              </label>
+              <input
+                type="text"
+                value={nextStep}
+                onChange={(e) => setNextStep(e.target.value)}
+                placeholder="Ej: Enviar propuesta técnica"
+                className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#2979ff] rounded-xl px-3 py-1.5 text-xs text-theme-txt outline-hidden"
               />
             </div>
           </div>

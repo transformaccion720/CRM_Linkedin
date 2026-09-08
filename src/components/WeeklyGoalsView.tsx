@@ -425,6 +425,113 @@ export default function WeeklyGoalsView() {
             </div>
           )}
 
+          {/* 3 Pilares Semanales: Actividad, Conversión y Dinero */}
+          {sprintData?.weekly_pillars && (
+            <div className="pt-2 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 font-bold flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-[#00a870]" />
+                  <span>3 Pilares del Éxito Comercial ({goalSegment === 'B2B' ? 'B2B Corporativo' : goalSegment === 'B2C' ? 'B2C Alumnos' : 'Consolidado'}):</span>
+                </span>
+                <span className="text-[10px] font-mono text-theme-txt3">Actividad • Conversión • Dinero</span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {/* Pilar 1: Actividad */}
+                <div className="bg-theme-sur2 border border-[#2979ff]/30 p-4 rounded-xl shadow-xs space-y-3">
+                  <div className="flex items-center justify-between border-b border-theme-bor pb-2">
+                    <span className="text-xs font-bold text-[#2979ff] flex items-center gap-1.5">
+                      <Users className="w-4 h-4" />
+                      <span>A. Actividad</span>
+                    </span>
+                    <span className="text-[9.5px] font-mono text-theme-txt3">Esfuerzo Semanal</span>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-theme-txt2">Nuevas empresas identificadas:</span>
+                      <span className="font-mono font-bold text-xs text-theme-txt">
+                        {sprintData.weekly_pillars.activity.new_companies_identified}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-theme-txt2">Nuevos contactos realizados:</span>
+                      <span className="font-mono font-bold text-xs text-[#2979ff]">
+                        {sprintData.weekly_pillars.activity.new_contacts_made}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pilar 2: Conversión */}
+                <div className="bg-theme-sur2 border border-[#ff6d3b]/30 p-4 rounded-xl shadow-xs space-y-3">
+                  <div className="flex items-center justify-between border-b border-theme-bor pb-2">
+                    <span className="text-xs font-bold text-[#ff6d3b] flex items-center gap-1.5">
+                      <TrendingUp className="w-4 h-4" />
+                      <span>B. Conversión</span>
+                    </span>
+                    <span className="text-[9.5px] font-mono text-theme-txt3">Eficacia del Funnel</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    <div className="bg-theme-sur p-2 rounded-lg border border-theme-bor">
+                      <div className="text-theme-txt3 text-[9.5px]">Respuestas:</div>
+                      <div className="font-mono font-bold text-theme-txt mt-0.5">
+                        {sprintData.weekly_pillars.conversion.responses_received}
+                      </div>
+                    </div>
+
+                    <div className="bg-theme-sur p-2 rounded-lg border border-theme-bor">
+                      <div className="text-theme-txt3 text-[9.5px]">Reuniones agendadas:</div>
+                      <div className="font-mono font-bold text-[#ff6d3b] mt-0.5">
+                        {sprintData.weekly_pillars.conversion.meetings_scheduled}
+                      </div>
+                    </div>
+
+                    <div className="bg-theme-sur p-2 rounded-lg border border-theme-bor">
+                      <div className="text-theme-txt3 text-[9.5px]">Oportunidades calif.:</div>
+                      <div className="font-mono font-bold text-[#f59e0b] mt-0.5">
+                        {sprintData.weekly_pillars.conversion.qualified_opportunities}
+                      </div>
+                    </div>
+
+                    <div className="bg-theme-sur p-2 rounded-lg border border-theme-bor">
+                      <div className="text-theme-txt3 text-[9.5px]">Ventas cerradas:</div>
+                      <div className="font-mono font-bold text-[#00e5a0] mt-0.5">
+                        {sprintData.weekly_pillars.conversion.deals_won}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pilar 3: Dinero */}
+                <div className="bg-theme-sur2 border border-[#00e5a0]/30 p-4 rounded-xl shadow-xs space-y-3">
+                  <div className="flex items-center justify-between border-b border-theme-bor pb-2">
+                    <span className="text-xs font-bold text-[#00e5a0] flex items-center gap-1.5">
+                      <Award className="w-4 h-4" />
+                      <span>C. Dinero</span>
+                    </span>
+                    <span className="text-[9.5px] font-mono text-theme-txt3">Pipeline Activo</span>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div>
+                      <div className="text-xs text-theme-txt2">Valor total del pipeline:</div>
+                      <div className="font-mono font-extrabold text-lg text-[#00e5a0] mt-0.5">
+                        ${sprintData.weekly_pillars.financial.pipeline_total_value.toLocaleString('en-US', { minimumFractionDigits: 0 })} USD
+                      </div>
+                    </div>
+
+                    <div className="text-[10px] text-theme-txt3 font-mono">
+                      {sprintData.weekly_pillars.financial.deals_count} oportunidades activas registradas con valor económico.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* 4 Core Weekly Metric Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
             {/* 1. Contactados */}

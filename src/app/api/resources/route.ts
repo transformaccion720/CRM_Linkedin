@@ -8,13 +8,14 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const category = searchParams.get('category') || '';
+    const segment = searchParams.get('segment') || '';
     const search = searchParams.get('search')?.trim() || '';
     const id = searchParams.get('id');
 
     // If ID requested, return full record including file_url data (for download)
     if (id) {
       const single = await sql`
-        SELECT id, title, description, category, file_url, file_name, file_size, external_link, created_by,
+        SELECT id, title, description, category, business_segment, file_url, file_name, file_size, external_link, created_by,
                TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI') as created_at
         FROM commercial_resources
         WHERE id = ${id}::uuid LIMIT 1;
@@ -30,13 +31,14 @@ export async function GET(req: NextRequest) {
     // For list, omit huge file_url payload to keep response ultra fast, return has_file boolean
     const rows = await sql`
       SELECT 
-        id, title, description, category, file_name, file_size, external_link, created_by,
+        id, title, description, category, business_segment, file_name, file_size, external_link, created_by,
         (file_url IS NOT NULL AND file_url != '') as has_file,
         CASE WHEN file_url IS NOT NULL AND file_url != '' THEN file_url ELSE external_link END as preview_link,
         TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI') as created_at
       FROM commercial_resources
       WHERE 
         (${category === '' || category === 'all'}::boolean OR category = ${category})
+        AND (${segment === '' || segment === 'all'}::boolean OR business_segment = ${segment} OR business_segment = 'ALL')
         AND (${searchPattern}::text IS NULL OR (
           LOWER(title) LIKE ${searchPattern} OR 
           LOWER(COALESCE(description, '')) LIKE ${searchPattern} OR
@@ -57,27 +59,30 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { title, description, category, file_url, file_name, file_size, external_link, created_by } = body;
+    const { title, description, category, business_segment, file_url, file_name, file_size, external_link, created_by } = body;
 
     if (!title || !category) {
       return NextResponse.json({ error: 'El título y la categoría son obligatorios' }, { status: 400 });
     }
 
+    const finalSegment = business_segment || 'ALL';
+
     const result = await sql`
       INSERT INTO commercial_resources (
-        title, description, category, file_url, file_name, file_size, external_link, created_by
+        title, description, category, business_segment, file_url, file_name, file_size, external_link, created_by
       )
       VALUES (
         ${title},
         ${description || null},
         ${category},
+        ${finalSegment},
         ${file_url || null},
         ${file_name || null},
         ${file_size || null},
         ${external_link || null},
         ${created_by || 'Gabino'}
       )
-      RETURNING id, title, description, category, file_name, file_size, external_link, created_by, created_at;
+      RETURNING id, title, description, category, business_segment, file_name, file_size, external_link, created_by, created_at;
     `;
 
     return NextResponse.json({ resource: result[0] }, { status: 201 });

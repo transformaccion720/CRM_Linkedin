@@ -34,12 +34,12 @@ export default function FunnelView({
   const total = activeContacts.length;
 
   const byStage: Record<string, Contact[]> = useMemo(() => ({
-    'Sin contactar': activeContacts.filter((c) => !c.status || c.status === 'Sin contactar'),
-    'En contacto': activeContacts.filter((c) => c.status === 'En contacto'),
-    'Oportunidad': activeContacts.filter((c) => c.status === 'Oportunidad'),
-    'Cliente': activeContacts.filter((c) => c.status === 'Cliente'),
-    'Seguimiento': activeContacts.filter((c) => c.status === 'Seguimiento' || c.status === 'En pausa'),
-    'Descartado': activeContacts.filter((c) => c.status === 'Descartado'),
+    'Sin contactar': activeContacts.filter((c) => !c.status || c.status === 'Sin contactar' || c.status === 'Prospecto identificado'),
+    'En contacto': activeContacts.filter((c) => c.status === 'En contacto' || c.status === 'Contactado' || c.status === 'Conversación iniciada'),
+    'Oportunidad': activeContacts.filter((c) => c.status === 'Oportunidad' || c.status === 'Discovery / reunión' || c.status === 'Oportunidad calificada' || c.status === 'Propuesta enviada' || c.status === 'Negociación'),
+    'Cliente': activeContacts.filter((c) => c.status === 'Cliente' || c.status === 'Ganada'),
+    'Seguimiento': activeContacts.filter((c) => c.status === 'Seguimiento' || c.status === 'En pausa' || c.status === 'Pausada'),
+    'Descartado': activeContacts.filter((c) => c.status === 'Descartado' || c.status === 'Perdida'),
   }), [activeContacts]);
 
   const stageCounts = useMemo(() => ({

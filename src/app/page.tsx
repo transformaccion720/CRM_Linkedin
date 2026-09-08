@@ -547,47 +547,14 @@ export default function Home() {
 
           {activeTab === 'segmentos' && (
             <div className="flex-1 flex flex-col overflow-hidden">
-              <div className="p-3 bg-theme-sur border-b border-theme-bor flex items-center justify-between gap-3 shrink-0 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-theme-txt flex items-center gap-1.5">
-                    <span>Enfoque del Pipeline:</span>
-                  </span>
-                  <div className="flex items-center gap-1.5 bg-theme-sur2 border border-theme-bor p-1 rounded-xl">
-                    <button
-                      type="button"
-                      onClick={() => setSegmentFilter('all')}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        segmentFilter === 'all' ? 'bg-theme-sur text-theme-txt shadow-xs' : 'text-theme-txt2 hover:text-theme-txt'
-                      }`}
-                    >
-                      🌐 Todos ({stats?.total || contacts.length})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSegmentFilter('B2B')}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        segmentFilter === 'B2B' ? 'bg-[#2979ff] text-white shadow-xs' : 'text-theme-txt2 hover:text-theme-txt'
-                      }`}
-                    >
-                      🏢 B2B Gabino ({stats?.b2bCount})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSegmentFilter('B2C')}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        segmentFilter === 'B2C' ? 'bg-[#00a870] text-white shadow-xs' : 'text-theme-txt2 hover:text-theme-txt'
-                      }`}
-                    >
-                      👤 B2C Kiara ({stats?.b2cCount})
-                    </button>
-                  </div>
-                </div>
-              </div>
               <PipelineView
                 contacts={contacts}
                 onSelectContact={setSelectedContact}
                 onOpenTemplates={setTemplateContact}
                 onQuickStatusChange={handleQuickStatusChange}
+                activeTemplate={activeTemplate}
+                defaultSegment={segmentFilter === 'all' ? 'B2B' : segmentFilter}
+                onSegmentFilterChange={(seg) => setSegmentFilter(seg)}
               />
             </div>
           )}

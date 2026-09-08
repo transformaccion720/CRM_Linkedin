@@ -1,11 +1,27 @@
-export type ContactStatus =
+export type B2BStage =
+  | 'Prospecto identificado'
+  | 'Contactado'
+  | 'Conversación iniciada'
+  | 'Discovery / reunión'
+  | 'Oportunidad calificada'
+  | 'Propuesta enviada'
+  | 'Negociación'
+  | 'Ganada'
+  | 'Perdida'
+  | 'Pausada';
+
+export type B2CStage =
   | 'Sin contactar'
   | 'En contacto'
+  | 'Seguimiento'
   | 'Oportunidad'
   | 'Cliente'
-  | 'Seguimiento'
   | 'Descartado'
   | 'En pausa';
+
+export type ContactStatus =
+  | B2BStage
+  | B2CStage;
 
 export type BusinessSegment = 'B2B' | 'B2C';
 
@@ -29,7 +45,7 @@ export interface ActivityLog {
   id: string;
   contact_id?: string | null;
   contact_name: string;
-  action_type: 'STATUS_CHANGE' | 'DATA_UPDATE' | 'PHONE_ADDED' | 'EMAIL_ADDED' | 'NOTE_ADDED' | 'CONTACTED_OUTREACH' | 'OPPORTUNITY_CREATED' | 'CLIENT_WON' | 'LEAD_PAUSED' | 'GOAL_UPDATED';
+  action_type: 'STATUS_CHANGE' | 'DATA_UPDATE' | 'PHONE_ADDED' | 'EMAIL_ADDED' | 'NOTE_ADDED' | 'CONTACTED_OUTREACH' | 'OPPORTUNITY_CREATED' | 'CLIENT_WON' | 'LEAD_PAUSED' | 'GOAL_UPDATED' | 'MEETING_SCHEDULED' | 'PROPOSAL_SENT';
   description: string;
   performed_by: string;
   created_at: string;
@@ -55,6 +71,7 @@ export interface CommercialResource {
   title: string;
   description?: string | null;
   category: 'BROCHURE' | 'VIDEO' | 'FLYER' | 'PROPOSAL' | 'LINK';
+  business_segment?: BusinessSegment | 'ALL';
   file_url?: string | null;
   file_name?: string | null;
   file_size?: string | null;
@@ -76,6 +93,8 @@ export interface Contact {
   country?: string | null;
   connected_on: string | null;
   status: ContactStatus;
+  deal_value?: number | null; // Valor del negocio en USD
+  next_step?: string | null; // Próximo paso de seguimiento comercial
   notes?: string | null;
   priority?: number; // 1, 2, 3 stars
   follow_up_date?: string | null;
@@ -103,12 +122,37 @@ export interface MemberStats {
   paused: number;
 }
 
+export interface WeeklyActivityMetrics {
+  new_companies_identified: number;
+  new_contacts_made: number;
+}
+
+export interface WeeklyConversionMetrics {
+  responses_received: number;
+  meetings_scheduled: number;
+  meetings_completed: number;
+  qualified_opportunities: number;
+  proposals_sent: number;
+  deals_won: number;
+}
+
+export interface WeeklyFinancialMetrics {
+  pipeline_total_value: number;
+  pipeline_weighted_value: number;
+}
+
 export interface WeeklyGoal {
   daily_contacted: number;
   contacted: number;
   phones: number;
   opportunities: number;
   clients: number;
+  // Nuevas métricas configurables
+  new_companies?: number;
+  meetings_scheduled?: number;
+  meetings_completed?: number;
+  proposals_sent?: number;
+  pipeline_value_target?: number;
   assignee?: string;
   mode?: string;
 }
@@ -161,6 +205,14 @@ export interface WeeklySprintData {
   start_date: string;
   end_date: string;
   goals: WeeklyGoal;
+  weekly_pillars?: {
+    activity: WeeklyActivityMetrics;
+    conversion: WeeklyConversionMetrics;
+    financial: {
+      pipeline_total_value: number;
+      deals_count: number;
+    };
+  };
   global_totals: {
     contacted_actual: number;
     contacted_goal: number;

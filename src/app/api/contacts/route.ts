@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
         SELECT 
           c.id, c.first_name, c.last_name, c.linkedin_url, c.email, c.phone, c.company, c.position, c.country,
           TO_CHAR(c.connected_on, 'YYYY-MM-DD') as connected_on,
-          c.status, c.notes, c.priority, 
+          c.status, c.notes, c.priority, c.deal_value, c.next_step,
           TO_CHAR(c.follow_up_date, 'YYYY-MM-DD') as follow_up_date,
           c.tags, c.assigned_to, c.source, c.post_url, c.service_needed, c.business_segment,
           c.created_at, c.updated_at,
@@ -147,6 +147,8 @@ export async function POST(req: NextRequest) {
       post_url,
       service_needed,
       business_segment,
+      deal_value,
+      next_step,
     } = body;
 
     if (!first_name) {
@@ -176,7 +178,9 @@ export async function POST(req: NextRequest) {
         source,
         post_url,
         service_needed,
-        business_segment
+        business_segment,
+        deal_value,
+        next_step
       )
       VALUES (
         ${first_name}, 
@@ -197,7 +201,9 @@ export async function POST(req: NextRequest) {
         ${leadSource},
         ${post_url || null},
         ${service_needed || null},
-        ${finalSegment}
+        ${finalSegment},
+        ${deal_value ? Number(deal_value) : 0},
+        ${next_step || null}
       )
       RETURNING *
     `;
