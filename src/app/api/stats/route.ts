@@ -16,6 +16,7 @@ export async function GET() {
       byYear,
       topPositions,
       recentContacts,
+      activityTrends,
     ] = await Promise.all([
       // 1. All global scalar metrics in ONE single fast table scan
       sql`
@@ -30,7 +31,10 @@ export async function GET() {
           COUNT(CASE WHEN business_segment = 'B2B' THEN 1 END)::int as b2b_count,
           COUNT(CASE WHEN business_segment = 'B2C' THEN 1 END)::int as b2c_count,
           COUNT(CASE WHEN business_segment = 'B2B' AND follow_up_date IS NOT NULL AND follow_up_date <= CURRENT_DATE + INTERVAL '7 days' THEN 1 END)::int as b2b_follow_ups,
-          COUNT(CASE WHEN business_segment = 'B2C' AND follow_up_date IS NOT NULL AND follow_up_date <= CURRENT_DATE + INTERVAL '7 days' THEN 1 END)::int as b2c_follow_ups
+          COUNT(CASE WHEN business_segment = 'B2C' AND follow_up_date IS NOT NULL AND follow_up_date <= CURRENT_DATE + INTERVAL '7 days' THEN 1 END)::int as b2c_follow_ups,
+          COALESCE(SUM(deal_value), 0)::numeric as total_deal_value,
+          COALESCE(SUM(CASE WHEN business_segment = 'B2B' THEN deal_value ELSE 0 END), 0)::numeric as b2b_deal_value,
+          COALESCE(SUM(CASE WHEN business_segment = 'B2C' THEN deal_value ELSE 0 END), 0)::numeric as b2c_deal_value
         FROM contacts;
       `,
       // 2. Status breakdown (global + segmented)
@@ -92,6 +96,16 @@ export async function GET() {
         ORDER BY connected_on DESC NULLS LAST, created_at DESC 
         LIMIT 5
       `,
+      // 9. 7-Day activity trend in America/Lima
+      sql`
+        SELECT 
+          TO_CHAR((created_at AT TIME ZONE 'America/Lima')::date, 'YYYY-MM-DD') as day_str,
+          COUNT(*)::int as count
+        FROM activity_logs
+        WHERE (created_at AT TIME ZONE 'America/Lima')::date >= ((CURRENT_TIMESTAMP AT TIME ZONE 'America/Lima')::date - INTERVAL '6 days')
+        GROUP BY (created_at AT TIME ZONE 'America/Lima')::date
+        ORDER BY day_str ASC;
+      `,
     ]);
 
     const s = scalarsResult[0] || {};
@@ -107,6 +121,9 @@ export async function GET() {
     const b2cCount = s.b2c_count || 0;
     const b2bFollowUps = s.b2b_follow_ups || 0;
     const b2cFollowUps = s.b2c_follow_ups || 0;
+    const totalDealValue = Number(s.total_deal_value) || 0;
+    const b2bDealValue = Number(s.b2b_deal_value) || 0;
+    const b2cDealValue = Number(s.b2c_deal_value) || 0;
 
     const byStatus: Record<string, number> = {};
     const b2bByStatus: Record<string, number> = {};
@@ -146,6 +163,9 @@ export async function GET() {
       b2cCount,
       b2bFollowUps,
       b2cFollowUps,
+      totalDealValue,
+      b2bDealValue,
+      b2cDealValue,
       byStatus,
       b2bByStatus,
       b2cByStatus,
@@ -155,6 +175,7 @@ export async function GET() {
       byYear,
       topPositions,
       recentContacts,
+      activityTrends,
     }, {
       headers: {
         'Cache-Control': 'no-store, max-age=0',

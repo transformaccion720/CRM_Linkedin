@@ -118,7 +118,22 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // 4. Compute actual activities per member and per day in America/Lima
+    // 4. Determine target members for this segment
+    const b2bLeader = storedGoals.b2b?.assignee || 'Gabino';
+    const b2cLeader = storedGoals.b2c?.assignee || 'Kiara';
+
+    let targetMembers = members;
+    if (segment === 'B2B') {
+      const filtered = members.filter((m) => m.name.toLowerCase().includes(b2bLeader.toLowerCase()));
+      targetMembers = filtered.length > 0 ? filtered : members.filter((m) => m.name.toLowerCase().includes('gabino'));
+      if (targetMembers.length === 0) targetMembers = members;
+    } else if (segment === 'B2C') {
+      const filtered = members.filter((m) => m.name.toLowerCase().includes(b2cLeader.toLowerCase()));
+      targetMembers = filtered.length > 0 ? filtered : members.filter((m) => m.name.toLowerCase().includes('kiara'));
+      if (targetMembers.length === 0) targetMembers = members;
+    }
+
+    // Compute actual activities per member and per day in America/Lima
     const memberProgressList = [];
     let globalContacted = 0;
     let globalPhones = 0;
@@ -131,7 +146,7 @@ export async function GET(req: NextRequest) {
       globalDayTotals[wd.date_str] = { contacted: 0, opportunities: 0, phones: 0 };
     });
 
-    for (const m of members) {
+    for (const m of targetMembers) {
       // Activity queries for this member in this week, filtered by segment if specified
       const acts = await sql`
         SELECT 
@@ -265,7 +280,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const teamSize = Math.max(members.length, 1);
+    const teamSize = Math.max(targetMembers.length, 1);
     const globalGoalContacted = activeGoals.contacted * teamSize;
     const globalGoalPhones = activeGoals.phones * teamSize;
     const globalGoalOpportunities = activeGoals.opportunities * teamSize;

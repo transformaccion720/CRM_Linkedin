@@ -618,10 +618,16 @@ export default function WeeklyGoalsView() {
         <div className="flex items-center justify-between">
           <h3 className="font-bold text-sm text-theme-txt flex items-center gap-2">
             <Trophy className="w-4 h-4 text-[#f59e0b]" />
-            <span>Desempeño Individual del Sprint ({goalSegment === 'B2B' ? 'Foco B2B' : goalSegment === 'B2C' ? 'Foco B2C' : 'Consolidado'})</span>
+            <span>
+              {goalSegment === 'B2B' 
+                ? `Desempeño del Líder B2B Corporativo (${b2bAssignee})` 
+                : goalSegment === 'B2C' 
+                ? `Desempeño de la Líder B2C Alumnos (${b2cAssignee})` 
+                : 'Desempeño Consolidado del Equipo (Gabino & Kiara)'}
+            </span>
           </h3>
           <span className="text-xs text-theme-txt3 font-mono">
-            {rankedMembers.length} comerciales monitoreados
+            {goalSegment === 'all' ? `${rankedMembers.length} comerciales consolidados` : `1 responsable asignado`}
           </span>
         </div>
 

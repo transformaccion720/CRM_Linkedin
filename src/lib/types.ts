@@ -244,6 +244,9 @@ export interface FollowUpReminder {
   follow_up_date: string;
   assigned_to: string;
   notes: string | null;
+  business_segment?: BusinessSegment | null;
+  deal_value?: number | null;
+  next_step?: string | null;
   is_overdue: boolean;
   is_today: boolean;
   days_diff: number;
@@ -266,6 +269,9 @@ export interface ContactStats {
   b2cByStatus?: Record<string, number>;
   b2bFollowUps?: number;
   b2cFollowUps?: number;
+  b2bDealValue?: number;
+  b2cDealValue?: number;
+  totalDealValue?: number;
   topCompanies?: { company: string; count: string }[];
   topCountries?: { country: string; count: string }[];
   byYear?: { yr: string; count: string }[];

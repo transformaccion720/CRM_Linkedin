@@ -5,7 +5,8 @@ import { ContactStats } from '@/lib/types';
 import { 
   Users, Mail, Building2, Calendar, Target, Award, Clock, ArrowUpRight, 
   Phone, CheckCircle2, TrendingUp, UserCheck, Shield, Globe, AlertCircle, 
-  Sparkles, HelpCircle, Briefcase, GraduationCap, ChevronRight, Check
+  Sparkles, Briefcase, GraduationCap, DollarSign, ChevronRight, BarChart3,
+  PieChart, Activity, Layers, ArrowRight
 } from 'lucide-react';
 
 interface ExecutiveDashboardProps {
@@ -14,13 +15,14 @@ interface ExecutiveDashboardProps {
 
 export default function ExecutiveDashboard({ stats }: ExecutiveDashboardProps) {
   const [segmentView, setSegmentView] = useState<'all' | 'B2B' | 'B2C'>('all');
+  const [activeChartTab, setActiveChartTab] = useState<'pipeline' | 'funnel' | 'activity'>('pipeline');
 
   if (!stats) {
     return (
       <div className="flex-1 flex items-center justify-center p-12 text-xs text-theme-txt2">
         <div className="flex items-center gap-2">
           <div className="w-2.5 h-2.5 rounded-full bg-[#00a870] animate-ping" />
-          <span>Cargando métricas consolidadas...</span>
+          <span>Cargando analíticas y métricas ejecutivas...</span>
         </div>
       </div>
     );
@@ -34,411 +36,604 @@ export default function ExecutiveDashboard({ stats }: ExecutiveDashboardProps) {
   const withPhone = stats.withPhone || 0;
   const companiesCount = stats.companiesCount || 0;
 
-  // Global counts
-  const inContact = stats.byStatus['En contacto'] || stats.byStatus['Contactado'] || 0;
-  const opportunity = stats.byStatus['Oportunidad'] || 0;
-  const client = stats.byStatus['Cliente'] || stats.byStatus['Calificado'] || 0;
-  const paused = stats.byStatus['Seguimiento'] || stats.byStatus['En pausa'] || 0;
-  const uncontacted = stats.byStatus['Sin contactar'] || (total - inContact - opportunity - client - paused);
+  // Pipeline stages for B2B (10 Core Stages)
+  const b2bStages = [
+    { name: 'Prospecto identificado', color: '#7d8fa8' },
+    { name: 'Contactado', color: '#2979ff' },
+    { name: 'Conversación iniciada', color: '#00d2ff' },
+    { name: 'Discovery / reunión', color: '#ffb300' },
+    { name: 'Oportunidad calificada', color: '#ff6d3b' },
+    { name: 'Propuesta enviada', color: '#a855f7' },
+    { name: 'Negociación', color: '#ec4899' },
+    { name: 'Ganada', color: '#00e5a0' },
+    { name: 'Perdida', color: '#ef4444' },
+    { name: 'Pausada', color: '#94a3b8' },
+  ];
 
-  // B2B Segment specific status counts
-  const b2bInContact = stats.b2bByStatus?.['En contacto'] || 0;
-  const b2bOpportunity = stats.b2bByStatus?.['Oportunidad'] || 0;
-  const b2bClient = stats.b2bByStatus?.['Cliente'] || 0;
-  const b2bFollowUp = stats.b2bByStatus?.['Seguimiento'] || stats.b2bByStatus?.['En pausa'] || 0;
-  const b2bUncontacted = stats.b2bByStatus?.['Sin contactar'] || (b2bTotal - b2bInContact - b2bOpportunity - b2bClient - b2bFollowUp);
+  // Pipeline stages for B2C (Alumnos)
+  const b2cStages = [
+    { name: 'Sin contactar', color: '#7d8fa8' },
+    { name: 'En contacto', color: '#2979ff' },
+    { name: 'Seguimiento', color: '#f59e0b' },
+    { name: 'Oportunidad', color: '#ff6d3b' },
+    { name: 'Cliente', color: '#00a870' },
+    { name: 'En pausa', color: '#94a3b8' },
+  ];
+
+  // Stage counts
+  const b2bByStatus = stats.b2bByStatus || {};
+  const b2cByStatus = stats.b2cByStatus || {};
+  const byStatus = stats.byStatus || {};
+
+  // Financial values
+  const totalDealValue = stats.totalDealValue || 0;
+  const b2bDealValue = stats.b2bDealValue || 0;
+  const b2cDealValue = stats.b2cDealValue || 0;
+
+  // Key Funnel Metrics
+  const b2bInContact = b2bByStatus['Contactado'] || b2bByStatus['En contacto'] || b2bByStatus['Conversación iniciada'] || 0;
+  const b2bOpportunity = (b2bByStatus['Discovery / reunión'] || 0) + (b2bByStatus['Oportunidad calificada'] || 0) + (b2bByStatus['Propuesta enviada'] || 0) + (b2bByStatus['Negociación'] || 0) + (b2bByStatus['Oportunidad'] || 0);
+  const b2bClient = b2bByStatus['Ganada'] || b2bByStatus['Cliente'] || 0;
+  const b2bFollowUp = b2bByStatus['Seguimiento'] || b2bByStatus['Pausada'] || b2bByStatus['En pausa'] || 0;
+  const b2bUncontacted = b2bByStatus['Prospecto identificado'] || b2bByStatus['Sin contactar'] || Math.max(0, b2bTotal - b2bInContact - b2bOpportunity - b2bClient - b2bFollowUp);
   const b2bConversionRate = b2bTotal > 0 ? ((b2bClient / b2bTotal) * 100).toFixed(1) : '0';
 
-  // B2C Segment specific status counts
-  const b2cInContact = stats.b2cByStatus?.['En contacto'] || 0;
-  const b2cOpportunity = stats.b2cByStatus?.['Oportunidad'] || 0;
-  const b2cClient = stats.b2cByStatus?.['Cliente'] || 0;
-  const b2cFollowUp = stats.b2cByStatus?.['Seguimiento'] || stats.b2cByStatus?.['En pausa'] || 0;
-  const b2cUncontacted = stats.b2cByStatus?.['Sin contactar'] || (b2cTotal - b2cInContact - b2cOpportunity - b2cClient - b2cFollowUp);
+  const b2cInContact = b2cByStatus['En contacto'] || 0;
+  const b2cOpportunity = b2cByStatus['Oportunidad'] || 0;
+  const b2cClient = b2cByStatus['Cliente'] || 0;
+  const b2cFollowUp = b2cByStatus['Seguimiento'] || b2cByStatus['En pausa'] || 0;
+  const b2cUncontacted = b2cByStatus['Sin contactar'] || Math.max(0, b2cTotal - b2cInContact - b2cOpportunity - b2cClient - b2cFollowUp);
   const b2cConversionRate = b2cTotal > 0 ? ((b2cClient / b2cTotal) * 100).toFixed(1) : '0';
 
+  // Global counts
+  const inContact = segmentView === 'B2B' ? b2bInContact : segmentView === 'B2C' ? b2cInContact : (b2bInContact + b2cInContact);
+  const opportunity = segmentView === 'B2B' ? b2bOpportunity : segmentView === 'B2C' ? b2cOpportunity : (b2bOpportunity + b2cOpportunity);
+  const client = segmentView === 'B2B' ? b2bClient : segmentView === 'B2C' ? b2cClient : (b2bClient + b2cClient);
+  const activeTotal = segmentView === 'B2B' ? b2bTotal : segmentView === 'B2C' ? b2cTotal : total;
+  const activeDealValue = segmentView === 'B2B' ? b2bDealValue : segmentView === 'B2C' ? b2cDealValue : totalDealValue;
+
+  // Proportions for Donut Chart
+  const b2bPct = total > 0 ? Math.round((b2bTotal / total) * 100) : 50;
+  const b2cPct = 100 - b2bPct;
   const emailPct = total > 0 ? Math.round((withEmail / total) * 100) : 0;
   const phonePct = total > 0 ? Math.round((withPhone / total) * 100) : 0;
-  const conversionRate = total > 0 ? ((client / total) * 100).toFixed(1) : '0';
 
-  // Active view numbers based on segmentView filter
-  const activeTotal = segmentView === 'B2B' ? b2bTotal : segmentView === 'B2C' ? b2cTotal : total;
-  const activeInContact = segmentView === 'B2B' ? b2bInContact : segmentView === 'B2C' ? b2cInContact : inContact;
-  const activeOpportunity = segmentView === 'B2B' ? b2bOpportunity : segmentView === 'B2C' ? b2cOpportunity : opportunity;
-  const activeClient = segmentView === 'B2B' ? b2bClient : segmentView === 'B2C' ? b2cClient : client;
-  const activeFollowUp = segmentView === 'B2B' ? b2bFollowUp : segmentView === 'B2C' ? b2cFollowUp : paused;
+  // Circumference for Donut Chart (r = 40) => C = 2 * PI * 40 = 251.3
+  const circumference = 251.3;
+  const b2bStrokeDash = (b2bPct / 100) * circumference;
+  const b2cStrokeDash = (b2cPct / 100) * circumference;
 
   return (
     <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-theme-bg">
       {/* Header with Segment Toggle */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-theme-sur p-5 rounded-2xl border border-theme-bor">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-theme-sur p-5 rounded-2xl border border-theme-bor shadow-xs">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-[#00a870] font-bold bg-[#00a870]/10 px-2 py-0.5 rounded">
-              KPIs & PERFORMANCE EJECUTIVO
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-[#00a870] font-bold bg-[#00a870]/10 px-2 py-0.5 rounded flex items-center gap-1">
+              <Activity className="w-3 h-3 text-[#00a870]" />
+              <span>KPIs & Business Intelligence</span>
             </span>
-            <span className="text-[10px] font-mono text-theme-txt3">Actualizado en tiempo real</span>
+            <span className="text-[10px] font-mono text-theme-txt3 bg-theme-sur2 px-2 py-0.5 rounded border border-theme-bor">
+              Actualizado en tiempo real
+            </span>
+            <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
+              segmentView === 'B2B'
+                ? 'bg-[#2979ff]/15 text-[#2979ff] border-[#2979ff]/30'
+                : segmentView === 'B2C'
+                ? 'bg-[#00a870]/15 text-[#00a870] border-[#00a870]/30'
+                : 'bg-purple-500/15 text-purple-400 border-purple-500/30'
+            }`}>
+              {segmentView === 'B2B' ? '🏢 Foco B2B Corporativo' : segmentView === 'B2C' ? '👤 Foco B2C Alumnos' : '🌐 Vista Consolidada'}
+            </span>
           </div>
+
           <h2 className="text-lg sm:text-xl font-extrabold text-theme-txt">
-            Panel de Control Estratégico y Desempeño Comercial
+            Panel de Control Estratégico y Analítica Visual
           </h2>
           <p className="text-xs text-theme-txt2 mt-0.5">
-            Visibilidad compartida entre Corporativo B2B (Gabino) y Alumnos/Programas B2C (Kiara)
+            Métricas diferenciadas para B2B Corporativo (Gabino), B2C Alumnos (Kiara) y vista consolidada integral
           </p>
         </div>
 
         {/* View Switcher: All vs B2B vs B2C */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center bg-theme-sur2 border border-theme-bor p-1 rounded-xl">
-            <button
-              onClick={() => setSegmentView('all')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                segmentView === 'all'
-                  ? 'bg-theme-sur text-theme-txt shadow-xs'
-                  : 'text-theme-txt2 hover:text-theme-txt'
-              }`}
-            >
-              <span>🌐 Consolidado</span>
-            </button>
-            <button
-              onClick={() => setSegmentView('B2B')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                segmentView === 'B2B'
-                  ? 'bg-[#2979ff] text-white shadow-xs'
-                  : 'text-theme-txt2 hover:text-theme-txt'
-              }`}
-            >
-              <span>🏢 B2B Gabino</span>
-            </button>
-            <button
-              onClick={() => setSegmentView('B2C')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                segmentView === 'B2C'
-                  ? 'bg-[#00a870] text-white shadow-xs'
-                  : 'text-theme-txt2 hover:text-theme-txt'
-              }`}
-            >
-              <span>👤 B2C Kiara</span>
-            </button>
-          </div>
+        <div className="flex items-center bg-theme-sur2 border border-theme-bor p-1 rounded-xl shadow-2xs">
+          <button
+            onClick={() => setSegmentView('all')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              segmentView === 'all'
+                ? 'bg-theme-sur text-theme-txt shadow-xs border border-theme-bor'
+                : 'text-theme-txt2 hover:text-theme-txt'
+            }`}
+          >
+            <span>🌐</span>
+            <span>Consolidado</span>
+          </button>
+          <button
+            onClick={() => setSegmentView('B2B')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              segmentView === 'B2B'
+                ? 'bg-[#2979ff] text-white shadow-xs font-extrabold'
+                : 'text-theme-txt2 hover:text-theme-txt'
+            }`}
+          >
+            <Building2 className="w-3.5 h-3.5" />
+            <span>B2B Gabino</span>
+          </button>
+          <button
+            onClick={() => setSegmentView('B2C')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              segmentView === 'B2C'
+                ? 'bg-[#00a870] text-white shadow-xs font-extrabold'
+                : 'text-theme-txt2 hover:text-theme-txt'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>B2C Kiara</span>
+          </button>
         </div>
       </div>
 
-      {/* MUTUAL SUPPORT & TEAM HEALTH ALERT BOARD */}
-      <div className="bg-theme-sur border border-theme-bor rounded-2xl p-5 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-[#00a870]/15 text-[#00a870]">
-              <Sparkles className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="font-bold text-sm text-theme-txt flex items-center gap-2">
-                <span>Tablero de Apoyo Mutuo y Visibilidad de Equipo</span>
-                <span className="text-[10px] font-mono text-[#00a870] font-semibold bg-[#00a870]/10 px-2 py-0.5 rounded">
-                  Cooperación CEO & COO
-                </span>
-              </h3>
-              <p className="text-xs text-theme-txt2">
-                Detección proactiva de cuellos de botella para brindar soporte inmediato entre líneas de negocio
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-          {/* Support Card: B2B Corporativo (Gabino) */}
-          <div className="bg-theme-sur2/70 border border-theme-bor hover:border-[#2979ff]/40 rounded-xl p-4 transition-all space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-[#2979ff]/15 text-[#2979ff] font-bold text-xs flex items-center justify-center">
-                  🏢
-                </div>
-                <div>
-                  <h4 className="font-bold text-xs text-theme-txt flex items-center gap-1.5">
-                    <span>Foco B2B Corporativo & RRHH</span>
-                    <span className="text-[10px] text-theme-txt3 font-mono font-normal">(Gabino)</span>
-                  </h4>
-                  <span className="text-[10.5px] text-theme-txt3 font-mono">{b2bTotal.toLocaleString()} leads en base corporativa</span>
-                </div>
-              </div>
-
-              <span className="text-xs font-bold font-mono px-2.5 py-1 rounded-lg bg-[#2979ff]/10 text-[#2979ff] border border-[#2979ff]/20">
-                {b2bOpportunity} en propuesta
-              </span>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 text-center text-[10.5px] font-mono pt-1">
-              <div className="p-2 rounded-lg bg-theme-sur border border-theme-bor">
-                <span className="text-theme-txt3 block text-[9px] uppercase">En Diálogo</span>
-                <span className="font-bold text-[#2979ff] text-sm">{b2bInContact}</span>
-              </div>
-              <div className="p-2 rounded-lg bg-theme-sur border border-theme-bor">
-                <span className="text-theme-txt3 block text-[9px] uppercase">Oportunidad</span>
-                <span className="font-bold text-[#ff6d3b] text-sm">{b2bOpportunity}</span>
-              </div>
-              <div className="p-2 rounded-lg bg-theme-sur border border-theme-bor">
-                <span className="text-theme-txt3 block text-[9px] uppercase">Seguimiento</span>
-                <span className="font-bold text-[#f59e0b] text-sm">{b2bFollowUp}</span>
-              </div>
-            </div>
-
-            <div className="p-2.5 rounded-lg bg-theme-sur border border-theme-bor/80 text-xs flex items-start gap-2">
-              <AlertCircle className="w-3.5 h-3.5 text-[#2979ff] shrink-0 mt-0.5" />
-              <p className="text-[11px] text-theme-txt2">
-                {b2bFollowUp > 5 ? (
-                  <span>
-                    <strong className="text-theme-txt">Alerta de Apoyo:</strong> Hay {b2bFollowUp} cuentas corporativas en seguimiento. Kiara puede apoyar con llamadas de confirmación o envío de temarios in-company.
-                  </span>
-                ) : (
-                  <span>
-                    <strong className="text-[#00a870]">Flujo Óptimo:</strong> Pipeline corporativo balanceado con {b2bOpportunity} propuestas activas de consultoría y entrenamiento.
-                  </span>
-                )}
-              </p>
-            </div>
-          </div>
-
-          {/* Support Card: B2C Alumnos & Certificaciones (Kiara) */}
-          <div className="bg-theme-sur2/70 border border-theme-bor hover:border-[#00a870]/40 rounded-xl p-4 transition-all space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-[#00a870]/15 text-[#00a870] font-bold text-xs flex items-center justify-center">
-                  👤
-                </div>
-                <div>
-                  <h4 className="font-bold text-xs text-theme-txt flex items-center gap-1.5">
-                    <span>Foco B2C Alumnos & Certificaciones</span>
-                    <span className="text-[10px] text-theme-txt3 font-mono font-normal">(Kiara)</span>
-                  </h4>
-                  <span className="text-[10.5px] text-theme-txt3 font-mono">{b2cTotal.toLocaleString()} profesionales en pipeline</span>
-                </div>
-              </div>
-
-              <span className="text-xs font-bold font-mono px-2.5 py-1 rounded-lg bg-[#00a870]/10 text-[#00a870] border border-[#00a870]/20">
-                {b2cOpportunity} por matricular
-              </span>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 text-center text-[10.5px] font-mono pt-1">
-              <div className="p-2 rounded-lg bg-theme-sur border border-theme-bor">
-                <span className="text-theme-txt3 block text-[9px] uppercase">En Diálogo</span>
-                <span className="font-bold text-[#2979ff] text-sm">{b2cInContact}</span>
-              </div>
-              <div className="p-2 rounded-lg bg-theme-sur border border-theme-bor">
-                <span className="text-theme-txt3 block text-[9px] uppercase">Pide Temario</span>
-                <span className="font-bold text-[#ff6d3b] text-sm">{b2cOpportunity}</span>
-              </div>
-              <div className="p-2 rounded-lg bg-theme-sur border border-theme-bor">
-                <span className="text-theme-txt3 block text-[9px] uppercase">Seguimiento</span>
-                <span className="font-bold text-[#f59e0b] text-sm">{b2cFollowUp}</span>
-              </div>
-            </div>
-
-            <div className="p-2.5 rounded-lg bg-theme-sur border border-theme-bor/80 text-xs flex items-start gap-2">
-              <AlertCircle className="w-3.5 h-3.5 text-[#00a870] shrink-0 mt-0.5" />
-              <p className="text-[11px] text-theme-txt2">
-                {b2cFollowUp > 5 ? (
-                  <span>
-                    <strong className="text-theme-txt">Alerta de Apoyo:</strong> {b2cFollowUp} alumnos esperan seguimiento de beca/pronto pago. Gabino puede apoyar con mensajes directos en horas pico de prospección.
-                  </span>
-                ) : (
-                  <span>
-                    <strong className="text-[#00a870]">Cohorte al Día:</strong> Atención ágil de consultas y temarios de Agilidad con {b2cInContact} conversaciones activas.
-                  </span>
-                )}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Global Highlights Grid (Adaptive to Segment Filter) */}
+      {/* Global Executive Metric Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <div className="bg-theme-sur border border-theme-bor p-4 rounded-xl shadow-xs">
-          <div className="flex items-center justify-between text-theme-txt2 mb-2">
-            <span className="text-[11px] font-mono uppercase tracking-wider">
-              {segmentView === 'B2B' ? 'Cuentas B2B' : segmentView === 'B2C' ? 'Alumnos B2C' : 'Base Filtrada'}
+        {/* Total Leads Card */}
+        <div className="bg-theme-sur border border-theme-bor p-4.5 rounded-2xl shadow-xs space-y-2">
+          <div className="flex items-center justify-between text-theme-txt2">
+            <span className="text-[11px] font-mono uppercase tracking-wider font-bold">
+              {segmentView === 'B2B' ? 'Cuentas B2B' : segmentView === 'B2C' ? 'Alumnos B2C' : 'Base Comercial'}
             </span>
-            <div className="p-2 rounded-lg bg-[#00a870]/15 text-[#00a870]">
+            <div className="p-2 rounded-xl bg-[#00a870]/15 text-[#00a870]">
               <Users className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-xl font-extrabold text-theme-txt font-mono">{activeTotal.toLocaleString()}</div>
-          <div className="text-[11px] text-theme-txt3 mt-1 font-mono">
-            {segmentView === 'all' ? `${b2bTotal} B2B · ${b2cTotal} B2C` : `100% segmento ${segmentView}`}
+          <div className="text-2xl font-extrabold text-theme-txt font-mono">
+            {activeTotal.toLocaleString()}
+          </div>
+          <div className="text-[11px] text-theme-txt3 font-mono flex items-center justify-between">
+            <span>{segmentView === 'all' ? `${b2bTotal} B2B · ${b2cTotal} B2C` : `100% segmento ${segmentView}`}</span>
+            <span className="text-[#00a870] font-bold">Activo</span>
           </div>
         </div>
 
-        <div className="bg-theme-sur border border-theme-bor p-4 rounded-xl shadow-xs">
-          <div className="flex items-center justify-between text-theme-txt2 mb-2">
-            <span className="text-[11px] font-mono uppercase tracking-wider">En Conversación</span>
-            <div className="p-2 rounded-lg bg-[#2979ff]/15 text-[#2979ff]">
+        {/* In Conversation Card */}
+        <div className="bg-theme-sur border border-theme-bor p-4.5 rounded-2xl shadow-xs space-y-2">
+          <div className="flex items-center justify-between text-theme-txt2">
+            <span className="text-[11px] font-mono uppercase tracking-wider font-bold">En Conversación</span>
+            <div className="p-2 rounded-xl bg-[#2979ff]/15 text-[#2979ff]">
               <Phone className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-xl font-extrabold text-[#2979ff] font-mono">{activeInContact.toLocaleString()}</div>
-          <div className="text-[11px] text-theme-txt3 mt-1 font-mono">Conversaciones calientes</div>
+          <div className="text-2xl font-extrabold text-[#2979ff] font-mono">
+            {inContact.toLocaleString()}
+          </div>
+          <div className="text-[11px] text-theme-txt3 font-mono flex items-center justify-between">
+            <span>Diálogos y discovery</span>
+            <span className="text-[#2979ff] font-bold">
+              {activeTotal > 0 ? Math.round((inContact / activeTotal) * 100) : 0}%
+            </span>
+          </div>
         </div>
 
-        <div className="bg-theme-sur border border-theme-bor p-4 rounded-xl shadow-xs">
-          <div className="flex items-center justify-between text-theme-txt2 mb-2">
-            <span className="text-[11px] font-mono uppercase tracking-wider">
+        {/* Opportunities Card */}
+        <div className="bg-theme-sur border border-theme-bor p-4.5 rounded-2xl shadow-xs space-y-2">
+          <div className="flex items-center justify-between text-theme-txt2">
+            <span className="text-[11px] font-mono uppercase tracking-wider font-bold">
               {segmentView === 'B2C' ? 'Piden Temario / Beca' : 'Oportunidades'}
             </span>
-            <div className="p-2 rounded-lg bg-[#ff6d3b]/15 text-[#ff6d3b]">
+            <div className="p-2 rounded-xl bg-[#ff6d3b]/15 text-[#ff6d3b]">
               <Target className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-xl font-extrabold text-[#ff6d3b] font-mono">{activeOpportunity.toLocaleString()}</div>
-          <div className="text-[11px] text-theme-txt3 mt-1 font-mono">Etapa final antes de cierre</div>
+          <div className="text-2xl font-extrabold text-[#ff6d3b] font-mono">
+            {opportunity.toLocaleString()}
+          </div>
+          <div className="text-[11px] text-theme-txt3 font-mono flex items-center justify-between">
+            <span>Propuestas y evaluación</span>
+            <span className="text-[#ff6d3b] font-bold">
+              {activeTotal > 0 ? Math.round((opportunity / activeTotal) * 100) : 0}%
+            </span>
+          </div>
         </div>
 
-        <div className="bg-theme-sur border border-theme-bor p-4 rounded-xl shadow-xs">
-          <div className="flex items-center justify-between text-theme-txt2 mb-2">
-            <span className="text-[11px] font-mono uppercase tracking-wider">
-              {segmentView === 'B2C' ? 'Alumnos Matriculados' : 'Clientes Ganados'}
+        {/* Revenue & Closures Card */}
+        <div className="bg-theme-sur border border-theme-bor p-4.5 rounded-2xl shadow-xs space-y-2">
+          <div className="flex items-center justify-between text-theme-txt2">
+            <span className="text-[11px] font-mono uppercase tracking-wider font-bold">
+              {segmentView === 'B2C' ? 'Matriculados' : 'Pipeline Económico'}
             </span>
-            <div className="p-2 rounded-lg bg-[#00a870]/15 text-[#00a870]">
+            <div className="p-2 rounded-xl bg-[#00e5a0]/15 text-[#00e5a0]">
               <Award className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-xl font-extrabold text-[#00a870] font-mono">{activeClient.toLocaleString()}</div>
-          <div className="text-[11px] text-theme-txt3 mt-1 font-mono">Cierres comerciales exitosos</div>
+          <div className="text-2xl font-extrabold text-[#00e5a0] font-mono">
+            {segmentView === 'B2C' 
+              ? `${client.toLocaleString()} alumnos` 
+              : `$${activeDealValue.toLocaleString()} USD`}
+          </div>
+          <div className="text-[11px] text-theme-txt3 font-mono flex items-center justify-between">
+            <span>
+              {segmentView === 'B2C' 
+                ? `${b2cConversionRate}% conversión` 
+                : `${client} ganados • ${b2bConversionRate}% conv.`}
+            </span>
+            <span className="text-[#00e5a0] font-bold">Cierres</span>
+          </div>
         </div>
       </div>
 
-      {/* DUAL FUNNELS: B2B CORPORATIVO vs B2C ALUMNOS */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* FUNNEL B2B (CORPORATIVO / GABINO) */}
-        {(segmentView === 'all' || segmentView === 'B2B') && (
-          <div className="bg-theme-sur border border-theme-bor rounded-2xl p-5 shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-[10px] font-mono text-[#2979ff] font-bold uppercase bg-[#2979ff]/10 px-2 py-0.5 rounded">
-                  Línea B2B · Gabino (CEO)
-                </span>
-                <h3 className="font-bold text-sm text-theme-txt mt-1 flex items-center gap-1.5">
-                  <Briefcase className="w-4 h-4 text-[#2979ff]" />
-                  <span>Embudo de Venta Corporativa & RRHH</span>
-                </h3>
-              </div>
-              <span className="text-xs font-mono font-bold text-theme-txt2">
-                {b2bTotal.toLocaleString()} leads
+      {/* VISUAL CHARTS SECTION (Interactive Tabs: Pipeline Bar Chart, Conversion Funnel, Data Quality) */}
+      <div className="bg-theme-sur border border-theme-bor rounded-2xl p-5 shadow-xs space-y-5">
+        {/* Charts Sub-header Navigation */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-theme-bor">
+          <div>
+            <h3 className="font-bold text-sm text-theme-txt flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-[#2979ff]" />
+              <span>
+                {activeChartTab === 'pipeline' 
+                  ? `Distribución de Etapas del Pipeline (${segmentView === 'B2B' ? 'B2B Corporativo - 10 Etapas' : segmentView === 'B2C' ? 'B2C Alumnos' : 'Consolidado Integral'})` 
+                  : activeChartTab === 'funnel'
+                  ? 'Embudo Escalonado de Conversión'
+                  : 'Tendencia de Actividad & Contactabilidad'}
               </span>
-            </div>
+            </h3>
+            <p className="text-xs text-theme-txt2 mt-0.5">
+              Análisis visual con barras proporcionales, tasas de caída y distribución de volumen
+            </p>
+          </div>
 
-            <div className="space-y-3 pt-1">
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-theme-txt2">1. Cuentas Corporativas Sin Contactar</span>
-                  <span className="font-mono font-bold text-theme-txt">{b2bUncontacted.toLocaleString()}</span>
+          <div className="flex items-center bg-theme-sur2 border border-theme-bor p-1 rounded-xl text-xs">
+            <button
+              onClick={() => setActiveChartTab('pipeline')}
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                activeChartTab === 'pipeline'
+                  ? 'bg-theme-sur text-[#2979ff] shadow-xs border border-theme-bor'
+                  : 'text-theme-txt2 hover:text-theme-txt'
+              }`}
+            >
+              Etapas del Pipeline
+            </button>
+            <button
+              onClick={() => setActiveChartTab('funnel')}
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                activeChartTab === 'funnel'
+                  ? 'bg-theme-sur text-[#ff6d3b] shadow-xs border border-theme-bor'
+                  : 'text-theme-txt2 hover:text-theme-txt'
+              }`}
+            >
+              Embudo de Conversión
+            </button>
+            <button
+              onClick={() => setActiveChartTab('activity')}
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                activeChartTab === 'activity'
+                  ? 'bg-theme-sur text-[#00a870] shadow-xs border border-theme-bor'
+                  : 'text-theme-txt2 hover:text-theme-txt'
+              }`}
+            >
+              Segmentación & Calidad
+            </button>
+          </div>
+        </div>
+
+        {/* CHART TAB 1: Pipeline Stages Breakdown Bar Chart */}
+        {activeChartTab === 'pipeline' && (
+          <div className="space-y-4">
+            {segmentView === 'B2B' ? (
+              /* B2B 10 STAGES HORIZONTAL BAR CHART */
+              <div className="space-y-3">
+                {b2bStages.map((st) => {
+                  const count = b2bByStatus[st.name] || 0;
+                  const pct = b2bTotal > 0 ? ((count / b2bTotal) * 100).toFixed(1) : '0';
+
+                  return (
+                    <div key={st.name} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-semibold text-theme-txt flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: st.color }} />
+                          <span>{st.name}</span>
+                        </span>
+                        <span className="font-mono text-theme-txt2">
+                          <b className="text-theme-txt font-bold">{count}</b> leads ({pct}%)
+                        </span>
+                      </div>
+
+                      <div className="w-full h-2.5 bg-theme-sur2 rounded-full overflow-hidden border border-theme-bor/60">
+                        <div
+                          className="h-full rounded-full transition-all duration-700"
+                          style={{
+                            width: `${Math.max(parseFloat(pct), count > 0 ? 3 : 0)}%`,
+                            backgroundColor: st.color,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : segmentView === 'B2C' ? (
+              /* B2C STAGES HORIZONTAL BAR CHART */
+              <div className="space-y-3">
+                {b2cStages.map((st) => {
+                  const count = b2cByStatus[st.name] || 0;
+                  const pct = b2cTotal > 0 ? ((count / b2cTotal) * 100).toFixed(1) : '0';
+
+                  return (
+                    <div key={st.name} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-semibold text-theme-txt flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: st.color }} />
+                          <span>{st.name}</span>
+                        </span>
+                        <span className="font-mono text-theme-txt2">
+                          <b className="text-theme-txt font-bold">{count}</b> alumnos ({pct}%)
+                        </span>
+                      </div>
+
+                      <div className="w-full h-2.5 bg-theme-sur2 rounded-full overflow-hidden border border-theme-bor/60">
+                        <div
+                          className="h-full rounded-full transition-all duration-700"
+                          style={{
+                            width: `${Math.max(parseFloat(pct), count > 0 ? 3 : 0)}%`,
+                            backgroundColor: st.color,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              /* CONSOLIDATED COMPARATIVE SIDE-BY-SIDE CHART */
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Left: B2B Highlights */}
+                <div className="p-4 rounded-xl bg-theme-sur2/60 border border-[#2979ff]/30 space-y-3">
+                  <div className="flex items-center justify-between border-b border-theme-bor pb-2">
+                    <span className="text-xs font-bold text-[#2979ff] flex items-center gap-1.5">
+                      <Building2 className="w-4 h-4" />
+                      <span>🏢 Pipeline B2B Corporativo ({b2bTotal} leads)</span>
+                    </span>
+                    <span className="text-[10px] font-mono text-theme-txt3">{b2bConversionRate}% conv.</span>
+                  </div>
+
+                  <div className="space-y-2">
+                    {b2bStages.slice(0, 7).map((st) => {
+                      const count = b2bByStatus[st.name] || 0;
+                      const pct = b2bTotal > 0 ? Math.round((count / b2bTotal) * 100) : 0;
+                      return (
+                        <div key={st.name} className="text-xs space-y-0.5">
+                          <div className="flex justify-between text-[11px] font-mono">
+                            <span className="text-theme-txt2 truncate max-w-[180px]">{st.name}</span>
+                            <span className="font-bold text-theme-txt">{count} ({pct}%)</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-theme-sur rounded-full overflow-hidden">
+                            <div className="h-full rounded-full" style={{ width: `${Math.max(pct, count > 0 ? 4 : 0)}%`, backgroundColor: st.color }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className="w-full h-2 bg-theme-sur2 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#7d8fa8]" style={{ width: `${b2bTotal > 0 ? (b2bUncontacted / b2bTotal) * 100 : 0}%` }} />
+
+                {/* Right: B2C Highlights */}
+                <div className="p-4 rounded-xl bg-theme-sur2/60 border border-[#00a870]/30 space-y-3">
+                  <div className="flex items-center justify-between border-b border-theme-bor pb-2">
+                    <span className="text-xs font-bold text-[#00a870] flex items-center gap-1.5">
+                      <Users className="w-4 h-4" />
+                      <span>👤 Pipeline B2C Alumnos ({b2cTotal} leads)</span>
+                    </span>
+                    <span className="text-[10px] font-mono text-theme-txt3">{b2cConversionRate}% conv.</span>
+                  </div>
+
+                  <div className="space-y-2">
+                    {b2cStages.map((st) => {
+                      const count = b2cByStatus[st.name] || 0;
+                      const pct = b2cTotal > 0 ? Math.round((count / b2cTotal) * 100) : 0;
+                      return (
+                        <div key={st.name} className="text-xs space-y-0.5">
+                          <div className="flex justify-between text-[11px] font-mono">
+                            <span className="text-theme-txt2 truncate max-w-[180px]">{st.name}</span>
+                            <span className="font-bold text-theme-txt">{count} ({pct}%)</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-theme-sur rounded-full overflow-hidden">
+                            <div className="h-full rounded-full" style={{ width: `${Math.max(pct, count > 0 ? 4 : 0)}%`, backgroundColor: st.color }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* CHART TAB 2: Conversion Funnel Visual Chart */}
+        {activeChartTab === 'funnel' && (
+          <div className="space-y-4">
+            <div className="max-w-2xl mx-auto space-y-3 pt-2">
+              {/* Funnel Tier 1 */}
+              <div className="p-3.5 bg-[#7d8fa8]/15 border border-[#7d8fa8]/30 rounded-xl flex items-center justify-between shadow-2xs">
+                <div className="flex items-center gap-3">
+                  <span className="w-6 h-6 rounded-full bg-[#7d8fa8] text-white flex items-center justify-center font-mono font-bold text-xs">1</span>
+                  <div>
+                    <h4 className="font-bold text-xs text-theme-txt">Prospectos Identificados en Base</h4>
+                    <span className="text-[10.5px] text-theme-txt3 font-mono">Punto de partida del ciclo comercial</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-sm font-mono font-extrabold text-theme-txt">{activeTotal}</span>
+                  <span className="text-[10px] font-mono text-theme-txt3 block">100% base</span>
                 </div>
               </div>
 
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-theme-txt2">2. En Diálogo / Diagnóstico Inicial</span>
-                  <span className="font-mono font-bold text-[#2979ff]">{b2bInContact.toLocaleString()}</span>
+              {/* Funnel Tier 2 */}
+              <div className="p-3.5 bg-[#2979ff]/15 border border-[#2979ff]/30 rounded-xl flex items-center justify-between shadow-2xs mx-3">
+                <div className="flex items-center gap-3">
+                  <span className="w-6 h-6 rounded-full bg-[#2979ff] text-white flex items-center justify-center font-mono font-bold text-xs">2</span>
+                  <div>
+                    <h4 className="font-bold text-xs text-[#2979ff]">Contactados / En Diálogo Inicial</h4>
+                    <span className="text-[10.5px] text-theme-txt3 font-mono">Mensaje de valor enviado y respuesta iniciada</span>
+                  </div>
                 </div>
-                <div className="w-full h-2 bg-theme-sur2 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#2979ff]" style={{ width: `${b2bTotal > 0 ? (b2bInContact / b2bTotal) * 100 : 0}%` }} />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-theme-txt2">3. Propuesta Económica Presentada</span>
-                  <span className="font-mono font-bold text-[#ff6d3b]">{b2bOpportunity.toLocaleString()}</span>
-                </div>
-                <div className="w-full h-2 bg-theme-sur2 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#ff6d3b]" style={{ width: `${b2bTotal > 0 ? (b2bOpportunity / b2bTotal) * 100 : 0}%` }} />
+                <div className="text-right">
+                  <span className="text-sm font-mono font-extrabold text-[#2979ff]">{inContact}</span>
+                  <span className="text-[10px] font-mono text-theme-txt3 block">
+                    {activeTotal > 0 ? Math.round((inContact / activeTotal) * 100) : 0}% avance
+                  </span>
                 </div>
               </div>
 
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-theme-txt2">4. Contrato Corporativo Cerrado</span>
-                  <span className="font-mono font-bold text-[#00a870]">{b2bClient.toLocaleString()}</span>
+              {/* Funnel Tier 3 */}
+              <div className="p-3.5 bg-[#ff6d3b]/15 border border-[#ff6d3b]/30 rounded-xl flex items-center justify-between shadow-2xs mx-6">
+                <div className="flex items-center gap-3">
+                  <span className="w-6 h-6 rounded-full bg-[#ff6d3b] text-white flex items-center justify-center font-mono font-bold text-xs">3</span>
+                  <div>
+                    <h4 className="font-bold text-xs text-[#ff6d3b]">Discovery / Reunión & Oportunidad</h4>
+                    <span className="text-[10.5px] text-theme-txt3 font-mono">Diagnóstico corporativo o temario solicitado</span>
+                  </div>
                 </div>
-                <div className="w-full h-2 bg-theme-sur2 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#00a870]" style={{ width: `${b2bTotal > 0 ? (b2bClient / b2bTotal) * 100 : 0}%` }} />
+                <div className="text-right">
+                  <span className="text-sm font-mono font-extrabold text-[#ff6d3b]">{opportunity}</span>
+                  <span className="text-[10px] font-mono text-theme-txt3 block">
+                    {activeTotal > 0 ? Math.round((opportunity / activeTotal) * 100) : 0}% calificado
+                  </span>
                 </div>
               </div>
-            </div>
 
-            <div className="p-3 bg-theme-sur2 rounded-xl border border-theme-bor text-[11px] text-theme-txt2 font-mono flex items-center justify-between">
-              <span>🎯 Ciclo promedio B2B: ~15 a 30 días</span>
-              <span className="font-bold text-[#2979ff]">{b2bConversionRate}% conversión</span>
+              {/* Funnel Tier 4 */}
+              <div className="p-3.5 bg-[#00e5a0]/15 border border-[#00e5a0]/30 rounded-xl flex items-center justify-between shadow-2xs mx-9">
+                <div className="flex items-center gap-3">
+                  <span className="w-6 h-6 rounded-full bg-[#00e5a0] text-[#00110b] flex items-center justify-center font-mono font-bold text-xs">4</span>
+                  <div>
+                    <h4 className="font-bold text-xs text-[#00e5a0]">Ganadas / Cierres Comerciales</h4>
+                    <span className="text-[10.5px] text-theme-txt3 font-mono">Contrato corporativo o matrícula concretada</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-sm font-mono font-extrabold text-[#00e5a0]">{client}</span>
+                  <span className="text-[10px] font-mono text-theme-txt3 block font-bold">
+                    {activeTotal > 0 ? ((client / activeTotal) * 100).toFixed(1) : 0}% tasa de éxito
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
-        {/* FUNNEL B2C (ALUMNOS / KIARA) */}
-        {(segmentView === 'all' || segmentView === 'B2C') && (
-          <div className="bg-theme-sur border border-theme-bor rounded-2xl p-5 shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-[10px] font-mono text-[#00a870] font-bold uppercase bg-[#00a870]/10 px-2 py-0.5 rounded">
-                  Línea B2C · Kiara (COO)
-                </span>
-                <h3 className="font-bold text-sm text-theme-txt mt-1 flex items-center gap-1.5">
-                  <GraduationCap className="w-4 h-4 text-[#00a870]" />
-                  <span>Embudo de Alumnos & Certificaciones</span>
-                </h3>
+        {/* CHART TAB 3: Data Quality & Segment Distribution Radial/Donut */}
+        {activeChartTab === 'activity' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-1">
+            {/* Donut Chart: B2B vs B2C Ratio */}
+            <div className="p-4 rounded-xl bg-theme-sur2/60 border border-theme-bor space-y-4">
+              <h4 className="font-bold text-xs text-theme-txt flex items-center gap-2">
+                <PieChart className="w-4 h-4 text-[#2979ff]" />
+                <span>Distribución por Línea de Negocio (B2B vs B2C)</span>
+              </h4>
+
+              <div className="flex items-center justify-center gap-6 py-2">
+                {/* SVG Donut */}
+                <div className="relative w-32 h-32 flex items-center justify-center">
+                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      stroke="currentColor"
+                      strokeWidth="14"
+                      className="text-theme-bor/40 fill-none"
+                    />
+                    {/* B2B Arc */}
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      stroke="#2979ff"
+                      strokeWidth="14"
+                      strokeDasharray={`${b2bStrokeDash} ${circumference}`}
+                      strokeDashoffset="0"
+                      className="fill-none transition-all duration-1000"
+                    />
+                    {/* B2C Arc */}
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      stroke="#00a870"
+                      strokeWidth="14"
+                      strokeDasharray={`${b2cStrokeDash} ${circumference}`}
+                      strokeDashoffset={`-${b2bStrokeDash}`}
+                      className="fill-none transition-all duration-1000"
+                    />
+                  </svg>
+
+                  <div className="absolute flex flex-col items-center justify-center text-center">
+                    <span className="font-mono font-extrabold text-sm text-theme-txt">{total}</span>
+                    <span className="text-[9px] font-mono text-theme-txt3 uppercase">Total</span>
+                  </div>
+                </div>
+
+                {/* Legend */}
+                <div className="space-y-2 text-xs font-mono">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-[#2979ff]" />
+                    <span className="text-theme-txt font-semibold">B2B Corporativo:</span>
+                    <span className="text-[#2979ff] font-bold">{b2bTotal} ({b2bPct}%)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-[#00a870]" />
+                    <span className="text-theme-txt font-semibold">B2C Alumnos:</span>
+                    <span className="text-[#00a870] font-bold">{b2cTotal} ({b2cPct}%)</span>
+                  </div>
+                </div>
               </div>
-              <span className="text-xs font-mono font-bold text-theme-txt2">
-                {b2cTotal.toLocaleString()} leads
-              </span>
             </div>
 
-            <div className="space-y-3 pt-1">
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-theme-txt2">1. Profesionales Por Contactar</span>
-                  <span className="font-mono font-bold text-theme-txt">{b2cUncontacted.toLocaleString()}</span>
+            {/* Data Readiness: Channel Enriched Data */}
+            <div className="p-4 rounded-xl bg-theme-sur2/60 border border-theme-bor space-y-4">
+              <h4 className="font-bold text-xs text-theme-txt flex items-center gap-2">
+                <Shield className="w-4 h-4 text-[#00a870]" />
+                <span>Contactabilidad & Calidad de Información</span>
+              </h4>
+
+              <div className="space-y-3 pt-1 text-xs">
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-theme-txt2 flex items-center gap-1.5">
+                      <Phone className="w-3.5 h-3.5 text-[#00a870]" />
+                      <span>Con Teléfono / WhatsApp:</span>
+                    </span>
+                    <span className="font-mono font-bold text-[#00a870]">{withPhone} ({phonePct}%)</span>
+                  </div>
+                  <div className="w-full h-2 bg-theme-sur rounded-full overflow-hidden">
+                    <div className="h-full bg-[#00a870]" style={{ width: `${phonePct}%` }} />
+                  </div>
                 </div>
-                <div className="w-full h-2 bg-theme-sur2 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#7d8fa8]" style={{ width: `${b2cTotal > 0 ? (b2cUncontacted / b2cTotal) * 100 : 0}%` }} />
+
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-theme-txt2 flex items-center gap-1.5">
+                      <Mail className="w-3.5 h-3.5 text-[#2979ff]" />
+                      <span>Con Correo Electrónico:</span>
+                    </span>
+                    <span className="font-mono font-bold text-[#2979ff]">{withEmail} ({emailPct}%)</span>
+                  </div>
+                  <div className="w-full h-2 bg-theme-sur rounded-full overflow-hidden">
+                    <div className="h-full bg-[#2979ff]" style={{ width: `${emailPct}%` }} />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-theme-txt2 flex items-center gap-1.5">
+                      <Building2 className="w-3.5 h-3.5 text-[#f59e0b]" />
+                      <span>Empresas Diferenciadas:</span>
+                    </span>
+                    <span className="font-mono font-bold text-[#f59e0b]">{companiesCount} registradas</span>
+                  </div>
+                  <div className="w-full h-2 bg-theme-sur rounded-full overflow-hidden">
+                    <div className="h-full bg-[#f59e0b]" style={{ width: `${Math.min(100, Math.round((companiesCount / Math.max(total, 1)) * 100))}%` }} />
+                  </div>
                 </div>
               </div>
-
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-theme-txt2">2. En Conversación / Información</span>
-                  <span className="font-mono font-bold text-[#2979ff]">{b2cInContact.toLocaleString()}</span>
-                </div>
-                <div className="w-full h-2 bg-theme-sur2 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#2979ff]" style={{ width: `${b2cTotal > 0 ? (b2cInContact / b2cTotal) * 100 : 0}%` }} />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-theme-txt2">3. Pide Temario / Beca / Fechas</span>
-                  <span className="font-mono font-bold text-[#ff6d3b]">{b2cOpportunity.toLocaleString()}</span>
-                </div>
-                <div className="w-full h-2 bg-theme-sur2 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#ff6d3b]" style={{ width: `${b2cTotal > 0 ? (b2cOpportunity / b2cTotal) * 100 : 0}%` }} />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-theme-txt2">4. Alumno Matriculado / Pagado</span>
-                  <span className="font-mono font-bold text-[#00a870]">{b2cClient.toLocaleString()}</span>
-                </div>
-                <div className="w-full h-2 bg-theme-sur2 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#00a870]" style={{ width: `${b2cTotal > 0 ? (b2cClient / b2cTotal) * 100 : 0}%` }} />
-                </div>
-              </div>
-            </div>
-
-            <div className="p-3 bg-theme-sur2 rounded-xl border border-theme-bor text-[11px] text-theme-txt2 font-mono flex items-center justify-between">
-              <span>⚡ Ciclo ágil B2C: ~3 a 7 días</span>
-              <span className="font-bold text-[#00a870]">{b2cConversionRate}% conversión</span>
             </div>
           </div>
         )}
@@ -527,7 +722,7 @@ export default function ExecutiveDashboard({ stats }: ExecutiveDashboardProps) {
         </div>
       )}
 
-      {/* Grid: Geographic Distribution (Countries) + Top Companies */}
+      {/* Grid: Geographic Distribution & Top Companies */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Geographic Distribution: Top Countries */}
         <div className="bg-theme-sur border border-theme-bor rounded-2xl p-5 shadow-xs space-y-3.5">
