@@ -48,6 +48,7 @@ export interface ActivityLog {
   action_type: 'STATUS_CHANGE' | 'DATA_UPDATE' | 'PHONE_ADDED' | 'EMAIL_ADDED' | 'NOTE_ADDED' | 'CONTACTED_OUTREACH' | 'OPPORTUNITY_CREATED' | 'CLIENT_WON' | 'LEAD_PAUSED' | 'GOAL_UPDATED' | 'MEETING_SCHEDULED' | 'PROPOSAL_SENT';
   description: string;
   performed_by: string;
+  is_read?: boolean;
   created_at: string;
 }
 

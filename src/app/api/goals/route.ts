@@ -187,24 +187,24 @@ export async function GET(req: NextRequest) {
         };
       });
 
-      // Active managed contacts in CRM for this member (filtered by segment if specified)
+      // Active managed contacts in CRM for this member strictly within THIS sprint week
       const contactSummary = await sql`
         SELECT 
-          COUNT(CASE WHEN status != 'Sin contactar' THEN 1 END)::int as all_managed_contacts,
+          COUNT(CASE WHEN status != 'Sin contactar' AND ((updated_at AT TIME ZONE 'America/Lima')::date >= ${startDate}::date AND (updated_at AT TIME ZONE 'America/Lima')::date <= ${endDate}::date) THEN 1 END)::int as contacts_managed_this_week,
           COUNT(CASE WHEN status != 'Sin contactar' AND ((updated_at AT TIME ZONE 'America/Lima')::date = ${todayDate}::date OR (created_at AT TIME ZONE 'America/Lima')::date = ${todayDate}::date) THEN 1 END)::int as contacts_managed_today,
-          COUNT(CASE WHEN phone IS NOT NULL AND phone != '' THEN 1 END)::int as curr_phones,
-          COUNT(CASE WHEN status = 'Oportunidad' THEN 1 END)::int as curr_opportunities,
-          COUNT(CASE WHEN status = 'Cliente' THEN 1 END)::int as curr_clients
+          COUNT(CASE WHEN phone IS NOT NULL AND phone != '' AND ((updated_at AT TIME ZONE 'America/Lima')::date >= ${startDate}::date AND (updated_at AT TIME ZONE 'America/Lima')::date <= ${endDate}::date) THEN 1 END)::int as curr_phones_this_week,
+          COUNT(CASE WHEN (status = 'Oportunidad' OR status = 'Oportunidad calificada' OR status = 'Discovery / reunión') AND ((updated_at AT TIME ZONE 'America/Lima')::date >= ${startDate}::date AND (updated_at AT TIME ZONE 'America/Lima')::date <= ${endDate}::date) THEN 1 END)::int as curr_opportunities_this_week,
+          COUNT(CASE WHEN (status = 'Cliente' OR status = 'Ganada') AND ((updated_at AT TIME ZONE 'America/Lima')::date >= ${startDate}::date AND (updated_at AT TIME ZONE 'America/Lima')::date <= ${endDate}::date) THEN 1 END)::int as curr_clients_this_week
         FROM contacts
-        WHERE assigned_to = ${m.name}
+        WHERE (assigned_to = ${m.name} OR assigned_to ILIKE ${'%' + m.name.split(' ')[0] + '%'})
           AND (${segment === 'all'}::boolean OR business_segment = ${segment});
       `;
 
-      // Cumulative contacted this week: Max of distinct activity logs or total managed contacts
-      const cAct = Math.max(acts[0]?.distinct_contacts_touched || 0, contactSummary[0]?.all_managed_contacts || 0);
-      const pAct = Math.max(acts[0]?.phone_count || 0, contactSummary[0]?.curr_phones || 0);
-      const oAct = Math.max(acts[0]?.opportunity_count || 0, contactSummary[0]?.curr_opportunities || 0);
-      const clAct = Math.max(acts[0]?.client_count || 0, contactSummary[0]?.curr_clients || 0);
+      // Cumulative contacted this week: Max of distinct activity logs or contacts managed/updated this week
+      const cAct = Math.max(acts[0]?.distinct_contacts_touched || 0, contactSummary[0]?.contacts_managed_this_week || 0);
+      const pAct = Math.max(acts[0]?.phone_count || 0, contactSummary[0]?.curr_phones_this_week || 0);
+      const oAct = Math.max(acts[0]?.opportunity_count || 0, contactSummary[0]?.curr_opportunities_this_week || 0);
+      const clAct = Math.max(acts[0]?.client_count || 0, contactSummary[0]?.curr_clients_this_week || 0);
 
       // Build daily breakdown for this member
       const daysBreakdown = weekDays.map((wd) => {
@@ -280,12 +280,21 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const teamSize = Math.max(targetMembers.length, 1);
-    const globalGoalContacted = activeGoals.contacted * teamSize;
-    const globalGoalPhones = activeGoals.phones * teamSize;
-    const globalGoalOpportunities = activeGoals.opportunities * teamSize;
-    const globalGoalClients = activeGoals.clients * teamSize;
-    const globalDailyGoal = activeGoals.daily_contacted * teamSize;
+    const globalGoalContacted = segment === 'all'
+      ? (storedGoals.b2b.contacted + storedGoals.b2c.contacted)
+      : activeGoals.contacted;
+    const globalGoalPhones = segment === 'all'
+      ? (storedGoals.b2b.phones + storedGoals.b2c.phones)
+      : activeGoals.phones;
+    const globalGoalOpportunities = segment === 'all'
+      ? (storedGoals.b2b.opportunities + storedGoals.b2c.opportunities)
+      : activeGoals.opportunities;
+    const globalGoalClients = segment === 'all'
+      ? (storedGoals.b2b.clients + storedGoals.b2c.clients)
+      : activeGoals.clients;
+    const globalDailyGoal = segment === 'all'
+      ? (storedGoals.b2b.daily_contacted + storedGoals.b2c.daily_contacted)
+      : activeGoals.daily_contacted;
 
     const gCPct = Math.min(100, Math.round((globalContacted / Math.max(globalGoalContacted, 1)) * 100));
     const gPPct = Math.min(100, Math.round((globalPhones / Math.max(globalGoalPhones, 1)) * 100));
@@ -369,12 +378,12 @@ export async function GET(req: NextRequest) {
         new_contacts_made: Math.max(outreachQuery[0]?.new_contacts_made || 0, globalContacted),
       },
       conversion: {
-        responses_received: Math.max(conversionQuery[0]?.responses_received || 0, Math.round(globalContacted * 0.15)),
+        responses_received: conversionQuery[0]?.responses_received || 0,
         meetings_scheduled: conversionQuery[0]?.meetings_scheduled || 0,
         meetings_completed: conversionQuery[0]?.meetings_completed || 0,
-        qualified_opportunities: Math.max(conversionQuery[0]?.qualified_opportunities || 0, globalOpportunities),
+        qualified_opportunities: conversionQuery[0]?.qualified_opportunities || 0,
         proposals_sent: conversionQuery[0]?.proposals_sent || 0,
-        deals_won: Math.max(conversionQuery[0]?.deals_won || 0, globalClients),
+        deals_won: conversionQuery[0]?.deals_won || 0,
       },
       financial: {
         pipeline_total_value: Number(financialQuery[0]?.pipeline_total_value) || 0,

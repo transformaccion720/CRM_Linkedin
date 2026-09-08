@@ -28,7 +28,11 @@ export async function GET(req: NextRequest) {
         (c.follow_up_date - t.today_lima) as days_diff
       FROM contacts c
       CROSS JOIN ref_today t
-      WHERE (c.follow_up_date IS NOT NULL OR c.status IN ('Seguimiento', 'En pausa', 'Conversación iniciada', 'Discovery / reunión', 'Oportunidad calificada', 'Propuesta enviada', 'Negociación'))
+      WHERE (
+        (c.business_segment = 'B2B' AND c.status IN ('Discovery / reunión', 'Oportunidad calificada', 'Propuesta enviada', 'Negociación', 'Ganada'))
+        OR
+        (c.business_segment = 'B2C' AND c.status IN ('Oportunidad', 'Cliente'))
+      )
         AND (${memberName === '' || memberName === 'all'}::boolean OR c.assigned_to = ${memberName})
         AND (${segment === 'all'}::boolean OR c.business_segment = ${segment})
         AND (${statusParam === 'all'}::boolean OR c.status = ${statusParam})

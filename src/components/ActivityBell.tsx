@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Check, Clock, Sparkles, User, RefreshCw, X, CheckCheck, Trash2, ChevronRight, ExternalLink } from 'lucide-react';
+import { Bell, Clock, Sparkles, User, X, CheckCheck, Trash2, ChevronRight, Check } from 'lucide-react';
 import { ActivityLog } from '@/lib/types';
 
 interface ActivityBellProps {
@@ -9,7 +9,7 @@ interface ActivityBellProps {
   onOpenContactDrawer?: (contactId: string) => void;
 }
 
-export default function ActivityBell({ onRefreshTrigger, onOpenContactDrawer }: ActivityBellProps) {
+export default function ActivityBell({ onOpenContactDrawer }: ActivityBellProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -19,22 +19,12 @@ export default function ActivityBell({ onRefreshTrigger, onOpenContactDrawer }: 
   const fetchActivities = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/activities?limit=40');
+      const res = await fetch('/api/activities?limit=40', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         const acts: ActivityLog[] = data.activities || [];
         setActivities(acts);
-        
-        const lastSeen = localStorage.getItem('crm_last_seen_activity');
-        if (!lastSeen) {
-          setUnreadCount(Math.min(acts.length, 9));
-        } else {
-          const lastSeenDate = new Date(lastSeen).getTime();
-          const unread = acts.filter(
-            (a) => new Date(a.created_at).getTime() > lastSeenDate
-          );
-          setUnreadCount(unread.length);
-        }
+        setUnreadCount(typeof data.unread_count === 'number' ? data.unread_count : acts.filter(a => !a.is_read).length);
       }
     } catch (e) {
       console.error('Error fetching activities:', e);
@@ -45,7 +35,7 @@ export default function ActivityBell({ onRefreshTrigger, onOpenContactDrawer }: 
 
   useEffect(() => {
     fetchActivities();
-    const interval = setInterval(fetchActivities, 20000);
+    const interval = setInterval(fetchActivities, 25000);
     return () => clearInterval(interval);
   }, []);
 
@@ -60,48 +50,63 @@ export default function ActivityBell({ onRefreshTrigger, onOpenContactDrawer }: 
   }, []);
 
   const handleOpenDropdown = () => {
-    const nextState = !isOpen;
-    setIsOpen(nextState);
-    if (nextState) {
+    setIsOpen((prev) => !prev);
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      // Optimistic update
       setUnreadCount(0);
-      localStorage.setItem('crm_last_seen_activity', new Date().toISOString());
+      setActivities((prev) => prev.map((a) => ({ ...a, is_read: true })));
+      await fetch('/api/activities?all=true', { method: 'PATCH' });
+    } catch (err) {
+      console.error('Error marking all read:', err);
     }
   };
 
-  const handleMarkAllRead = () => {
-    setUnreadCount(0);
-    localStorage.setItem('crm_last_seen_activity', new Date().toISOString());
+  const handleItemClick = async (a: ActivityLog) => {
+    // If not read yet, mark read on backend and locally
+    if (!a.is_read) {
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+      setActivities((prev) =>
+        prev.map((item) => (item.id === a.id ? { ...item, is_read: true } : item))
+      );
+      try {
+        await fetch(`/api/activities?id=${a.id}`, { method: 'PATCH' });
+      } catch (err) {
+        console.error('Error marking activity as read:', err);
+      }
+    }
+
+    // If it has a contact attached, open its drawer
+    if (a.contact_id && onOpenContactDrawer) {
+      setIsOpen(false);
+      onOpenContactDrawer(a.contact_id);
+    }
   };
 
-  const handleDeleteActivity = async (id: string, e: React.MouseEvent) => {
+  const handleDeleteActivity = async (id: string, isUnread: boolean, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      const res = await fetch(`/api/activities?id=${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        setActivities((prev) => prev.filter((a) => a.id !== id));
+      // Optimistic update
+      setActivities((prev) => prev.filter((a) => a.id !== id));
+      if (isUnread) {
+        setUnreadCount((prev) => Math.max(0, prev - 1));
       }
+      await fetch(`/api/activities?id=${id}`, { method: 'DELETE' });
     } catch (err) {
       console.error('Error deleting activity:', err);
     }
   };
 
   const handleClearAllActivities = async () => {
-    if (!confirm('¿Deseas limpiar todo el historial de notificaciones?')) return;
+    if (!confirm('¿Deseas eliminar todas las notificaciones de la bandeja?')) return;
     try {
-      const res = await fetch('/api/activities?all=true', { method: 'DELETE' });
-      if (res.ok) {
-        setActivities([]);
-        setUnreadCount(0);
-      }
+      setActivities([]);
+      setUnreadCount(0);
+      await fetch('/api/activities?all=true', { method: 'DELETE' });
     } catch (err) {
       console.error('Error clearing activities:', err);
-    }
-  };
-
-  const handleActivityClick = (a: ActivityLog) => {
-    if (a.contact_id && onOpenContactDrawer) {
-      setIsOpen(false);
-      onOpenContactDrawer(a.contact_id);
     }
   };
 
@@ -119,6 +124,12 @@ export default function ActivityBell({ onRefreshTrigger, onOpenContactDrawer }: 
         return { label: 'Nota / Respuesta', bg: 'bg-[#a855f7]/15 text-[#a855f7] border-[#a855f7]/30' };
       case 'GOAL_UPDATED':
         return { label: '🎯 Metas', bg: 'bg-[#f59e0b]/15 text-[#f59e0b] border-[#f59e0b]/30' };
+      case 'MEETING_SCHEDULED':
+        return { label: '📅 Reunión', bg: 'bg-[#2979ff]/15 text-[#2979ff] border-[#2979ff]/30' };
+      case 'PROPOSAL_SENT':
+        return { label: '📄 Propuesta', bg: 'bg-[#a855f7]/15 text-[#a855f7] border-[#a855f7]/30' };
+      case 'CLIENT_WON':
+        return { label: '🏆 Ganada', bg: 'bg-[#00a870]/20 text-[#00a870] border-[#00a870]/40' };
       default:
         return { label: 'Gestión', bg: 'bg-theme-sur2 text-theme-txt border-theme-bor' };
     }
@@ -130,11 +141,11 @@ export default function ActivityBell({ onRefreshTrigger, onOpenContactDrawer }: 
       <button
         onClick={handleOpenDropdown}
         className="p-1.5 sm:p-2 rounded-lg text-theme-txt2 hover:text-[#00a870] bg-theme-sur2 hover:bg-theme-sur3 border border-theme-bor transition-all cursor-pointer relative flex items-center justify-center"
-        title="Historial de Gestiones y Alertas del Equipo"
+        title="Bandeja de Notificaciones y Alertas"
       >
         <Bell className="w-4 h-4" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#ff6d3b] text-white text-[9px] font-mono font-bold flex items-center justify-center animate-bounce">
+          <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-[#ff6d3b] text-white text-[9px] font-mono font-bold flex items-center justify-center shadow-xs animate-bounce">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -147,30 +158,41 @@ export default function ActivityBell({ onRefreshTrigger, onOpenContactDrawer }: 
           <div className="p-3 px-4 border-b border-theme-bor flex items-center justify-between bg-theme-sur shrink-0">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-[#00a870]" />
-              <span className="font-bold text-xs text-theme-txt">Alertas y Gestiones</span>
+              <div>
+                <span className="font-bold text-xs text-theme-txt">Bandeja de Notificaciones</span>
+                {unreadCount > 0 && (
+                  <span className="ml-1.5 text-[10px] font-bold text-[#ff6d3b] font-mono">
+                    ({unreadCount} pendientes)
+                  </span>
+                )}
+              </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleMarkAllRead}
-                className="p-1 text-theme-txt3 hover:text-[#00a870] rounded transition-colors cursor-pointer text-[11px] flex items-center gap-1"
-                title="Marcar todas como leídas"
-              >
-                <CheckCheck className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Marcar Leídas</span>
-              </button>
+            <div className="flex items-center gap-1.5">
+              {unreadCount > 0 && (
+                <button
+                  onClick={handleMarkAllRead}
+                  className="px-2 py-1 text-theme-txt3 hover:text-[#00a870] hover:bg-[#00a870]/10 rounded-lg transition-colors cursor-pointer text-[11px] font-medium flex items-center gap-1"
+                  title="Marcar todas como leídas"
+                >
+                  <CheckCheck className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Marcar leídas</span>
+                </button>
+              )}
 
-              <button
-                onClick={handleClearAllActivities}
-                className="p-1 text-theme-txt3 hover:text-[#ff6d3b] rounded transition-colors cursor-pointer text-[11px] flex items-center gap-1"
-                title="Limpiar todas las notificaciones"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
+              {activities.length > 0 && (
+                <button
+                  onClick={handleClearAllActivities}
+                  className="p-1.5 text-theme-txt3 hover:text-[#ff6d3b] hover:bg-[#ff6d3b]/10 rounded-lg transition-colors cursor-pointer"
+                  title="Vaciar todas las notificaciones"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
 
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1 text-theme-txt3 hover:text-theme-txt rounded transition-colors cursor-pointer"
+                className="p-1.5 text-theme-txt3 hover:text-theme-txt hover:bg-theme-sur2 rounded-lg transition-colors cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -182,43 +204,55 @@ export default function ActivityBell({ onRefreshTrigger, onOpenContactDrawer }: 
             {activities.length === 0 ? (
               <div className="p-8 text-center text-xs text-theme-txt2">
                 <Clock className="w-8 h-8 text-theme-txt3 mx-auto mb-2 opacity-50" />
-                <p>No hay gestiones pendientes</p>
+                <p className="font-medium">No hay notificaciones pendientes</p>
+                <p className="text-[11px] text-theme-txt3 mt-1">Tu bandeja está completamente al día</p>
               </div>
             ) : (
               activities.map((a) => {
                 const badge = getActionBadge(a.action_type);
                 const hasContactLink = Boolean(a.contact_id);
+                const isUnread = !a.is_read;
 
                 return (
                   <div
                     key={a.id}
-                    onClick={() => handleActivityClick(a)}
-                    className={`p-2.5 bg-theme-sur2/70 border border-theme-bor rounded-xl text-xs space-y-1 shadow-2xs hover:border-[#00a870]/40 transition-colors group relative ${
-                      hasContactLink ? 'cursor-pointer' : ''
+                    onClick={() => handleItemClick(a)}
+                    className={`p-3 rounded-xl text-xs space-y-1.5 shadow-2xs transition-all group relative border cursor-pointer ${
+                      isUnread
+                        ? 'bg-theme-sur border-[#2979ff]/40 hover:border-[#2979ff] shadow-xs'
+                        : 'bg-theme-sur2/50 border-theme-bor hover:border-theme-bor2 opacity-80 hover:opacity-100'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-1.5">
-                      <span className="font-bold text-theme-txt truncate max-w-[190px] flex items-center gap-1">
-                        <span>{a.contact_name}</span>
-                        {hasContactLink && <ChevronRight className="w-3 h-3 text-[#00a870] opacity-70 group-hover:opacity-100" />}
-                      </span>
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded border shrink-0 ${badge.bg}`}
-                        >
+                      <div className="flex items-center gap-1.5 truncate max-w-[210px]">
+                        {isUnread && (
+                          <span className="w-2 h-2 rounded-full bg-[#2979ff] shrink-0" title="No leída" />
+                        )}
+                        <span className={`truncate flex items-center gap-1 ${isUnread ? 'font-bold text-theme-txt' : 'font-medium text-theme-txt2'}`}>
+                          <span>{a.contact_name}</span>
+                          {hasContactLink && (
+                            <ChevronRight className="w-3 h-3 text-[#00a870] opacity-70 group-hover:opacity-100" />
+                          )}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${badge.bg}`}>
                           {badge.label}
                         </span>
+
+                        {/* Delete single notification button */}
                         <button
-                          onClick={(e) => handleDeleteActivity(a.id, e)}
-                          className="opacity-0 group-hover:opacity-100 p-0.5 text-theme-txt3 hover:text-[#ff6d3b] transition-opacity cursor-pointer"
-                          title="Eliminar notificación"
+                          onClick={(e) => handleDeleteActivity(a.id, isUnread, e)}
+                          className="p-1 rounded text-theme-txt3 hover:text-[#ff6d3b] hover:bg-[#ff6d3b]/15 transition-all cursor-pointer opacity-70 group-hover:opacity-100"
+                          title="Eliminar esta notificación"
                         >
-                          <X className="w-3 h-3" />
+                          <Trash2 className="w-3 h-3" />
                         </button>
                       </div>
                     </div>
 
-                    <p className="text-[11px] text-theme-txt2 leading-relaxed">
+                    <p className={`text-[11px] leading-relaxed ${isUnread ? 'text-theme-txt font-medium' : 'text-theme-txt2'}`}>
                       {a.description}
                     </p>
 
@@ -227,7 +261,16 @@ export default function ActivityBell({ onRefreshTrigger, onOpenContactDrawer }: 
                         <User className="w-2.5 h-2.5" />
                         <span>Por: {a.performed_by}</span>
                       </span>
-                      <span>{a.created_at}</span>
+                      <div className="flex items-center gap-2">
+                        <span>{a.created_at}</span>
+                        {a.is_read ? (
+                          <span className="text-theme-txt3 flex items-center gap-0.5" title="Leída">
+                            <Check className="w-2.5 h-2.5 text-[#00a870]" />
+                          </span>
+                        ) : (
+                          <span className="text-[#2979ff] font-bold text-[9px]">NUEVA</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -236,10 +279,9 @@ export default function ActivityBell({ onRefreshTrigger, onOpenContactDrawer }: 
           </div>
 
           {/* Footer */}
-          <div className="p-2 px-4 border-t border-theme-bor bg-theme-sur text-center shrink-0">
-            <span className="text-[10px] font-mono text-theme-txt3">
-              Notificaciones y auditoría en tiempo real
-            </span>
+          <div className="p-2 px-4 border-t border-theme-bor bg-theme-sur text-center shrink-0 flex items-center justify-between text-[10px] font-mono text-theme-txt3">
+            <span>Notificaciones del sistema</span>
+            <span>{activities.length} registradas</span>
           </div>
         </div>
       )}

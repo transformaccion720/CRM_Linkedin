@@ -540,7 +540,7 @@ export default function FollowUpsCalendarView({
             Mapeo y Seguimiento Comercial de Agendas
           </h2>
           <p className="text-xs text-theme-txt2 mt-0.5">
-            Vista mensual interactiva estilo Google Calendar, flags B2B / B2C y filtro por etapa del pipeline
+            Vista interactiva estilo Google Calendar. Foco exclusivo en etapas avanzadas: B2B desde Discovery / reunión y B2C en Oportunidad
           </p>
         </div>
 
@@ -666,25 +666,17 @@ export default function FollowUpsCalendarView({
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="bg-transparent text-theme-txt outline-hidden cursor-pointer text-xs font-medium"
               >
-                <option value="all">Etapa del Pipeline: Todas</option>
-                <optgroup label="🏢 Etapas B2B Corporativo">
-                  <option value="Prospecto identificado">Prospecto identificado</option>
-                  <option value="Contactado">Contactado</option>
-                  <option value="Conversación iniciada">Conversación iniciada</option>
+                <option value="all">Etapas Calificadas: Todas</option>
+                <optgroup label="🏢 B2B (Discovery en adelante)">
                   <option value="Discovery / reunión">Discovery / reunión</option>
                   <option value="Oportunidad calificada">Oportunidad calificada</option>
                   <option value="Propuesta enviada">Propuesta enviada</option>
                   <option value="Negociación">Negociación</option>
                   <option value="Ganada">Ganada</option>
-                  <option value="Pausada">Pausada</option>
                 </optgroup>
-                <optgroup label="👤 Etapas B2C Alumnos">
-                  <option value="Sin contactar">Sin contactar</option>
-                  <option value="En contacto">En contacto</option>
-                  <option value="Seguimiento">Seguimiento</option>
+                <optgroup label="👤 B2C (Oportunidad / Alumnos)">
                   <option value="Oportunidad">Oportunidad</option>
                   <option value="Cliente">Cliente</option>
-                  <option value="En pausa">En pausa</option>
                 </optgroup>
               </select>
             </div>

@@ -449,73 +449,263 @@ export default function ExecutiveDashboard({ stats }: ExecutiveDashboardProps) {
         {/* CHART TAB 2: Conversion Funnel Visual Chart */}
         {activeChartTab === 'funnel' && (
           <div className="space-y-4">
-            <div className="max-w-2xl mx-auto space-y-3 pt-2">
-              {/* Funnel Tier 1 */}
-              <div className="p-3.5 bg-[#7d8fa8]/15 border border-[#7d8fa8]/30 rounded-xl flex items-center justify-between shadow-2xs">
-                <div className="flex items-center gap-3">
-                  <span className="w-6 h-6 rounded-full bg-[#7d8fa8] text-white flex items-center justify-center font-mono font-bold text-xs">1</span>
-                  <div>
-                    <h4 className="font-bold text-xs text-theme-txt">Prospectos Identificados en Base</h4>
-                    <span className="text-[10.5px] text-theme-txt3 font-mono">Punto de partida del ciclo comercial</span>
+            {segmentView === 'all' ? (
+              /* DUAL SIDE-BY-SIDE FUNNELS FOR CONSOLIDATED VIEW */
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
+                {/* Left Funnel: B2B Corporativo */}
+                <div className="p-5 rounded-2xl bg-theme-sur2/40 border border-[#2979ff]/30 space-y-4 shadow-xs">
+                  <div className="flex items-center justify-between border-b border-theme-bor pb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-[#2979ff]/15 text-[#2979ff]">
+                        <Building2 className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-xs text-theme-txt flex items-center gap-1.5">
+                          <span>Embudo B2B Corporativo</span>
+                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#2979ff]/15 text-[#2979ff] border border-[#2979ff]/30">Gabino</span>
+                        </h4>
+                        <span className="text-[11px] text-theme-txt3 font-mono">Empresas, RRHH y Decisores</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-mono font-bold text-[#2979ff] block">{b2bConversionRate}% conv.</span>
+                      <span className="text-[10px] font-mono text-theme-txt3">{b2bTotal} en base</span>
+                    </div>
                   </div>
-                </div>
-                <div className="text-right">
-                  <span className="text-sm font-mono font-extrabold text-theme-txt">{activeTotal}</span>
-                  <span className="text-[10px] font-mono text-theme-txt3 block">100% base</span>
-                </div>
-              </div>
 
-              {/* Funnel Tier 2 */}
-              <div className="p-3.5 bg-[#2979ff]/15 border border-[#2979ff]/30 rounded-xl flex items-center justify-between shadow-2xs mx-3">
-                <div className="flex items-center gap-3">
-                  <span className="w-6 h-6 rounded-full bg-[#2979ff] text-white flex items-center justify-center font-mono font-bold text-xs">2</span>
-                  <div>
-                    <h4 className="font-bold text-xs text-[#2979ff]">Contactados / En Diálogo Inicial</h4>
-                    <span className="text-[10.5px] text-theme-txt3 font-mono">Mensaje de valor enviado y respuesta iniciada</span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className="text-sm font-mono font-extrabold text-[#2979ff]">{inContact}</span>
-                  <span className="text-[10px] font-mono text-theme-txt3 block">
-                    {activeTotal > 0 ? Math.round((inContact / activeTotal) * 100) : 0}% avance
-                  </span>
-                </div>
-              </div>
+                  <div className="space-y-3">
+                    {/* B2B Tier 1 */}
+                    <div className="p-3 bg-[#7d8fa8]/15 border border-[#7d8fa8]/30 rounded-xl flex items-center justify-between shadow-2xs">
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-5 h-5 rounded-full bg-[#7d8fa8] text-white flex items-center justify-center font-mono font-bold text-[11px]">1</span>
+                        <div>
+                          <h5 className="font-bold text-[11.5px] text-theme-txt">Prospectos B2B Identificados</h5>
+                          <span className="text-[10px] text-theme-txt3 font-mono">Directores, RRHH y CEOs</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs font-mono font-extrabold text-theme-txt">{b2bTotal}</span>
+                        <span className="text-[9.5px] font-mono text-theme-txt3 block">100% base</span>
+                      </div>
+                    </div>
 
-              {/* Funnel Tier 3 */}
-              <div className="p-3.5 bg-[#ff6d3b]/15 border border-[#ff6d3b]/30 rounded-xl flex items-center justify-between shadow-2xs mx-6">
-                <div className="flex items-center gap-3">
-                  <span className="w-6 h-6 rounded-full bg-[#ff6d3b] text-white flex items-center justify-center font-mono font-bold text-xs">3</span>
-                  <div>
-                    <h4 className="font-bold text-xs text-[#ff6d3b]">Discovery / Reunión & Oportunidad</h4>
-                    <span className="text-[10.5px] text-theme-txt3 font-mono">Diagnóstico corporativo o temario solicitado</span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className="text-sm font-mono font-extrabold text-[#ff6d3b]">{opportunity}</span>
-                  <span className="text-[10px] font-mono text-theme-txt3 block">
-                    {activeTotal > 0 ? Math.round((opportunity / activeTotal) * 100) : 0}% calificado
-                  </span>
-                </div>
-              </div>
+                    {/* B2B Tier 2 */}
+                    <div className="p-3 bg-[#2979ff]/15 border border-[#2979ff]/30 rounded-xl flex items-center justify-between shadow-2xs mx-2">
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-5 h-5 rounded-full bg-[#2979ff] text-white flex items-center justify-center font-mono font-bold text-[11px]">2</span>
+                        <div>
+                          <h5 className="font-bold text-[11.5px] text-[#2979ff]">Contactados / Conversación</h5>
+                          <span className="text-[10px] text-theme-txt3 font-mono">Mensaje enviado o diálogo</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs font-mono font-extrabold text-[#2979ff]">{b2bInContact}</span>
+                        <span className="text-[9.5px] font-mono text-theme-txt3 block">
+                          {b2bTotal > 0 ? Math.round((b2bInContact / b2bTotal) * 100) : 0}% avance
+                        </span>
+                      </div>
+                    </div>
 
-              {/* Funnel Tier 4 */}
-              <div className="p-3.5 bg-[#00e5a0]/15 border border-[#00e5a0]/30 rounded-xl flex items-center justify-between shadow-2xs mx-9">
-                <div className="flex items-center gap-3">
-                  <span className="w-6 h-6 rounded-full bg-[#00e5a0] text-[#00110b] flex items-center justify-center font-mono font-bold text-xs">4</span>
-                  <div>
-                    <h4 className="font-bold text-xs text-[#00e5a0]">Ganadas / Cierres Comerciales</h4>
-                    <span className="text-[10.5px] text-theme-txt3 font-mono">Contrato corporativo o matrícula concretada</span>
+                    {/* B2B Tier 3 */}
+                    <div className="p-3 bg-[#ff6d3b]/15 border border-[#ff6d3b]/30 rounded-xl flex items-center justify-between shadow-2xs mx-4">
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-5 h-5 rounded-full bg-[#ff6d3b] text-white flex items-center justify-center font-mono font-bold text-[11px]">3</span>
+                        <div>
+                          <h5 className="font-bold text-[11.5px] text-[#ff6d3b]">Discovery / Reunión & Oportunidad</h5>
+                          <span className="text-[10px] text-theme-txt3 font-mono">Diagnóstico corporativo o propuesta</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs font-mono font-extrabold text-[#ff6d3b]">{b2bOpportunity}</span>
+                        <span className="text-[9.5px] font-mono text-theme-txt3 block">
+                          {b2bTotal > 0 ? Math.round((b2bOpportunity / b2bTotal) * 100) : 0}% calificado
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* B2B Tier 4 */}
+                    <div className="p-3 bg-[#00e5a0]/15 border border-[#00e5a0]/30 rounded-xl flex items-center justify-between shadow-2xs mx-6">
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-5 h-5 rounded-full bg-[#00e5a0] text-[#00110b] flex items-center justify-center font-mono font-bold text-[11px]">4</span>
+                        <div>
+                          <h5 className="font-bold text-[11.5px] text-[#00e5a0]">Ganadas / Contratos Cerrados</h5>
+                          <span className="text-[10px] text-theme-txt3 font-mono">Cierre de servicio o capacitación in-house</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs font-mono font-extrabold text-[#00e5a0]">{b2bClient}</span>
+                        <span className="text-[9.5px] font-mono text-theme-txt3 block font-bold">
+                          {b2bConversionRate}% éxito
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <span className="text-sm font-mono font-extrabold text-[#00e5a0]">{client}</span>
-                  <span className="text-[10px] font-mono text-theme-txt3 block font-bold">
-                    {activeTotal > 0 ? ((client / activeTotal) * 100).toFixed(1) : 0}% tasa de éxito
-                  </span>
+
+                {/* Right Funnel: B2C Alumnos */}
+                <div className="p-5 rounded-2xl bg-theme-sur2/40 border border-[#00a870]/30 space-y-4 shadow-xs">
+                  <div className="flex items-center justify-between border-b border-theme-bor pb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-[#00a870]/15 text-[#00a870]">
+                        <Users className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-xs text-theme-txt flex items-center gap-1.5">
+                          <span>Embudo B2C Alumnos</span>
+                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#00a870]/15 text-[#00a870] border border-[#00a870]/30">Kiara</span>
+                        </h4>
+                        <span className="text-[11px] text-theme-txt3 font-mono">Profesionales & Cursos Abiertos</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-mono font-bold text-[#00a870] block">{b2cConversionRate}% conv.</span>
+                      <span className="text-[10px] font-mono text-theme-txt3">{b2cTotal} en base</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {/* B2C Tier 1 */}
+                    <div className="p-3 bg-[#7d8fa8]/15 border border-[#7d8fa8]/30 rounded-xl flex items-center justify-between shadow-2xs">
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-5 h-5 rounded-full bg-[#7d8fa8] text-white flex items-center justify-center font-mono font-bold text-[11px]">1</span>
+                        <div>
+                          <h5 className="font-bold text-[11.5px] text-theme-txt">Prospectos B2C Identificados</h5>
+                          <span className="text-[10px] text-theme-txt3 font-mono">Búsqueda de empleo y crecimiento</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs font-mono font-extrabold text-theme-txt">{b2cTotal}</span>
+                        <span className="text-[9.5px] font-mono text-theme-txt3 block">100% base</span>
+                      </div>
+                    </div>
+
+                    {/* B2C Tier 2 */}
+                    <div className="p-3 bg-[#2979ff]/15 border border-[#2979ff]/30 rounded-xl flex items-center justify-between shadow-2xs mx-2">
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-5 h-5 rounded-full bg-[#2979ff] text-white flex items-center justify-center font-mono font-bold text-[11px]">2</span>
+                        <div>
+                          <h5 className="font-bold text-[11.5px] text-[#2979ff]">En Contacto / Diálogo</h5>
+                          <span className="text-[10px] text-theme-txt3 font-mono">Interacción inicial o mensaje enviado</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs font-mono font-extrabold text-[#2979ff]">{b2cInContact}</span>
+                        <span className="text-[9.5px] font-mono text-theme-txt3 block">
+                          {b2cTotal > 0 ? Math.round((b2cInContact / b2cTotal) * 100) : 0}% avance
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* B2C Tier 3 */}
+                    <div className="p-3 bg-[#ff6d3b]/15 border border-[#ff6d3b]/30 rounded-xl flex items-center justify-between shadow-2xs mx-4">
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-5 h-5 rounded-full bg-[#ff6d3b] text-white flex items-center justify-center font-mono font-bold text-[11px]">3</span>
+                        <div>
+                          <h5 className="font-bold text-[11.5px] text-[#ff6d3b]">Oportunidad / Temario o Beca</h5>
+                          <span className="text-[10px] text-theme-txt3 font-mono">Interés calificado en programa</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs font-mono font-extrabold text-[#ff6d3b]">{b2cOpportunity}</span>
+                        <span className="text-[9.5px] font-mono text-theme-txt3 block">
+                          {b2cTotal > 0 ? Math.round((b2cOpportunity / b2cTotal) * 100) : 0}% calificado
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* B2C Tier 4 */}
+                    <div className="p-3 bg-[#00e5a0]/15 border border-[#00e5a0]/30 rounded-xl flex items-center justify-between shadow-2xs mx-6">
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-5 h-5 rounded-full bg-[#00e5a0] text-[#00110b] flex items-center justify-center font-mono font-bold text-[11px]">4</span>
+                        <div>
+                          <h5 className="font-bold text-[11.5px] text-[#00e5a0]">Matriculados / Alumnos</h5>
+                          <span className="text-[10px] text-theme-txt3 font-mono">Inscripción o pago concretado</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs font-mono font-extrabold text-[#00e5a0]">{b2cClient}</span>
+                        <span className="text-[9.5px] font-mono text-theme-txt3 block font-bold">
+                          {b2cConversionRate}% éxito
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              /* SINGLE FOCUSED FUNNEL FOR SPECIFIC SEGMENT (B2B OR B2C) */
+              <div className="max-w-2xl mx-auto space-y-3 pt-2">
+                {/* Funnel Tier 1 */}
+                <div className="p-3.5 bg-[#7d8fa8]/15 border border-[#7d8fa8]/30 rounded-xl flex items-center justify-between shadow-2xs">
+                  <div className="flex items-center gap-3">
+                    <span className="w-6 h-6 rounded-full bg-[#7d8fa8] text-white flex items-center justify-center font-mono font-bold text-xs">1</span>
+                    <div>
+                      <h4 className="font-bold text-xs text-theme-txt">Prospectos Identificados en Base</h4>
+                      <span className="text-[10.5px] text-theme-txt3 font-mono">Punto de partida del ciclo comercial {segmentView}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-sm font-mono font-extrabold text-theme-txt">{activeTotal}</span>
+                    <span className="text-[10px] font-mono text-theme-txt3 block">100% base</span>
+                  </div>
+                </div>
+
+                {/* Funnel Tier 2 */}
+                <div className="p-3.5 bg-[#2979ff]/15 border border-[#2979ff]/30 rounded-xl flex items-center justify-between shadow-2xs mx-3">
+                  <div className="flex items-center gap-3">
+                    <span className="w-6 h-6 rounded-full bg-[#2979ff] text-white flex items-center justify-center font-mono font-bold text-xs">2</span>
+                    <div>
+                      <h4 className="font-bold text-xs text-[#2979ff]">Contactados / En Diálogo Inicial</h4>
+                      <span className="text-[10.5px] text-theme-txt3 font-mono">Mensaje de valor enviado y respuesta iniciada</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-sm font-mono font-extrabold text-[#2979ff]">{inContact}</span>
+                    <span className="text-[10px] font-mono text-theme-txt3 block">
+                      {activeTotal > 0 ? Math.round((inContact / activeTotal) * 100) : 0}% avance
+                    </span>
+                  </div>
+                </div>
+
+                {/* Funnel Tier 3 */}
+                <div className="p-3.5 bg-[#ff6d3b]/15 border border-[#ff6d3b]/30 rounded-xl flex items-center justify-between shadow-2xs mx-6">
+                  <div className="flex items-center gap-3">
+                    <span className="w-6 h-6 rounded-full bg-[#ff6d3b] text-white flex items-center justify-center font-mono font-bold text-xs">3</span>
+                    <div>
+                      <h4 className="font-bold text-xs text-[#ff6d3b]">
+                        {segmentView === 'B2B' ? 'Discovery / Reunión & Diagnóstico' : 'Oportunidad / Temario Solicitado'}
+                      </h4>
+                      <span className="text-[10.5px] text-theme-txt3 font-mono">Evaluación calificada de requerimientos</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-sm font-mono font-extrabold text-[#ff6d3b]">{opportunity}</span>
+                    <span className="text-[10px] font-mono text-theme-txt3 block">
+                      {activeTotal > 0 ? Math.round((opportunity / activeTotal) * 100) : 0}% calificado
+                    </span>
+                  </div>
+                </div>
+
+                {/* Funnel Tier 4 */}
+                <div className="p-3.5 bg-[#00e5a0]/15 border border-[#00e5a0]/30 rounded-xl flex items-center justify-between shadow-2xs mx-9">
+                  <div className="flex items-center gap-3">
+                    <span className="w-6 h-6 rounded-full bg-[#00e5a0] text-[#00110b] flex items-center justify-center font-mono font-bold text-xs">4</span>
+                    <div>
+                      <h4 className="font-bold text-xs text-[#00e5a0]">
+                        {segmentView === 'B2B' ? 'Ganadas / Cierres Corporativos' : 'Matriculados / Cierres de Formación'}
+                      </h4>
+                      <span className="text-[10.5px] text-theme-txt3 font-mono">Éxito comercial concretado</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-sm font-mono font-extrabold text-[#00e5a0]">{client}</span>
+                    <span className="text-[10px] font-mono text-theme-txt3 block font-bold">
+                      {activeTotal > 0 ? ((client / activeTotal) * 100).toFixed(1) : 0}% tasa de éxito
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

@@ -17,6 +17,7 @@ export default function WeeklyGoalsView() {
   const [weekOffset, setWeekOffset] = useState<number>(0);
   const [isConfigOpen, setIsConfigOpen] = useState<boolean>(false);
   const [isUpdatingAssignee, setIsUpdatingAssignee] = useState<boolean>(false);
+  const [activeSubTab, setActiveSubTab] = useState<'rhythm' | 'pillars' | 'members' | 'overview'>('rhythm');
 
   const fetchSprintData = async (offset = weekOffset, seg = goalSegment) => {
     setLoading(true);
@@ -303,9 +304,60 @@ export default function WeeklyGoalsView() {
         </div>
       </div>
 
-      {/* Global Team Sprint Progress Bar + Daily Rhythm Banner */}
-      {global && (
-        <div className="bg-theme-sur border border-theme-bor rounded-2xl p-5 shadow-xs space-y-4">
+      {/* Sub-Tabs Navigation for Better Organization & Mobile UX */}
+      <div className="flex items-center gap-1.5 p-1 bg-theme-sur2 border border-theme-bor rounded-xl overflow-x-auto no-scrollbar shadow-2xs">
+        <button
+          onClick={() => setActiveSubTab('rhythm')}
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeSubTab === 'rhythm'
+              ? 'bg-theme-sur text-[#00a870] shadow-xs border border-theme-bor'
+              : 'text-theme-txt2 hover:text-theme-txt'
+          }`}
+        >
+          <Zap className="w-3.5 h-3.5 text-[#f59e0b]" />
+          <span>Ritmo & Cumplimiento</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('pillars')}
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeSubTab === 'pillars'
+              ? 'bg-theme-sur text-[#2979ff] shadow-xs border border-theme-bor'
+              : 'text-theme-txt2 hover:text-theme-txt'
+          }`}
+        >
+          <Sparkles className="w-3.5 h-3.5 text-[#2979ff]" />
+          <span>3 Pilares Comerciales</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('members')}
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeSubTab === 'members'
+              ? 'bg-theme-sur text-[#a855f7] shadow-xs border border-theme-bor'
+              : 'text-theme-txt2 hover:text-theme-txt'
+          }`}
+        >
+          <Users className="w-3.5 h-3.5 text-[#a855f7]" />
+          <span>Desempeño por Comercial</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('overview')}
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeSubTab === 'overview'
+              ? 'bg-theme-sur text-theme-txt shadow-xs border border-theme-bor'
+              : 'text-theme-txt2 hover:text-theme-txt'
+          }`}
+        >
+          <BarChart3 className="w-3.5 h-3.5 text-theme-txt" />
+          <span>Vista Integral</span>
+        </button>
+      </div>
+
+      {/* SUBTAB 1 & OVERVIEW: RITMO SEMANAL Y DIARIO */}
+      {(activeSubTab === 'rhythm' || activeSubTab === 'overview') && global && (
+        <div className="bg-theme-sur border border-theme-bor rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <h3 className="font-bold text-sm text-theme-txt flex items-center gap-2">
@@ -338,13 +390,13 @@ export default function WeeklyGoalsView() {
           </div>
 
           {/* Daily Rhythm Tracker Card (Meta Hoy) */}
-          <div className="p-4 bg-theme-sur2/90 border border-theme-bor rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="p-3.5 sm:p-4 bg-theme-sur2/90 border border-theme-bor rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-[#f59e0b]/15 text-[#f59e0b] flex items-center justify-center font-bold">
+              <div className="w-9 h-9 rounded-xl bg-[#f59e0b]/15 text-[#f59e0b] flex items-center justify-center font-bold shrink-0">
                 <Zap className="w-5 h-5" />
               </div>
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-bold text-xs text-theme-txt">
                     Ritmo Diario de Prospección ({goalSegment === 'B2B' ? 'B2B' : goalSegment === 'B2C' ? 'B2C' : 'Total'} - Hoy)
                   </span>
@@ -352,26 +404,26 @@ export default function WeeklyGoalsView() {
                     Meta: {sprintData?.goals?.daily_contacted || 30} / día por comercial
                   </span>
                 </div>
-                <p className="text-xs text-theme-txt2">
+                <p className="text-xs text-theme-txt2 mt-0.5">
                   Se ha abordado a <b className="text-theme-txt font-mono">{global.contacted_today_total}</b> prospectos hoy ({global.today_pct_total}% de la meta diaria de {global.contacted_daily_goal_total})
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="w-36 h-2.5 bg-theme-sur rounded-full overflow-hidden border border-theme-bor">
+            <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
+              <div className="w-28 sm:w-36 h-2.5 bg-theme-sur rounded-full overflow-hidden border border-theme-bor">
                 <div
                   className="h-full bg-[#f59e0b] rounded-full transition-all"
                   style={{ width: `${Math.min(global.today_pct_total, 100)}%` }}
                 />
               </div>
-              <span className="font-mono font-bold text-xs text-[#f59e0b] min-w-[45px] text-right">
+              <span className="font-mono font-bold text-xs text-[#f59e0b] min-w-[40px] text-right">
                 {global.today_pct_total}%
               </span>
             </div>
           </div>
 
-          {/* Timeline Semanal Día a Día (7 Días Lunes a Domingo) */}
+          {/* Timeline Semanal Día a Día (7 Días Lunes a Domingo) - Responsive Scroll/Grid */}
           {global.global_days_breakdown && (
             <div className="pt-2">
               <div className="flex items-center justify-between mb-2">
@@ -379,21 +431,21 @@ export default function WeeklyGoalsView() {
                   <CalendarDays className="w-3.5 h-3.5 text-[#00a870]" />
                   <span>Desglose Diario de la Semana ({goalSegment === 'B2B' ? 'B2B' : goalSegment === 'B2C' ? 'B2C' : 'Consolidado'}):</span>
                 </span>
-                <span className="text-[10.5px] font-mono text-theme-txt3">
+                <span className="text-[10px] font-mono text-theme-txt3 hidden sm:inline">
                   Lunes a Domingo
                 </span>
               </div>
 
-              <div className="grid grid-cols-7 gap-2">
+              <div className="flex sm:grid sm:grid-cols-7 overflow-x-auto pb-2 gap-2 no-scrollbar snap-x">
                 {global.global_days_breakdown.map((day) => {
                   const isHit = day.pct >= 100;
 
                   return (
                     <div
                       key={day.date_str}
-                      className={`p-2.5 rounded-xl border text-center transition-all ${
+                      className={`min-w-[76px] sm:min-w-0 flex-1 snap-start p-2 sm:p-2.5 rounded-xl border text-center transition-all ${
                         day.is_today
-                          ? 'bg-[#00a870]/10 border-[#00a870] shadow-xs'
+                          ? 'bg-[#00a870]/10 border-[#00a870] shadow-xs ring-1 ring-[#00a870]/40'
                           : day.contacted_count > 0
                           ? 'bg-theme-sur2 border-theme-bor'
                           : 'bg-theme-sur2/40 border-theme-bor/60 opacity-60'
@@ -401,14 +453,14 @@ export default function WeeklyGoalsView() {
                     >
                       <div className="flex items-center justify-between text-[10px] font-mono mb-1">
                         <span className="font-bold text-theme-txt">{day.day_name}</span>
-                        <span className="text-theme-txt3">{day.display_date}</span>
+                        <span className="text-theme-txt3 text-[9px]">{day.display_date}</span>
                       </div>
 
                       <div className="text-sm font-extrabold font-mono text-theme-txt my-0.5">
                         {day.contacted_count}
                       </div>
 
-                      <div className="text-[9.5px] font-mono text-theme-txt3">
+                      <div className="text-[9px] font-mono text-theme-txt3">
                         Meta: {day.goal_count}
                       </div>
 
@@ -425,124 +477,17 @@ export default function WeeklyGoalsView() {
             </div>
           )}
 
-          {/* 3 Pilares Semanales: Actividad, Conversión y Dinero */}
-          {sprintData?.weekly_pillars && (
-            <div className="pt-2 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-mono uppercase tracking-wider text-theme-txt2 font-bold flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-[#00a870]" />
-                  <span>3 Pilares del Éxito Comercial ({goalSegment === 'B2B' ? 'B2B Corporativo' : goalSegment === 'B2C' ? 'B2C Alumnos' : 'Consolidado'}):</span>
-                </span>
-                <span className="text-[10px] font-mono text-theme-txt3">Actividad • Conversión • Dinero</span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {/* Pilar 1: Actividad */}
-                <div className="bg-theme-sur2 border border-[#2979ff]/30 p-4 rounded-xl shadow-xs space-y-3">
-                  <div className="flex items-center justify-between border-b border-theme-bor pb-2">
-                    <span className="text-xs font-bold text-[#2979ff] flex items-center gap-1.5">
-                      <Users className="w-4 h-4" />
-                      <span>A. Actividad</span>
-                    </span>
-                    <span className="text-[9.5px] font-mono text-theme-txt3">Esfuerzo Semanal</span>
-                  </div>
-
-                  <div className="space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-theme-txt2">Nuevas empresas identificadas:</span>
-                      <span className="font-mono font-bold text-xs text-theme-txt">
-                        {sprintData.weekly_pillars.activity.new_companies_identified}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-theme-txt2">Nuevos contactos realizados:</span>
-                      <span className="font-mono font-bold text-xs text-[#2979ff]">
-                        {sprintData.weekly_pillars.activity.new_contacts_made}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Pilar 2: Conversión */}
-                <div className="bg-theme-sur2 border border-[#ff6d3b]/30 p-4 rounded-xl shadow-xs space-y-3">
-                  <div className="flex items-center justify-between border-b border-theme-bor pb-2">
-                    <span className="text-xs font-bold text-[#ff6d3b] flex items-center gap-1.5">
-                      <TrendingUp className="w-4 h-4" />
-                      <span>B. Conversión</span>
-                    </span>
-                    <span className="text-[9.5px] font-mono text-theme-txt3">Eficacia del Funnel</span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-[11px]">
-                    <div className="bg-theme-sur p-2 rounded-lg border border-theme-bor">
-                      <div className="text-theme-txt3 text-[9.5px]">Respuestas:</div>
-                      <div className="font-mono font-bold text-theme-txt mt-0.5">
-                        {sprintData.weekly_pillars.conversion.responses_received}
-                      </div>
-                    </div>
-
-                    <div className="bg-theme-sur p-2 rounded-lg border border-theme-bor">
-                      <div className="text-theme-txt3 text-[9.5px]">Reuniones agendadas:</div>
-                      <div className="font-mono font-bold text-[#ff6d3b] mt-0.5">
-                        {sprintData.weekly_pillars.conversion.meetings_scheduled}
-                      </div>
-                    </div>
-
-                    <div className="bg-theme-sur p-2 rounded-lg border border-theme-bor">
-                      <div className="text-theme-txt3 text-[9.5px]">Oportunidades calif.:</div>
-                      <div className="font-mono font-bold text-[#f59e0b] mt-0.5">
-                        {sprintData.weekly_pillars.conversion.qualified_opportunities}
-                      </div>
-                    </div>
-
-                    <div className="bg-theme-sur p-2 rounded-lg border border-theme-bor">
-                      <div className="text-theme-txt3 text-[9.5px]">Ventas cerradas:</div>
-                      <div className="font-mono font-bold text-[#00e5a0] mt-0.5">
-                        {sprintData.weekly_pillars.conversion.deals_won}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Pilar 3: Dinero */}
-                <div className="bg-theme-sur2 border border-[#00e5a0]/30 p-4 rounded-xl shadow-xs space-y-3">
-                  <div className="flex items-center justify-between border-b border-theme-bor pb-2">
-                    <span className="text-xs font-bold text-[#00e5a0] flex items-center gap-1.5">
-                      <Award className="w-4 h-4" />
-                      <span>C. Dinero</span>
-                    </span>
-                    <span className="text-[9.5px] font-mono text-theme-txt3">Pipeline Activo</span>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div>
-                      <div className="text-xs text-theme-txt2">Valor total del pipeline:</div>
-                      <div className="font-mono font-extrabold text-lg text-[#00e5a0] mt-0.5">
-                        ${sprintData.weekly_pillars.financial.pipeline_total_value.toLocaleString('en-US', { minimumFractionDigits: 0 })} USD
-                      </div>
-                    </div>
-
-                    <div className="text-[10px] text-theme-txt3 font-mono">
-                      {sprintData.weekly_pillars.financial.deals_count} oportunidades activas registradas con valor económico.
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* 4 Core Weekly Metric Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3 pt-2">
             {/* 1. Contactados */}
-            <div className="bg-theme-sur2 border border-theme-bor p-3.5 rounded-xl shadow-2xs">
+            <div className="bg-theme-sur2 border border-theme-bor p-3 sm:p-3.5 rounded-xl shadow-2xs">
               <div className="flex items-center justify-between text-theme-txt2 mb-1.5">
-                <span className="text-[11px] font-mono uppercase tracking-wider">📤 Contactados</span>
-                <span className="text-[11px] font-bold font-mono text-[#00a870]">
+                <span className="text-[10.5px] sm:text-[11px] font-mono uppercase tracking-wider">📤 Contactados</span>
+                <span className="text-[10.5px] sm:text-[11px] font-bold font-mono text-[#00a870]">
                   {Math.round((global.contacted_actual / Math.max(global.contacted_goal, 1)) * 100)}%
                 </span>
               </div>
-              <div className="text-base font-extrabold text-theme-txt font-mono">
+              <div className="text-sm sm:text-base font-extrabold text-theme-txt font-mono">
                 {global.contacted_actual} <span className="text-xs text-theme-txt3 font-normal">/ {global.contacted_goal}</span>
               </div>
               <div className="w-full h-1.5 bg-theme-sur rounded-full mt-2 overflow-hidden">
@@ -554,14 +499,14 @@ export default function WeeklyGoalsView() {
             </div>
 
             {/* 2. Teléfonos */}
-            <div className="bg-theme-sur2 border border-theme-bor p-3.5 rounded-xl shadow-2xs">
+            <div className="bg-theme-sur2 border border-theme-bor p-3 sm:p-3.5 rounded-xl shadow-2xs">
               <div className="flex items-center justify-between text-theme-txt2 mb-1.5">
-                <span className="text-[11px] font-mono uppercase tracking-wider">📱 Teléfonos</span>
-                <span className="text-[11px] font-bold font-mono text-[#2979ff]">
+                <span className="text-[10.5px] sm:text-[11px] font-mono uppercase tracking-wider">📱 Teléfonos</span>
+                <span className="text-[10.5px] sm:text-[11px] font-bold font-mono text-[#2979ff]">
                   {Math.round((global.phones_actual / Math.max(global.phones_goal, 1)) * 100)}%
                 </span>
               </div>
-              <div className="text-base font-extrabold text-[#2979ff] font-mono">
+              <div className="text-sm sm:text-base font-extrabold text-[#2979ff] font-mono">
                 {global.phones_actual} <span className="text-xs text-theme-txt3 font-normal">/ {global.phones_goal}</span>
               </div>
               <div className="w-full h-1.5 bg-theme-sur rounded-full mt-2 overflow-hidden">
@@ -573,14 +518,14 @@ export default function WeeklyGoalsView() {
             </div>
 
             {/* 3. Oportunidades */}
-            <div className="bg-theme-sur2 border border-theme-bor p-3.5 rounded-xl shadow-2xs">
+            <div className="bg-theme-sur2 border border-theme-bor p-3 sm:p-3.5 rounded-xl shadow-2xs">
               <div className="flex items-center justify-between text-theme-txt2 mb-1.5">
-                <span className="text-[11px] font-mono uppercase tracking-wider">🔥 Oportunidades</span>
-                <span className="text-[11px] font-bold font-mono text-[#ff6d3b]">
+                <span className="text-[10.5px] sm:text-[11px] font-mono uppercase tracking-wider">🔥 Oportunidades</span>
+                <span className="text-[10.5px] sm:text-[11px] font-bold font-mono text-[#ff6d3b]">
                   {Math.round((global.opportunities_actual / Math.max(global.opportunities_goal, 1)) * 100)}%
                 </span>
               </div>
-              <div className="text-base font-extrabold text-[#ff6d3b] font-mono">
+              <div className="text-sm sm:text-base font-extrabold text-[#ff6d3b] font-mono">
                 {global.opportunities_actual} <span className="text-xs text-theme-txt3 font-normal">/ {global.opportunities_goal}</span>
               </div>
               <div className="w-full h-1.5 bg-theme-sur rounded-full mt-2 overflow-hidden">
@@ -592,14 +537,14 @@ export default function WeeklyGoalsView() {
             </div>
 
             {/* 4. Cierres */}
-            <div className="bg-theme-sur2 border border-theme-bor p-3.5 rounded-xl shadow-2xs">
+            <div className="bg-theme-sur2 border border-theme-bor p-3 sm:p-3.5 rounded-xl shadow-2xs">
               <div className="flex items-center justify-between text-theme-txt2 mb-1.5">
-                <span className="text-[11px] font-mono uppercase tracking-wider">🏆 Cierres</span>
-                <span className="text-[11px] font-bold font-mono text-[#a855f7]">
+                <span className="text-[10.5px] sm:text-[11px] font-mono uppercase tracking-wider">🏆 Cierres</span>
+                <span className="text-[10.5px] sm:text-[11px] font-bold font-mono text-[#a855f7]">
                   {Math.round((global.clients_actual / Math.max(global.clients_goal, 1)) * 100)}%
                 </span>
               </div>
-              <div className="text-base font-extrabold text-[#00a870] font-mono">
+              <div className="text-sm sm:text-base font-extrabold text-[#00a870] font-mono">
                 {global.clients_actual} <span className="text-xs text-theme-txt3 font-normal">/ {global.clients_goal}</span>
               </div>
               <div className="w-full h-1.5 bg-theme-sur rounded-full mt-2 overflow-hidden">
@@ -613,165 +558,280 @@ export default function WeeklyGoalsView() {
         </div>
       )}
 
-      {/* Individual Performance per Member (Cards with Breakdown) */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-bold text-sm text-theme-txt flex items-center gap-2">
-            <Trophy className="w-4 h-4 text-[#f59e0b]" />
-            <span>
-              {goalSegment === 'B2B' 
-                ? `Desempeño del Líder B2B Corporativo (${b2bAssignee})` 
-                : goalSegment === 'B2C' 
-                ? `Desempeño de la Líder B2C Alumnos (${b2cAssignee})` 
-                : 'Desempeño Consolidado del Equipo (Gabino & Kiara)'}
+      {/* SUBTAB 2 & OVERVIEW: 3 PILARES COMERCIALES (ACTIVIDAD, CONVERSIÓN, DINERO) */}
+      {(activeSubTab === 'pillars' || activeSubTab === 'overview') && sprintData?.weekly_pillars && (
+        <div className="bg-theme-sur border border-theme-bor rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-theme-bor pb-3">
+            <div>
+              <h3 className="font-bold text-sm text-theme-txt flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#00a870]" />
+                <span>3 Pilares del Éxito Comercial ({goalSegment === 'B2B' ? 'B2B Corporativo' : goalSegment === 'B2C' ? 'B2C Alumnos' : 'Consolidado'})</span>
+              </h3>
+              <p className="text-xs text-theme-txt2 mt-0.5">
+                Mapeo semanal integral de Actividad, Eficacia del Funnel y Pipeline Económico
+              </p>
+            </div>
+            <span className="text-[10px] font-mono text-theme-txt3 hidden sm:inline">
+              Actividad • Conversión • Dinero
             </span>
-          </h3>
-          <span className="text-xs text-theme-txt3 font-mono">
-            {goalSegment === 'all' ? `${rankedMembers.length} comerciales consolidados` : `1 responsable asignado`}
-          </span>
-        </div>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {rankedMembers.map((m, index) => {
-            const colors = getStatusColor(m.overall_pct);
-            const isLeader = index === 0 && m.overall_pct > 0;
-            const daily = m.daily_progress;
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+            {/* Pilar 1: Actividad */}
+            <div className="bg-theme-sur2/70 border border-[#2979ff]/30 p-4 rounded-xl shadow-xs space-y-3">
+              <div className="flex items-center justify-between border-b border-theme-bor pb-2">
+                <span className="text-xs font-bold text-[#2979ff] flex items-center gap-1.5">
+                  <Users className="w-4 h-4" />
+                  <span>A. Actividad</span>
+                </span>
+                <span className="text-[9.5px] font-mono text-theme-txt3">Esfuerzo Semanal</span>
+              </div>
 
-            // Determine role tag for the member in this sprint segment
-            const isB2BLead = (goalSegment === 'B2B' && m.member_name.toLowerCase().includes(b2bAssignee.toLowerCase()));
-            const isB2CLead = (goalSegment === 'B2C' && m.member_name.toLowerCase().includes(b2cAssignee.toLowerCase()));
-            const isPrimaryForSegment = isB2BLead || isB2CLead;
-
-            return (
-              <div
-                key={m.member_name}
-                className="bg-theme-sur border border-theme-bor hover:border-theme-bor2 rounded-2xl p-5 shadow-xs space-y-4 transition-all relative overflow-hidden"
-              >
-                {/* Top Member Card Bar */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white text-xs shadow-xs"
-                      style={{ backgroundColor: m.color }}
-                    >
-                      {m.member_name.slice(0, 2).toUpperCase()}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-extrabold text-sm text-theme-txt">{m.member_name}</span>
-                        {isPrimaryForSegment && (
-                          <span className="text-[9.5px] font-mono font-bold text-[#00a870] bg-[#00a870]/15 px-2 py-0.5 rounded-full flex items-center gap-1 border border-[#00a870]/30">
-                            ⭐ Asignado Principal
-                          </span>
-                        )}
-                        {!isPrimaryForSegment && goalSegment !== 'all' && (
-                          <span className="text-[9.5px] font-mono font-bold text-theme-txt2 bg-theme-sur2 px-2 py-0.5 rounded-full flex items-center gap-1 border border-theme-bor">
-                            🤝 Co-gestión / Apoyo
-                          </span>
-                        )}
-                        {isLeader && goalSegment === 'all' && (
-                          <span className="text-[9.5px] font-mono font-bold text-[#f59e0b] bg-[#f59e0b]/15 px-2 py-0.5 rounded-full flex items-center gap-1 border border-[#f59e0b]/30">
-                            👑 Líder
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-xs text-theme-txt2 font-mono">
-                        Cumplimiento: <b className={`font-bold ${colors.text}`}>{m.overall_pct}%</b>
-                      </span>
-                    </div>
-                  </div>
-
-                  <span className={`text-[10.5px] font-bold px-2.5 py-1 rounded-full border ${colors.text} ${colors.border} bg-theme-sur2`}>
-                    {colors.label}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between bg-theme-sur p-2.5 rounded-lg border border-theme-bor">
+                  <span className="text-xs text-theme-txt2">Nuevas empresas identificadas:</span>
+                  <span className="font-mono font-bold text-sm text-theme-txt">
+                    {sprintData.weekly_pillars.activity.new_companies_identified}
                   </span>
                 </div>
 
-                {/* Progress bar */}
-                <div className="w-full h-2.5 bg-theme-sur2 rounded-full overflow-hidden border border-theme-bor">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${colors.bg}`}
-                    style={{ width: `${Math.max(m.overall_pct, 2)}%` }}
-                  />
+                <div className="flex items-center justify-between bg-theme-sur p-2.5 rounded-lg border border-theme-bor">
+                  <span className="text-xs text-theme-txt2">Nuevos contactos realizados:</span>
+                  <span className="font-mono font-bold text-sm text-[#2979ff]">
+                    {sprintData.weekly_pillars.activity.new_contacts_made}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Pilar 2: Conversión */}
+            <div className="bg-theme-sur2/70 border border-[#ff6d3b]/30 p-4 rounded-xl shadow-xs space-y-3">
+              <div className="flex items-center justify-between border-b border-theme-bor pb-2">
+                <span className="text-xs font-bold text-[#ff6d3b] flex items-center gap-1.5">
+                  <TrendingUp className="w-4 h-4" />
+                  <span>B. Conversión</span>
+                </span>
+                <span className="text-[9.5px] font-mono text-theme-txt3">Eficacia del Funnel</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                <div className="bg-theme-sur p-2 rounded-lg border border-theme-bor">
+                  <div className="text-theme-txt3 text-[9.5px]">Respuestas:</div>
+                  <div className="font-mono font-bold text-theme-txt text-xs sm:text-sm mt-0.5">
+                    {sprintData.weekly_pillars.conversion.responses_received}
+                  </div>
                 </div>
 
-                {/* Daily Sub-Bar for this Member */}
-                {daily && (
-                  <div className="p-2.5 bg-theme-sur2/70 border border-theme-bor rounded-xl flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <Zap className="w-3.5 h-3.5 text-[#f59e0b]" />
-                      <span className="text-[11px] text-theme-txt font-medium">
-                        Meta Hoy: <b className="font-mono text-theme-txt font-bold">{daily.contacted_today}</b> / {daily.contacted_daily_goal}
-                      </span>
-                    </div>
-                    <span className="font-mono font-bold text-[#f59e0b] text-[11px]">
-                      {daily.today_pct}% del día
-                    </span>
+                <div className="bg-theme-sur p-2 rounded-lg border border-theme-bor">
+                  <div className="text-theme-txt3 text-[9.5px]">Reuniones agendadas:</div>
+                  <div className="font-mono font-bold text-[#ff6d3b] text-xs sm:text-sm mt-0.5">
+                    {sprintData.weekly_pillars.conversion.meetings_scheduled}
                   </div>
-                )}
+                </div>
 
-                {/* Individual 7-Day Mini Breakdown */}
-                {m.days_breakdown && (
-                  <div className="space-y-1 pt-1">
-                    <span className="text-[10px] font-mono uppercase text-theme-txt3 block font-bold">
-                      Ritmo Día a Día (Lun - Dom)
-                    </span>
-                    <div className="grid grid-cols-7 gap-1">
-                      {m.days_breakdown.map((d) => (
-                        <div
-                          key={d.date_str}
-                          className={`p-1.5 rounded-lg border text-center text-[9.5px] font-mono ${
-                            d.is_today
-                              ? 'bg-[#00a870]/15 border-[#00a870] font-bold text-[#00a870]'
-                              : d.contacted_count > 0
-                              ? 'bg-theme-sur2 border-theme-bor text-theme-txt'
-                              : 'bg-theme-sur2/40 border-theme-bor/40 text-theme-txt3 opacity-50'
-                          }`}
-                          title={`${d.day_name} ${d.display_date}: ${d.contacted_count} contactados`}
-                        >
-                          <div className="text-[8.5px] text-theme-txt3">{d.day_name}</div>
-                          <div className="font-bold my-0.5">{d.contacted_count}</div>
-                          <div className="text-[7.5px] text-theme-txt3">{d.display_date}</div>
-                        </div>
-                      ))}
-                    </div>
+                <div className="bg-theme-sur p-2 rounded-lg border border-theme-bor">
+                  <div className="text-theme-txt3 text-[9.5px]">Oportunidades calif.:</div>
+                  <div className="font-mono font-bold text-[#f59e0b] text-xs sm:text-sm mt-0.5">
+                    {sprintData.weekly_pillars.conversion.qualified_opportunities}
                   </div>
-                )}
+                </div>
 
-                {/* 4 Metrics for this member */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs pt-1">
-                  <div className="p-2 rounded-xl bg-theme-sur2 border border-theme-bor">
-                    <span className="text-[9.5px] font-mono uppercase text-theme-txt3 block mb-0.5">Contactados</span>
-                    <span className="font-bold text-theme-txt font-mono">
-                      {m.contacted_actual} <span className="text-theme-txt3 text-[10px]">/{m.contacted_goal}</span>
-                    </span>
-                  </div>
-
-                  <div className="p-2 rounded-xl bg-theme-sur2 border border-theme-bor">
-                    <span className="text-[9.5px] font-mono uppercase text-theme-txt3 block mb-0.5">Teléfonos</span>
-                    <span className="font-bold text-[#00a870] font-mono">
-                      {m.phones_actual} <span className="text-theme-txt3 text-[10px]">/{m.phones_goal}</span>
-                    </span>
-                  </div>
-
-                  <div className="p-2 rounded-xl bg-theme-sur2 border border-theme-bor">
-                    <span className="text-[9.5px] font-mono uppercase text-theme-txt3 block mb-0.5">Oportunid.</span>
-                    <span className="font-bold text-[#ff6d3b] font-mono">
-                      {m.opportunities_actual} <span className="text-theme-txt3 text-[10px]">/{m.opportunities_goal}</span>
-                    </span>
-                  </div>
-
-                  <div className="p-2 rounded-xl bg-theme-sur2 border border-theme-bor">
-                    <span className="text-[9.5px] font-mono uppercase text-theme-txt3 block mb-0.5">Cierres</span>
-                    <span className="font-bold text-[#a855f7] font-mono">
-                      {m.clients_actual} <span className="text-theme-txt3 text-[10px]">/{m.clients_goal}</span>
-                    </span>
+                <div className="bg-theme-sur p-2 rounded-lg border border-theme-bor">
+                  <div className="text-theme-txt3 text-[9.5px]">Ventas cerradas:</div>
+                  <div className="font-mono font-bold text-[#00e5a0] text-xs sm:text-sm mt-0.5">
+                    {sprintData.weekly_pillars.conversion.deals_won}
                   </div>
                 </div>
               </div>
-            );
-          })}
+            </div>
+
+            {/* Pilar 3: Dinero */}
+            <div className="bg-theme-sur2/70 border border-[#00e5a0]/30 p-4 rounded-xl shadow-xs space-y-3">
+              <div className="flex items-center justify-between border-b border-theme-bor pb-2">
+                <span className="text-xs font-bold text-[#00e5a0] flex items-center gap-1.5">
+                  <Award className="w-4 h-4" />
+                  <span>C. Dinero</span>
+                </span>
+                <span className="text-[9.5px] font-mono text-theme-txt3">Pipeline Activo</span>
+              </div>
+
+              <div className="space-y-2.5">
+                <div className="bg-theme-sur p-3 rounded-lg border border-theme-bor">
+                  <div className="text-xs text-theme-txt2">Valor total del pipeline:</div>
+                  <div className="font-mono font-extrabold text-lg sm:text-xl text-[#00e5a0] mt-0.5">
+                    ${sprintData.weekly_pillars.financial.pipeline_total_value.toLocaleString('en-US', { minimumFractionDigits: 0 })} USD
+                  </div>
+                </div>
+
+                <div className="text-[10.5px] text-theme-txt3 font-mono">
+                  {sprintData.weekly_pillars.financial.deals_count} oportunidades activas registradas con valor económico.
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* SUBTAB 3 & OVERVIEW: DESEMPEÑO POR COMERCIAL (GABINO & KIARA) */}
+      {(activeSubTab === 'members' || activeSubTab === 'overview') && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-sm text-theme-txt flex items-center gap-2">
+              <Trophy className="w-4 h-4 text-[#f59e0b]" />
+              <span>
+                {goalSegment === 'B2B' 
+                  ? `Desempeño del Líder B2B Corporativo (${b2bAssignee})` 
+                  : goalSegment === 'B2C' 
+                  ? `Desempeño de la Líder B2C Alumnos (${b2cAssignee})` 
+                  : 'Desempeño Consolidado del Equipo (Gabino & Kiara)'}
+              </span>
+            </h3>
+            <span className="text-xs text-theme-txt3 font-mono">
+              {goalSegment === 'all' ? `${rankedMembers.length} comerciales consolidados` : `1 responsable asignado`}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {rankedMembers.map((m, index) => {
+              const colors = getStatusColor(m.overall_pct);
+              const isLeader = index === 0 && m.overall_pct > 0;
+              const daily = m.daily_progress;
+
+              const isB2BLead = (goalSegment === 'B2B' && m.member_name.toLowerCase().includes(b2bAssignee.toLowerCase()));
+              const isB2CLead = (goalSegment === 'B2C' && m.member_name.toLowerCase().includes(b2cAssignee.toLowerCase()));
+              const isPrimaryForSegment = isB2BLead || isB2CLead;
+
+              return (
+                <div
+                  key={m.member_name}
+                  className="bg-theme-sur border border-theme-bor hover:border-theme-bor2 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4 transition-all relative overflow-hidden"
+                >
+                  {/* Top Member Card Bar */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white text-xs shadow-xs"
+                        style={{ backgroundColor: m.color }}
+                      >
+                        {m.member_name.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-extrabold text-sm text-theme-txt">{m.member_name}</span>
+                          {isPrimaryForSegment && (
+                            <span className="text-[9.5px] font-mono font-bold text-[#00a870] bg-[#00a870]/15 px-2 py-0.5 rounded-full flex items-center gap-1 border border-[#00a870]/30">
+                              ⭐ Asignado Principal
+                            </span>
+                          )}
+                          {!isPrimaryForSegment && goalSegment !== 'all' && (
+                            <span className="text-[9.5px] font-mono font-bold text-theme-txt2 bg-theme-sur2 px-2 py-0.5 rounded-full flex items-center gap-1 border border-theme-bor">
+                              🤝 Co-gestión / Apoyo
+                            </span>
+                          )}
+                          {isLeader && goalSegment === 'all' && (
+                            <span className="text-[9.5px] font-mono font-bold text-[#f59e0b] bg-[#f59e0b]/15 px-2 py-0.5 rounded-full flex items-center gap-1 border border-[#f59e0b]/30">
+                              👑 Líder
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs text-theme-txt2 font-mono">
+                          Cumplimiento: <b className={`font-bold ${colors.text}`}>{m.overall_pct}%</b>
+                        </span>
+                      </div>
+                    </div>
+
+                    <span className={`text-[10px] sm:text-[10.5px] font-bold px-2.5 py-1 rounded-full border ${colors.text} ${colors.border} bg-theme-sur2 shrink-0`}>
+                      {colors.label}
+                    </span>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="w-full h-2.5 bg-theme-sur2 rounded-full overflow-hidden border border-theme-bor">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${colors.bg}`}
+                      style={{ width: `${Math.max(m.overall_pct, 2)}%` }}
+                    />
+                  </div>
+
+                  {/* Daily Sub-Bar for this Member */}
+                  {daily && (
+                    <div className="p-2.5 bg-theme-sur2/70 border border-theme-bor rounded-xl flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <Zap className="w-3.5 h-3.5 text-[#f59e0b]" />
+                        <span className="text-[11px] text-theme-txt font-medium">
+                          Meta Hoy: <b className="font-mono text-theme-txt font-bold">{daily.contacted_today}</b> / {daily.contacted_daily_goal}
+                        </span>
+                      </div>
+                      <span className="font-mono font-bold text-[#f59e0b] text-[11px]">
+                        {daily.today_pct}% del día
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Individual 7-Day Mini Breakdown - Responsive Snap Scroll */}
+                  {m.days_breakdown && (
+                    <div className="space-y-1 pt-1">
+                      <span className="text-[10px] font-mono uppercase text-theme-txt3 block font-bold">
+                        Ritmo Día a Día (Lun - Dom)
+                      </span>
+                      <div className="flex sm:grid sm:grid-cols-7 overflow-x-auto pb-1 gap-1 no-scrollbar snap-x">
+                        {m.days_breakdown.map((d) => (
+                          <div
+                            key={d.date_str}
+                            className={`min-w-[48px] sm:min-w-0 flex-1 snap-start p-1.5 rounded-lg border text-center text-[9.5px] font-mono ${
+                              d.is_today
+                                ? 'bg-[#00a870]/15 border-[#00a870] font-bold text-[#00a870]'
+                                : d.contacted_count > 0
+                                ? 'bg-theme-sur2 border-theme-bor text-theme-txt'
+                                : 'bg-theme-sur2/40 border-theme-bor/40 text-theme-txt3 opacity-50'
+                            }`}
+                            title={`${d.day_name} ${d.display_date}: ${d.contacted_count} contactados`}
+                          >
+                            <div className="text-[8.5px] text-theme-txt3">{d.day_name}</div>
+                            <div className="font-bold my-0.5">{d.contacted_count}</div>
+                            <div className="text-[7.5px] text-theme-txt3">{d.display_date}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 4 Metrics for this member */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs pt-1">
+                    <div className="p-2 rounded-xl bg-theme-sur2 border border-theme-bor">
+                      <span className="text-[9px] sm:text-[9.5px] font-mono uppercase text-theme-txt3 block mb-0.5">Contactados</span>
+                      <span className="font-bold text-theme-txt font-mono">
+                        {m.contacted_actual} <span className="text-theme-txt3 text-[10px]">/{m.contacted_goal}</span>
+                      </span>
+                    </div>
+
+                    <div className="p-2 rounded-xl bg-theme-sur2 border border-theme-bor">
+                      <span className="text-[9px] sm:text-[9.5px] font-mono uppercase text-theme-txt3 block mb-0.5">Teléfonos</span>
+                      <span className="font-bold text-[#00a870] font-mono">
+                        {m.phones_actual} <span className="text-theme-txt3 text-[10px]">/{m.phones_goal}</span>
+                      </span>
+                    </div>
+
+                    <div className="p-2 rounded-xl bg-theme-sur2 border border-theme-bor">
+                      <span className="text-[9px] sm:text-[9.5px] font-mono uppercase text-theme-txt3 block mb-0.5">Oportunid.</span>
+                      <span className="font-bold text-[#ff6d3b] font-mono">
+                        {m.opportunities_actual} <span className="text-theme-txt3 text-[10px]">/{m.opportunities_goal}</span>
+                      </span>
+                    </div>
+
+                    <div className="p-2 rounded-xl bg-theme-sur2 border border-theme-bor">
+                      <span className="text-[9px] sm:text-[9.5px] font-mono uppercase text-theme-txt3 block mb-0.5">Cierres</span>
+                      <span className="font-bold text-[#a855f7] font-mono">
+                        {m.clients_actual} <span className="text-theme-txt3 text-[10px]">/{m.clients_goal}</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Goal Configuration Modal - Supports B2B, B2C and Global */}
       <GoalConfigModal
