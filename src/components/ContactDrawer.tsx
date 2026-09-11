@@ -4,7 +4,7 @@ import React, { useState, useMemo, useRef, useEffect, memo } from 'react';
 import { 
   X, ExternalLink, Calendar, Star, Building2, Briefcase, Mail, Phone, 
   Tag, Clock, Save, Edit3, MessageSquare, Check, User, Globe, AlertTriangle,
-  UserCheck, Plus, ChevronDown, Sparkles
+  UserCheck, Plus, ChevronDown, Sparkles, FileText
 } from 'lucide-react';
 import { Contact, ContactStatus, TeamMember, BusinessSegment } from '@/lib/types';
 import { detectBusinessSegment } from '@/lib/segmentation';
@@ -188,12 +188,89 @@ function ContactDrawerInner({
     setFollowUpDate(`${yyyy}-${mm}-${dd}`);
   };
 
-  // TA720 B2B Commercial Cadence Helper (Día 0, 3-4, 7-10, 15)
-  const applyB2BCadence = (dayOffset: number, stepText: string, targetStatus?: ContactStatus) => {
-    setQuickFollowUp(dayOffset);
-    setNextStep(stepText);
-    if (targetStatus) {
-      setStatus(targetStatus);
+  // Presets de seguimiento y notas según la etapa comercial actual
+  const TRACKING_SNIPPETS_BY_STAGE: Record<string, string[]> = {
+    'Prospecto identificado': [
+      'Prospecto identificado por búsqueda de servicio/capacitación en LinkedIn',
+      'Decisor corporativo clave mapeado para prospección B2B',
+      'Perfil guardado para ronda inicial de contacto',
+    ],
+    'Contactado': [
+      'Acabo de agregarlo a contacto y espero que me acepte',
+      'Solicitud de conexión enviada con mensaje personalizado',
+      'Contacto realizado desde post donde solicita servicio',
+    ],
+    'Conversación iniciada': [
+      'Aceptó solicitud de contacto, procediendo a escribirle',
+      'Conversación iniciada, explorando necesidad formativa o corporativa',
+      'Respondió positivamente, coordinando llamada o reunión técnica',
+    ],
+    'Discovery / reunión': [
+      'Reunión de discovery agendada para levantar requerimientos',
+      'Reunión realizada; validando alcance y participantes clave',
+      'Enviando resumen y acuerdos preliminares post-reunión',
+    ],
+    'Oportunidad calificada': [
+      'Oportunidad calificada: dolor, presupuesto y decisión confirmados',
+      'Enviando brochure técnico y credenciales de TA720',
+      'Preparando propuesta comercial a la medida del cliente',
+    ],
+    'Propuesta enviada': [
+      'Propuesta económica formal enviada; esperando revisión interna',
+      '1er seguimiento a propuesta enviada (Día 3-4)',
+      '2do seguimiento a cotización aportando caso de éxito (Día 7-10)',
+    ],
+    'Negociación': [
+      'En fase de negociación de condiciones, alcance y cronograma',
+      'Ajustando términos finales con el comité evaluador',
+      'Última validación previa a firma de contrato comercial',
+    ],
+    'Ganada': [
+      '¡Propuesta ganada y cerrada! Iniciando coordinación operativa',
+      'Cliente corporativo formalizado; gestionando facturación',
+    ],
+    'Perdida': [
+      'No cuenta con presupuesto en este ciclo; retomar más adelante',
+      'Optaron por proveedor interno u otra alternativa',
+    ],
+    'Pausada': [
+      'Proceso pausado temporalmente a solicitud del prospecto',
+      'Sin respuesta tras cadencia completa; reactivar en 30 días',
+    ],
+    'Sin contactar': [
+      'Prospecto listo para enviar solicitud de conexión en LinkedIn',
+      'Por contactar en la siguiente tanda de outreach',
+    ],
+    'En contacto': [
+      'Mensaje de contacto enviado, a la espera de respuesta',
+      'Conversación activa por LinkedIn o WhatsApp',
+    ],
+    'Seguimiento': [
+      'Realizando seguimiento oportuno aportando valor',
+      'Enviando recordatorio amigable sobre nuestra propuesta',
+    ],
+    'Oportunidad': [
+      'Interesado en temario y fechas del programa o servicio',
+      'Evaluando facilidades y cronograma de inscripción',
+    ],
+    'Cliente': [
+      'Inscripción confirmada y pago registrado',
+    ],
+    'En pausa': [
+      'Seguimiento en pausa para retomar el próximo mes',
+    ],
+    'Descartado': [
+      'Descartado por falta de perfil o presupuesto',
+    ],
+  };
+
+  const handleInsertTrackingSnippet = (snippet: string) => {
+    const today = new Date().toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const formatted = `[${today}]: ${snippet}`;
+    if (!notes || !notes.trim()) {
+      setNotes(formatted);
+    } else {
+      setNotes((prev) => `${prev.trim()}\n${formatted}`);
     }
   };
 
@@ -267,16 +344,29 @@ function ContactDrawerInner({
             </div>
           )}
 
-          {/* Action Buttons: Abrir Asistente de Mensajes + Ver LinkedIn */}
-          <div className="flex items-center gap-2.5">
+          {/* Action Buttons: Abrir Asistente de Mensajes + Ver Post + Ver LinkedIn */}
+          <div className="flex items-center gap-2 flex-wrap">
             {onOpenTemplates && (
               <button
                 onClick={() => onOpenTemplates(contact)}
-                className="flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold bg-[#0a66c2]/15 text-[#0a66c2] hover:bg-[#0a66c2] hover:text-white border border-[#0a66c2]/30 flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
+                className="flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold bg-[#0a66c2]/15 text-[#0a66c2] hover:bg-[#0a66c2] hover:text-white border border-[#0a66c2]/30 flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs min-w-[170px]"
               >
                 <MessageSquare className="w-4 h-4" />
                 <span>Abrir Asistente de Mensajes</span>
               </button>
+            )}
+
+            {(postUrl || contact.post_url) && (
+              <a
+                href={postUrl || contact.post_url || '#'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="py-2.5 px-3.5 rounded-xl text-xs font-semibold text-[#ff6d3b] hover:text-white bg-[#ff6d3b]/15 hover:bg-[#ff6d3b] border border-[#ff6d3b]/30 flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                title="Abrir post en LinkedIn donde busca servicio"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Ver Post</span>
+              </a>
             )}
 
             {contact.linkedin_url && (
@@ -284,7 +374,7 @@ function ContactDrawerInner({
                 href={contact.linkedin_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="py-2.5 px-4 rounded-xl text-xs font-semibold text-theme-txt hover:text-[#0a66c2] bg-theme-sur2 hover:bg-theme-sur3 border border-theme-bor flex items-center gap-1.5 transition-all"
+                className="py-2.5 px-4 rounded-xl text-xs font-semibold text-theme-txt hover:text-[#0a66c2] bg-theme-sur2 hover:bg-theme-sur3 border border-theme-bor flex items-center gap-1.5 transition-all cursor-pointer"
                 title="Abrir perfil de LinkedIn en una nueva pestaña"
               >
                 <ExternalLink className="w-3.5 h-3.5 text-[#0a66c2]" />
@@ -648,64 +738,38 @@ function ContactDrawerInner({
             </div>
           </div>
 
-          {/* B2B Cadence Panel (Estrategia Comercial TA720: Día 0, 3-4, 7-10, 15) */}
-          {businessSegment === 'B2B' && (
-            <div className="p-3 bg-theme-sur2 border border-[#2979ff]/25 rounded-xl space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-[#2979ff] flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Cadencia Comercial B2B (TA720)</span>
-                </span>
-                <span className="text-[9.5px] font-mono text-theme-txt3">4 Hitos</span>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => applyB2BCadence(0, 'Contacto inicial realizado', 'Contactado')}
-                  className="p-2 rounded-lg bg-theme-sur hover:bg-theme-sur3 border border-theme-bor text-left transition-all cursor-pointer group"
+          {/* Publicación / Post de LinkedIn (Búsqueda de Servicio Directa) */}
+          <div className="p-3.5 bg-theme-sur2/90 border border-[#ff6d3b]/30 rounded-xl space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-[#ff6d3b] flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5" />
+                <span>Link de Publicación / Post (Búsqueda de Servicio)</span>
+              </span>
+              {postUrl && (
+                <a
+                  href={postUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-[#ff6d3b]/15 text-[#ff6d3b] hover:bg-[#ff6d3b] hover:text-white border border-[#ff6d3b]/40 flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                  title="Abrir post en LinkedIn en una nueva pestaña"
                 >
-                  <div className="text-[10px] font-bold text-theme-txt group-hover:text-[#2979ff]">
-                    Día 0 (Hoy)
-                  </div>
-                  <div className="text-[9px] text-theme-txt3 truncate">Contacto inicial</div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => applyB2BCadence(3, '1er seguimiento (Día 3-4)')}
-                  className="p-2 rounded-lg bg-theme-sur hover:bg-theme-sur3 border border-theme-bor text-left transition-all cursor-pointer group"
-                >
-                  <div className="text-[10px] font-bold text-theme-txt group-hover:text-[#2979ff]">
-                    Día 3 - 4 (+3d)
-                  </div>
-                  <div className="text-[9px] text-theme-txt3 truncate">1er seguimiento</div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => applyB2BCadence(7, '2do seguimiento aportando valor (Día 7-10)')}
-                  className="p-2 rounded-lg bg-theme-sur hover:bg-theme-sur3 border border-theme-bor text-left transition-all cursor-pointer group"
-                >
-                  <div className="text-[10px] font-bold text-theme-txt group-hover:text-[#2979ff]">
-                    Día 7 - 10 (+7d)
-                  </div>
-                  <div className="text-[9px] text-theme-txt3 truncate">Aportar valor</div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => applyB2BCadence(15, 'Cierre de seguimiento o pausa (Día 15)', 'Pausada')}
-                  className="p-2 rounded-lg bg-theme-sur hover:bg-theme-sur3 border border-theme-bor text-left transition-all cursor-pointer group"
-                >
-                  <div className="text-[10px] font-bold text-theme-txt group-hover:text-[#ef4444]">
-                    Día 15 (+15d)
-                  </div>
-                  <div className="text-[9px] text-theme-txt3 truncate">Cierre / Pausa</div>
-                </button>
-              </div>
+                  <ExternalLink className="w-3 h-3" />
+                  <span>Abrir Post en LinkedIn</span>
+                </a>
+              )}
             </div>
-          )}
+
+            <input
+              type="url"
+              value={postUrl}
+              onChange={(e) => setPostUrl(e.target.value)}
+              placeholder="https://www.linkedin.com/posts/..."
+              className="w-full bg-theme-sur border border-theme-bor focus:border-[#ff6d3b] rounded-xl px-3 py-1.5 text-xs text-theme-txt outline-hidden font-mono"
+            />
+            <p className="text-[10px] text-theme-txt3">
+              Enlace de la publicación donde este prospecto solicitó capacitación, consultoría o servicios.
+            </p>
+          </div>
 
           {/* Deal Value & Next Step Fields */}
           <div className="grid grid-cols-2 gap-2.5">
@@ -737,15 +801,53 @@ function ContactDrawerInner({
             </div>
           </div>
 
-          {/* Context Notes */}
-          <div>
-            <label className="text-[11px] font-medium text-theme-txt2 mb-1 block">Notas de Gestión Comercial</label>
+          {/* Context Notes with Quick Stage Tracking Bitácora */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-medium text-theme-txt2 block">
+                Notas de Gestión Comercial
+              </label>
+              {notes && (
+                <button
+                  type="button"
+                  onClick={() => setNotes('')}
+                  className="text-[10px] text-theme-txt3 hover:text-red-400 cursor-pointer"
+                >
+                  Limpiar notas
+                </button>
+              )}
+            </div>
+
+            {/* Bitácora Rápida contextual según estado comercial */}
+            <div className="p-2.5 bg-theme-sur2/70 border border-theme-bor rounded-xl space-y-1.5">
+              <div className="flex items-center justify-between text-[10.5px]">
+                <span className="font-semibold text-theme-txt flex items-center gap-1.5">
+                  <span>⚡ Bitácora rápida para</span>
+                  <span className="font-bold text-[#00a870]">&quot;{status}&quot;:</span>
+                </span>
+                <span className="text-[9.5px] font-mono text-theme-txt3">1 clic para registrar</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {(TRACKING_SNIPPETS_BY_STAGE[status] || TRACKING_SNIPPETS_BY_STAGE['Sin contactar']).map((snippet, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleInsertTrackingSnippet(snippet)}
+                    className="text-left text-[10.5px] px-2.5 py-1 rounded-lg bg-theme-sur hover:bg-[#00a870]/15 text-theme-txt hover:text-[#00a870] border border-theme-bor hover:border-[#00a870]/30 transition-all cursor-pointer shadow-2xs leading-snug"
+                    title="Clic para registrar esta acción en notas con fecha de hoy"
+                  >
+                    + {snippet}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <textarea
               rows={3}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Escribe detalles de la conversación, objeciones o acuerdos..."
-              className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl p-3 text-xs text-theme-txt outline-hidden resize-none"
+              className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl p-3 text-xs text-theme-txt outline-hidden resize-none leading-relaxed"
             />
           </div>
         </div>

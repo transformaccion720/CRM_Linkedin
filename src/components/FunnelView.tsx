@@ -5,8 +5,28 @@ import { Contact, ContactStats } from '@/lib/types';
 import { 
   Filter, UserCheck, Star, MessageSquare, ExternalLink, ArrowRight, 
   TrendingUp, Users, CheckCircle2, ChevronRight, Activity, Flame, 
-  Percent, Layers, Sparkles, Briefcase, GraduationCap
+  Percent, Layers, Sparkles, Briefcase, GraduationCap, FileText
 } from 'lucide-react';
+
+const STATUS_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  'Prospecto identificado': { bg: 'bg-[#7d8fa8]/15', text: 'text-[#7d8fa8]', border: 'border-[#7d8fa8]/30' },
+  'Contactado': { bg: 'bg-[#2979ff]/15', text: 'text-[#2979ff]', border: 'border-[#2979ff]/30' },
+  'Conversación iniciada': { bg: 'bg-[#00d2ff]/15', text: 'text-[#00d2ff]', border: 'border-[#00d2ff]/30' },
+  'Discovery / reunión': { bg: 'bg-[#a855f7]/15', text: 'text-[#a855f7]', border: 'border-[#a855f7]/30' },
+  'Oportunidad calificada': { bg: 'bg-[#ff6d3b]/15', text: 'text-[#ff6d3b]', border: 'border-[#ff6d3b]/30' },
+  'Propuesta enviada': { bg: 'bg-[#f59e0b]/15', text: 'text-[#f59e0b]', border: 'border-[#f59e0b]/30' },
+  'Negociación': { bg: 'bg-[#ec4899]/15', text: 'text-[#ec4899]', border: 'border-[#ec4899]/30' },
+  'Ganada': { bg: 'bg-[#00a870]/15', text: 'text-[#00a870]', border: 'border-[#00a870]/30' },
+  'Perdida': { bg: 'bg-[#ef4444]/15', text: 'text-[#ef4444]', border: 'border-[#ef4444]/30' },
+  'Pausada': { bg: 'bg-[#64748b]/15', text: 'text-[#64748b]', border: 'border-[#64748b]/30' },
+  'Sin contactar': { bg: 'bg-[#7d8fa8]/15', text: 'text-theme-txt2', border: 'border-[#7d8fa8]/30' },
+  'En contacto': { bg: 'bg-[#2979ff]/15', text: 'text-[#2979ff]', border: 'border-[#2979ff]/30' },
+  'Oportunidad': { bg: 'bg-[#ff6d3b]/15', text: 'text-[#ff6d3b]', border: 'border-[#ff6d3b]/30' },
+  'Cliente': { bg: 'bg-[#00a870]/15', text: 'text-[#00a870]', border: 'border-[#00a870]/30' },
+  'Seguimiento': { bg: 'bg-[#f59e0b]/15', text: 'text-[#f59e0b]', border: 'border-[#f59e0b]/30' },
+  'En pausa': { bg: 'bg-[#64748b]/15', text: 'text-[#64748b]', border: 'border-[#64748b]/30' },
+  'Descartado': { bg: 'bg-[#ef4444]/15', text: 'text-[#ef4444]', border: 'border-[#ef4444]/30' },
+};
 
 interface FunnelViewProps {
   stats: ContactStats | null;
@@ -446,6 +466,17 @@ export default function FunnelView({
                       >
                         {c.business_segment === 'B2C' ? '👤 B2C' : '🏢 B2B'}
                       </span>
+                      {c.status && (
+                        <span
+                          className={`text-[8.5px] font-semibold px-1.5 py-0.2 rounded border shrink-0 ${
+                            STATUS_COLORS[c.status]?.bg || 'bg-theme-sur2'
+                          } ${STATUS_COLORS[c.status]?.text || 'text-theme-txt'} ${
+                            STATUS_COLORS[c.status]?.border || 'border-theme-bor'
+                          }`}
+                        >
+                          {c.status}
+                        </span>
+                      )}
                       {c.priority && c.priority > 1 && (
                         <span className="flex items-center text-[#f59e0b]">
                           {[...Array(c.priority)].map((_, i) => (
@@ -483,12 +514,24 @@ export default function FunnelView({
                     </button>
                   )}
 
+                  {c.post_url && (
+                    <a
+                      href={c.post_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 text-[#ff6d3b] hover:text-white hover:bg-[#ff6d3b] bg-theme-sur2 rounded-xl border border-theme-bor hover:border-[#ff6d3b]/30 transition-all cursor-pointer"
+                      title="Abrir publicación / post donde busca servicio"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+
                   {c.linkedin_url && (
                     <a
                       href={c.linkedin_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-2 text-theme-txt2 hover:text-[#0a66c2] bg-theme-sur2 hover:bg-theme-sur3 rounded-xl border border-theme-bor transition-all"
+                      className="p-2 text-theme-txt2 hover:text-[#0a66c2] bg-theme-sur2 hover:bg-theme-sur3 rounded-xl border border-theme-bor transition-all cursor-pointer"
                       title="Ver Perfil en LinkedIn"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />

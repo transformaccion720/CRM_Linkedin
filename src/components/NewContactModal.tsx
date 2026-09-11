@@ -29,18 +29,41 @@ function NewContactModalInner({
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [linkedinUrl, setLinkedinUrl] = useState('');
-  const [status, setStatus] = useState<ContactStatus>('Sin contactar');
+  const [businessSegment, setBusinessSegment] = useState<BusinessSegment>('B2B');
+  const [status, setStatus] = useState<ContactStatus>('Prospecto identificado');
   const [priority, setPriority] = useState<number>(3); // 1, 2, or 3 stars
   const [postUrl, setPostUrl] = useState('');
   const [serviceNeeded, setServiceNeeded] = useState('');
   const [notes, setNotes] = useState('');
   const [followUpDate, setFollowUpDate] = useState('');
   const [assignedTo, setAssignedTo] = useState('Gabino');
-  const [businessSegment, setBusinessSegment] = useState<BusinessSegment>('B2B');
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const B2B_STAGES: { value: ContactStatus; label: string }[] = [
+    { value: 'Prospecto identificado', label: '1. Prospecto Identificado' },
+    { value: 'Contactado', label: '2. Contactado' },
+    { value: 'Conversación iniciada', label: '3. Conversación Iniciada' },
+    { value: 'Discovery / reunión', label: '4. Discovery / Reunión' },
+    { value: 'Oportunidad calificada', label: '5. Oportunidad Calificada' },
+    { value: 'Propuesta enviada', label: '6. Propuesta Enviada' },
+    { value: 'Negociación', label: '7. Negociación' },
+    { value: 'Ganada', label: '8. Ganada / Cerrada' },
+    { value: 'Perdida', label: '9. Perdida' },
+    { value: 'Pausada', label: '10. Pausada' },
+  ];
+
+  const B2C_STAGES: { value: ContactStatus; label: string }[] = [
+    { value: 'Sin contactar', label: 'Sin contactar' },
+    { value: 'En contacto', label: 'En contacto' },
+    { value: 'Seguimiento', label: 'Seguimiento' },
+    { value: 'Oportunidad', label: 'Oportunidad' },
+    { value: 'Cliente', label: 'Cliente' },
+    { value: 'En pausa', label: 'En pausa' },
+    { value: 'Descartado', label: 'Descartado' },
+  ];
 
   if (!isOpen) return null;
 
@@ -208,7 +231,10 @@ function NewContactModalInner({
               <div className="flex items-center gap-1 bg-theme-sur p-0.5 rounded-xl border border-theme-bor">
                 <button
                   type="button"
-                  onClick={() => setBusinessSegment('B2B')}
+                  onClick={() => {
+                    setBusinessSegment('B2B');
+                    setStatus('Prospecto identificado');
+                  }}
                   className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     businessSegment === 'B2B'
                       ? 'bg-[#2979ff] text-white shadow-xs'
@@ -219,7 +245,10 @@ function NewContactModalInner({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setBusinessSegment('B2C')}
+                  onClick={() => {
+                    setBusinessSegment('B2C');
+                    setStatus('Sin contactar');
+                  }}
                   className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     businessSegment === 'B2C'
                       ? 'bg-[#00a870] text-white shadow-xs'
@@ -229,6 +258,23 @@ function NewContactModalInner({
                   👤 B2C
                 </button>
               </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-theme-txt block mb-1">
+                Estado Inicial ({businessSegment}):
+              </label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as ContactStatus)}
+                className="bg-theme-sur border border-theme-bor focus:border-[#00a870] rounded-xl px-2.5 py-1.5 text-xs text-theme-txt outline-hidden font-medium max-w-[170px] truncate"
+              >
+                {(businessSegment === 'B2B' ? B2B_STAGES : B2C_STAGES).map((st) => (
+                  <option key={st.value} value={st.value}>
+                    {st.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>

@@ -5,7 +5,7 @@ import { Contact, ContactStatus } from '@/lib/types';
 import { 
   ExternalLink, Mail, Edit3, CheckCircle, ChevronLeft, ChevronRight, 
   ChevronsLeft, ChevronsRight, MessageSquare, Star, Phone, AlertTriangle, 
-  Tag, Filter, X, Briefcase, Building2, Search, ChevronDown, Check
+  Tag, Filter, X, Briefcase, Building2, Search, ChevronDown, Check, FileText
 } from 'lucide-react';
 
 interface FilterComboboxProps {
@@ -47,70 +47,57 @@ const FilterCombobox = memo(function FilterCombobox({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  const filtered = useMemo(() => {
-    if (!query.trim()) return options;
-    const q = query.toLowerCase().trim();
+  // Memoized filter for instant speed
+  const filteredOptions = useMemo(() => {
+    if (!query) return options;
+    const q = query.toLowerCase();
     return options.filter((opt) => opt.toLowerCase().includes(q));
   }, [options, query]);
 
   return (
-    <div className="relative shrink-0" ref={containerRef}>
+    <div className="relative min-w-[130px] max-w-[170px]" ref={containerRef}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs transition-all cursor-pointer max-w-[210px] ${
+        className={`w-full flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-xl text-xs border transition-all cursor-pointer truncate ${
           value
-            ? 'bg-[#00a870]/15 text-[#00a870] border-[#00a870]/40 font-bold shadow-xs'
-            : 'bg-theme-sur2 text-theme-txt border-theme-bor hover:border-theme-bor2 hover:bg-theme-sur3'
+            ? 'bg-theme-sur text-theme-txt font-semibold border-theme-bor2 shadow-xs'
+            : 'bg-theme-sur2/80 text-theme-txt2 border-theme-bor hover:border-theme-bor2'
         }`}
+        style={value ? { borderColor: `${themeColor}60` } : undefined}
       >
-        <span className="shrink-0">{icon}</span>
-        <span className="truncate">
-          {value ? value : label}
+        <span className="flex items-center gap-1.5 truncate">
+          <span style={{ color: themeColor }}>{icon}</span>
+          <span className="truncate">{value || label}</span>
         </span>
         {value ? (
-          <span
+          <X
+            className="w-3.5 h-3.5 text-theme-txt3 hover:text-theme-txt shrink-0"
             onClick={(e) => {
               e.stopPropagation();
               onChange('');
             }}
-            className="p-0.5 hover:text-red-400 cursor-pointer shrink-0 ml-0.5"
-            title="Limpiar"
-          >
-            <X className="w-3 h-3" />
-          </span>
+          />
         ) : (
-          <ChevronDown className="w-3 h-3 text-theme-txt3 shrink-0 ml-0.5" />
+          <ChevronDown className="w-3 h-3 text-theme-txt3 shrink-0" />
         )}
       </button>
 
-      {/* Dropdown with Micro Search Bar (Positioned strictly in front with high z-index and elevation) */}
       {isOpen && (
-        <div className="absolute left-0 top-full mt-1.5 w-72 bg-theme-sur border border-theme-bor2 rounded-2xl shadow-2xl z-50 p-2.5 space-y-2 animate-in fade-in zoom-in-95 duration-100 ring-1 ring-black/20">
-          {/* Micro Search Input */}
+        <div className="absolute left-0 top-full mt-1.5 w-64 bg-theme-sur border border-theme-bor2 rounded-xl shadow-xl z-50 p-2 space-y-1.5 animate-in fade-in zoom-in-95 duration-100">
           <div className="relative">
-            <Search className="w-3.5 h-3.5 text-theme-txt3 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-theme-txt3" />
             <input
               ref={inputRef}
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={placeholderSearch}
-              className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl pl-8 pr-7 py-1.5 text-xs text-theme-txt outline-hidden placeholder:text-theme-txt3"
+              className="w-full bg-theme-sur2 border border-theme-bor rounded-lg pl-8 pr-2 py-1 text-xs text-theme-txt outline-hidden focus:border-theme-bor2"
             />
-            {query && (
-              <button
-                type="button"
-                onClick={() => setQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-theme-txt3 hover:text-theme-txt cursor-pointer"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            )}
           </div>
 
-          {/* Options List with comfortable scrolling (max 64 units) */}
-          <div className="max-h-64 overflow-y-auto space-y-0.5 pt-1 pr-1 overscroll-contain">
+          <div className="max-h-48 overflow-y-auto space-y-0.5 pr-1">
             <button
               type="button"
               onClick={() => {
@@ -118,41 +105,37 @@ const FilterCombobox = memo(function FilterCombobox({
                 setIsOpen(false);
                 setQuery('');
               }}
-              className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition-colors cursor-pointer ${
-                !value ? 'bg-[#00a870]/15 text-[#00a870] font-bold' : 'text-theme-txt2 hover:bg-theme-sur2 hover:text-theme-txt'
+              className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer transition-colors ${
+                !value ? 'bg-theme-sur2 font-semibold text-theme-txt' : 'text-theme-txt2 hover:bg-theme-sur2/70'
               }`}
             >
-              <span>Todos ({options.length})</span>
-              {!value && <Check className="w-3.5 h-3.5 text-[#00a870]" />}
+              <span>(Todos)</span>
+              {!value && <Check className="w-3 h-3 text-[#00a870]" />}
             </button>
 
-            {filtered.length === 0 ? (
-              <div className="p-3 text-center text-xs text-theme-txt3">
-                No se encontró &quot;{query}&quot;
-              </div>
+            {filteredOptions.length === 0 ? (
+              <div className="p-2 text-center text-xs text-theme-txt3">Sin resultados</div>
             ) : (
-              filtered.map((opt) => {
-                const isSelected = value === opt;
-                return (
-                  <button
-                    key={opt}
-                    type="button"
-                    onClick={() => {
-                      onChange(opt);
-                      setIsOpen(false);
-                      setQuery('');
-                    }}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition-colors cursor-pointer ${
-                      isSelected
-                        ? 'bg-[#00a870]/15 text-[#00a870] font-bold'
-                        : 'text-theme-txt hover:bg-theme-sur2'
-                    }`}
-                  >
-                    <span className="truncate pr-2">{opt}</span>
-                    {isSelected && <Check className="w-3.5 h-3.5 text-[#00a870] shrink-0" />}
-                  </button>
-                );
-              })
+              filteredOptions.map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => {
+                    onChange(opt);
+                    setIsOpen(false);
+                    setQuery('');
+                  }}
+                  className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between cursor-pointer transition-colors truncate ${
+                    value === opt
+                      ? 'bg-theme-sur2 font-semibold text-theme-txt'
+                      : 'text-theme-txt2 hover:bg-theme-sur2/70 hover:text-theme-txt'
+                  }`}
+                  title={opt}
+                >
+                  <span className="truncate">{opt}</span>
+                  {value === opt && <Check className="w-3 h-3 text-[#00a870] shrink-0" />}
+                </button>
+              ))
             )}
           </div>
         </div>
@@ -167,13 +150,12 @@ interface ContactTableProps {
   onQuickStatusChange: (id: string, newStatus: ContactStatus) => void;
   onOpenTemplates?: (c: Contact) => void;
   viewMode?: 'table' | 'grid';
-  // Column Filters
   positionFilter?: string;
-  setPositionFilter?: (p: string) => void;
+  setPositionFilter?: (val: string) => void;
   companyFilter?: string;
-  setCompanyFilter?: (c: string) => void;
+  setCompanyFilter?: (val: string) => void;
   tagFilter?: string;
-  setTagFilter?: (t: string) => void;
+  setTagFilter?: (val: string) => void;
   filterOptions?: {
     positions?: string[];
     companies?: string[];
@@ -182,30 +164,56 @@ interface ContactTableProps {
 }
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  // B2B Pipeline Stages
+  'Prospecto identificado': { bg: 'bg-[#7d8fa8]/15', text: 'text-[#7d8fa8]', border: 'border-[#7d8fa8]/30' },
+  'Contactado': { bg: 'bg-[#2979ff]/15', text: 'text-[#2979ff]', border: 'border-[#2979ff]/30' },
+  'Conversación iniciada': { bg: 'bg-[#00d2ff]/15', text: 'text-[#00d2ff]', border: 'border-[#00d2ff]/30' },
+  'Discovery / reunión': { bg: 'bg-[#a855f7]/15', text: 'text-[#a855f7]', border: 'border-[#a855f7]/30' },
+  'Oportunidad calificada': { bg: 'bg-[#ff6d3b]/15', text: 'text-[#ff6d3b]', border: 'border-[#ff6d3b]/30' },
+  'Propuesta enviada': { bg: 'bg-[#f59e0b]/15', text: 'text-[#f59e0b]', border: 'border-[#f59e0b]/30' },
+  'Negociación': { bg: 'bg-[#ec4899]/15', text: 'text-[#ec4899]', border: 'border-[#ec4899]/30' },
+  'Ganada': { bg: 'bg-[#00a870]/15', text: 'text-[#00a870]', border: 'border-[#00a870]/30' },
+  'Perdida': { bg: 'bg-[#ef4444]/15', text: 'text-[#ef4444]', border: 'border-[#ef4444]/30' },
+  'Pausada': { bg: 'bg-[#64748b]/15', text: 'text-[#64748b]', border: 'border-[#64748b]/30' },
+
+  // B2C Stages & Legacy Fallbacks
   'Sin contactar': { bg: 'bg-[#7d8fa8]/15', text: 'text-theme-txt2', border: 'border-[#7d8fa8]/30' },
   'Sin asignar': { bg: 'bg-[#7d8fa8]/15', text: 'text-theme-txt2', border: 'border-[#7d8fa8]/30' },
   'new': { bg: 'bg-[#2979ff]/15', text: 'text-[#2979ff]', border: 'border-[#2979ff]/30' },
   'Nuevo': { bg: 'bg-[#2979ff]/15', text: 'text-[#2979ff]', border: 'border-[#2979ff]/30' },
-  'contacted': { bg: 'bg-[#ff6d3b]/15', text: 'text-[#ff6d3b]', border: 'border-[#ff6d3b]/30' },
-  'Contactado': { bg: 'bg-[#ff6d3b]/15', text: 'text-[#ff6d3b]', border: 'border-[#ff6d3b]/30' },
+  'contacted': { bg: 'bg-[#2979ff]/15', text: 'text-[#2979ff]', border: 'border-[#2979ff]/30' },
   'En contacto': { bg: 'bg-[#2979ff]/15', text: 'text-[#2979ff]', border: 'border-[#2979ff]/30' },
   'qualified': { bg: 'bg-[#00a870]/15', text: 'text-[#00a870]', border: 'border-[#00a870]/30' },
   'Calificado': { bg: 'bg-[#00a870]/15', text: 'text-[#00a870]', border: 'border-[#00a870]/30' },
   'Oportunidad': { bg: 'bg-[#ff6d3b]/15', text: 'text-[#ff6d3b]', border: 'border-[#ff6d3b]/30' },
   'Cliente': { bg: 'bg-[#00a870]/15', text: 'text-[#00a870]', border: 'border-[#00a870]/30' },
   'Seguimiento': { bg: 'bg-[#f59e0b]/15', text: 'text-[#f59e0b]', border: 'border-[#f59e0b]/30' },
-  'En pausa': { bg: 'bg-[#f59e0b]/15', text: 'text-[#f59e0b]', border: 'border-[#f59e0b]/30' },
+  'En pausa': { bg: 'bg-[#64748b]/15', text: 'text-[#64748b]', border: 'border-[#64748b]/30' },
   'lost': { bg: 'bg-[#3e4c63]/25', text: 'text-theme-txt3', border: 'border-theme-bor2' },
-  'Descartado': { bg: 'bg-[#3e4c63]/25', text: 'text-theme-txt3', border: 'border-theme-bor2' },
+  'Descartado': { bg: 'bg-[#ef4444]/15', text: 'text-[#ef4444]', border: 'border-[#ef4444]/30' },
 };
 
-const ALL_STATUSES: ContactStatus[] = [
-  'Sin contactar',
-  'En contacto',
-  'Oportunidad',
-  'Cliente',
-  'Seguimiento',
-  'Descartado',
+const B2B_STATUS_OPTIONS: { value: ContactStatus; label: string }[] = [
+  { value: 'Prospecto identificado', label: '1. Prospecto Identificado' },
+  { value: 'Contactado', label: '2. Contactado' },
+  { value: 'Conversación iniciada', label: '3. Conversación Iniciada' },
+  { value: 'Discovery / reunión', label: '4. Discovery / Reunión' },
+  { value: 'Oportunidad calificada', label: '5. Oportunidad Calificada' },
+  { value: 'Propuesta enviada', label: '6. Propuesta Enviada' },
+  { value: 'Negociación', label: '7. Negociación' },
+  { value: 'Ganada', label: '8. Ganada / Cerrada' },
+  { value: 'Perdida', label: '9. Perdida' },
+  { value: 'Pausada', label: '10. Pausada' },
+];
+
+const B2C_STATUS_OPTIONS: { value: ContactStatus; label: string }[] = [
+  { value: 'Sin contactar', label: 'Sin contactar' },
+  { value: 'En contacto', label: 'En contacto' },
+  { value: 'Seguimiento', label: 'Seguimiento' },
+  { value: 'Oportunidad', label: 'Oportunidad' },
+  { value: 'Cliente', label: 'Cliente' },
+  { value: 'En pausa', label: 'En pausa' },
+  { value: 'Descartado', label: 'Descartado' },
 ];
 
 function ContactTableInner({
@@ -473,11 +481,41 @@ function ContactTableInner({
                           onChange={(e) => onQuickStatusChange(c.id, e.target.value as ContactStatus)}
                           className={`w-full px-1.5 py-1 rounded text-[10.5px] font-semibold border outline-hidden cursor-pointer truncate ${statusConfig.bg} ${statusConfig.text} ${statusConfig.border}`}
                         >
-                          {ALL_STATUSES.map((st) => (
-                            <option key={st} value={st} className="bg-theme-sur text-theme-txt">
-                              {st}
-                            </option>
-                          ))}
+                          {c.business_segment === 'B2B' ? (
+                            <>
+                              <optgroup label="🏢 Etapas B2B">
+                                {B2B_STATUS_OPTIONS.map((st) => (
+                                  <option key={st.value} value={st.value} className="bg-theme-sur text-theme-txt">
+                                    {st.label}
+                                  </option>
+                                ))}
+                              </optgroup>
+                              <optgroup label="👤 Etapas B2C">
+                                {B2C_STATUS_OPTIONS.map((st) => (
+                                  <option key={st.value} value={st.value} className="bg-theme-sur text-theme-txt">
+                                    {st.label}
+                                  </option>
+                                ))}
+                              </optgroup>
+                            </>
+                          ) : (
+                            <>
+                              <optgroup label="👤 Etapas B2C">
+                                {B2C_STATUS_OPTIONS.map((st) => (
+                                  <option key={st.value} value={st.value} className="bg-theme-sur text-theme-txt">
+                                    {st.label}
+                                  </option>
+                                ))}
+                              </optgroup>
+                              <optgroup label="🏢 Etapas B2B">
+                                {B2B_STATUS_OPTIONS.map((st) => (
+                                  <option key={st.value} value={st.value} className="bg-theme-sur text-theme-txt">
+                                    {st.label}
+                                  </option>
+                                ))}
+                              </optgroup>
+                            </>
+                          )}
                         </select>
                       </td>
 
@@ -514,6 +552,18 @@ function ContactTableInner({
                             >
                               <MessageSquare className="w-3.5 h-3.5 text-[#00a870]" />
                             </button>
+                          )}
+
+                          {c.post_url && (
+                            <a
+                              href={c.post_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1.5 text-theme-txt2 hover:text-[#ff6d3b] hover:bg-[#ff6d3b]/15 rounded-lg border border-transparent hover:border-[#ff6d3b]/30 transition-all cursor-pointer"
+                              title="Abrir post / publicación donde busca servicio en LinkedIn"
+                            >
+                              <FileText className="w-3.5 h-3.5 text-[#ff6d3b]" />
+                            </a>
                           )}
 
                           {c.linkedin_url && (
@@ -583,20 +633,35 @@ function ContactTableInner({
                     </div>
 
                     <div className="pt-2 border-t border-theme-bor flex items-center justify-between">
-                      <span className={`px-2 py-0.5 rounded text-[9.5px] font-semibold ${statusConfig.bg} ${statusConfig.text}`}>
+                      <span className={`px-2 py-0.5 rounded text-[9.5px] font-semibold border ${statusConfig.bg} ${statusConfig.text} ${statusConfig.border}`}>
                         {c.status}
                       </span>
-                      {onOpenTemplates && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onOpenTemplates(c);
-                          }}
-                          className="p-1 rounded-lg text-theme-txt2 hover:text-[#00a870] hover:bg-[#00a870]/10 transition-colors"
-                        >
-                          <MessageSquare className="w-3.5 h-3.5" />
-                        </button>
-                      )}
+                      <div className="flex items-center gap-1">
+                        {c.post_url && (
+                          <a
+                            href={c.post_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="p-1 rounded-lg text-theme-txt2 hover:text-[#ff6d3b] hover:bg-[#ff6d3b]/10 transition-colors"
+                            title="Abrir post en LinkedIn donde busca servicio"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                        {onOpenTemplates && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onOpenTemplates(c);
+                            }}
+                            className="p-1 rounded-lg text-theme-txt2 hover:text-[#00a870] hover:bg-[#00a870]/10 transition-colors"
+                            title="Generar mensaje"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
