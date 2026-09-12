@@ -165,7 +165,7 @@ function NewContactModalInner({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-150">
-      <div className="bg-theme-sur border border-theme-bor rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col">
+      <div className="bg-theme-sur border border-theme-bor rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col">
         {/* Header */}
         <div className="p-4 px-6 border-b border-theme-bor flex items-center justify-between bg-theme-sur shrink-0">
           <div className="flex items-center gap-2.5">
@@ -197,108 +197,124 @@ function NewContactModalInner({
             </div>
           )}
 
-          {/* Priority Star Level & Assigned Member */}
-          <div className="p-3.5 rounded-2xl bg-theme-sur2/70 border border-theme-bor flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <label className="text-xs font-bold text-theme-txt block mb-1">
-                Nivel de Prioridad Comercial
-              </label>
-              <div className="flex items-center gap-1.5">
-                {[1, 2, 3].map((star) => (
+          {/* Clasificación Comercial Inicial (Grid 2x2 Perfecto y Encajado) */}
+          <div className="p-4 rounded-2xl bg-theme-sur2/70 border border-theme-bor">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              
+              {/* 1. Segmento Comercial */}
+              <div>
+                <label className="text-xs font-bold text-theme-txt block mb-1.5">
+                  Línea / Segmento Comercial:
+                </label>
+                <div className="grid grid-cols-2 gap-1.5 bg-theme-sur p-1 rounded-xl border border-theme-bor">
                   <button
-                    key={star}
                     type="button"
-                    onClick={() => setPriority(star)}
-                    className="p-1.5 rounded-lg bg-theme-sur hover:bg-theme-sur3 border border-theme-bor transition-all cursor-pointer flex items-center gap-1"
+                    onClick={() => {
+                      setBusinessSegment('B2B');
+                      setStatus('Prospecto identificado');
+                    }}
+                    className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                      businessSegment === 'B2B'
+                        ? 'bg-[#2979ff] text-white shadow-xs'
+                        : 'text-theme-txt2 hover:text-theme-txt'
+                    }`}
                   >
-                    <Star
-                      className={`w-4 h-4 ${
-                        priority >= star ? 'text-[#f59e0b] fill-[#f59e0b]' : 'text-theme-txt3'
-                      }`}
-                    />
-                    <span className="text-[11px] font-mono text-theme-txt font-semibold">
-                      {star === 3 ? 'Alta (3⭐)' : star === 2 ? 'Media (2⭐)' : 'Normal (1⭐)'}
-                    </span>
+                    <span>🏢</span>
+                    <span>B2B Corporativo</span>
                   </button>
-                ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBusinessSegment('B2C');
+                      setStatus('Sin contactar');
+                    }}
+                    className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                      businessSegment === 'B2C'
+                        ? 'bg-[#00a870] text-white shadow-xs'
+                        : 'text-theme-txt2 hover:text-theme-txt'
+                    }`}
+                  >
+                    <span>👤</span>
+                    <span>B2C Alumnos</span>
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label className="text-xs font-bold text-theme-txt block mb-1">
-                Segmento:
-              </label>
-              <div className="flex items-center gap-1 bg-theme-sur p-0.5 rounded-xl border border-theme-bor">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setBusinessSegment('B2B');
-                    setStatus('Prospecto identificado');
-                  }}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    businessSegment === 'B2B'
-                      ? 'bg-[#2979ff] text-white shadow-xs'
-                      : 'text-theme-txt2 hover:text-theme-txt'
-                  }`}
+              {/* 2. Responsable Asignado */}
+              <div>
+                <label className="text-xs font-bold text-theme-txt block mb-1.5">
+                  Responsable Comercial:
+                </label>
+                <select
+                  value={assignedTo}
+                  onChange={(e) => setAssignedTo(e.target.value)}
+                  className="w-full bg-theme-sur border border-theme-bor focus:border-[#00a870] rounded-xl px-3 py-2 text-xs text-theme-txt outline-hidden font-medium"
                 >
-                  🏢 B2B
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setBusinessSegment('B2C');
-                    setStatus('Sin contactar');
-                  }}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    businessSegment === 'B2C'
-                      ? 'bg-[#00a870] text-white shadow-xs'
-                      : 'text-theme-txt2 hover:text-theme-txt'
-                  }`}
-                >
-                  👤 B2C
-                </button>
+                  {teamMembers.length > 0 ? (
+                    teamMembers.map((m) => (
+                      <option key={m.id} value={m.name}>
+                        {m.name} ({m.role || 'Comercial'})
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="Gabino">Gabino (Director General)</option>
+                      <option value="Kiara Zavala Peralta">Kiara Zavala Peralta</option>
+                    </>
+                  )}
+                </select>
               </div>
-            </div>
 
-            <div>
-              <label className="text-xs font-bold text-theme-txt block mb-1">
-                Estado Inicial ({businessSegment}):
-              </label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as ContactStatus)}
-                className="bg-theme-sur border border-theme-bor focus:border-[#00a870] rounded-xl px-2.5 py-1.5 text-xs text-theme-txt outline-hidden font-medium max-w-[170px] truncate"
-              >
-                {(businessSegment === 'B2B' ? B2B_STAGES : B2C_STAGES).map((st) => (
-                  <option key={st.value} value={st.value}>
-                    {st.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs font-bold text-theme-txt block mb-1">
-                Asignado a:
-              </label>
-              <select
-                value={assignedTo}
-                onChange={(e) => setAssignedTo(e.target.value)}
-                className="bg-theme-sur border border-theme-bor focus:border-[#00a870] rounded-xl px-3 py-1.5 text-xs text-theme-txt outline-hidden font-medium"
-              >
-                {teamMembers.length > 0 ? (
-                  teamMembers.map((m) => (
-                    <option key={m.id} value={m.name}>
-                      {m.name}
+              {/* 3. Estado Inicial según Segmento */}
+              <div>
+                <label className="text-xs font-bold text-theme-txt block mb-1.5">
+                  Estado Inicial ({businessSegment}):
+                </label>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as ContactStatus)}
+                  className="w-full bg-theme-sur border border-theme-bor focus:border-[#00a870] rounded-xl px-3 py-2 text-xs text-theme-txt outline-hidden font-medium cursor-pointer"
+                >
+                  {(businessSegment === 'B2B' ? B2B_STAGES : B2C_STAGES).map((st) => (
+                    <option key={st.value} value={st.value}>
+                      {st.label}
                     </option>
-                  ))
-                ) : (
-                  <>
-                    <option value="Gabino">Gabino</option>
-                    <option value="Kiara Zavala Peralta">Kiara Zavala Peralta</option>
-                  </>
-                )}
-              </select>
+                  ))}
+                </select>
+              </div>
+
+              {/* 4. Prioridad Comercial */}
+              <div>
+                <label className="text-xs font-bold text-theme-txt block mb-1.5">
+                  Nivel de Prioridad:
+                </label>
+                <div className="grid grid-cols-3 gap-1 bg-theme-sur p-1 rounded-xl border border-theme-bor">
+                  {[
+                    { val: 1, label: 'Normal (1⭐)', short: 'Normal' },
+                    { val: 2, label: 'Media (2⭐)', short: 'Media' },
+                    { val: 3, label: 'Alta (3⭐)', short: 'Alta' },
+                  ].map((item) => (
+                    <button
+                      key={item.val}
+                      type="button"
+                      onClick={() => setPriority(item.val)}
+                      className={`py-1.5 px-1 rounded-lg text-center text-xs transition-all cursor-pointer font-semibold flex items-center justify-center gap-1 ${
+                        priority === item.val
+                          ? 'bg-theme-sur2 text-[#f59e0b] border border-[#f59e0b]/40 font-bold shadow-xs'
+                          : 'text-theme-txt2 hover:text-theme-txt'
+                      }`}
+                    >
+                      <Star
+                        className={`w-3.5 h-3.5 ${
+                          priority >= item.val ? 'text-[#f59e0b] fill-[#f59e0b]' : 'opacity-30'
+                        }`}
+                      />
+                      <span className="text-[11px] truncate">{item.short}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
             </div>
           </div>
 
