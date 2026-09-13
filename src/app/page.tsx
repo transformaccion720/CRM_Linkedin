@@ -591,7 +591,13 @@ export default function Home() {
             <ResourcesDirectoryView currentUser={currentUser} />
           )}
 
-          {activeTab === 'analytics' && <AnalyticsView stats={stats} />}
+          {activeTab === 'analytics' && (
+            <AnalyticsView 
+              stats={stats} 
+              contacts={contacts} 
+              onSelectContact={setSelectedContact} 
+            />
+          )}
 
           {activeTab === 'ejecutivo' && <ExecutiveDashboard stats={stats} />}
 

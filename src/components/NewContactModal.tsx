@@ -362,11 +362,7 @@ function NewContactModalInner({
               <input
                 type="text"
                 value={position}
-                onChange={(e) => {
-                  const newPos = e.target.value;
-                  setPosition(newPos);
-                  setBusinessSegment(detectBusinessSegment(newPos));
-                }}
+                onChange={(e) => setPosition(e.target.value)}
                 placeholder="Ej. Gerente de RRHH / Líder TI"
                 className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3.5 py-2 text-xs text-theme-txt outline-hidden"
               />
@@ -386,18 +382,30 @@ function NewContactModalInner({
               />
             </div>
 
-            <div className="sm:col-span-2">
+            {/* Country Selector */}
+            <div>
               <label className="text-xs font-semibold text-theme-txt mb-1 flex items-center gap-1">
-                <Link2 className="w-3.5 h-3.5 text-[#0a66c2]" />
-                <span>URL de Perfil LinkedIn</span>
+                <Globe className="w-3.5 h-3.5 text-theme-txt3" />
+                <span>País</span>
               </label>
-              <input
-                type="url"
-                value={linkedinUrl}
-                onChange={(e) => setLinkedinUrl(e.target.value)}
-                placeholder="https://www.linkedin.com/in/usuario"
-                className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3.5 py-2 text-xs text-theme-txt outline-hidden"
-              />
+              <select
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3 py-2 text-xs text-theme-txt outline-hidden cursor-pointer font-medium"
+              >
+                <option value="Perú">🇵🇪 Perú</option>
+                <option value="Colombia">🇨🇴 Colombia</option>
+                <option value="México">🇲🇽 México</option>
+                <option value="Chile">🇨🇱 Chile</option>
+                <option value="Argentina">🇦🇷 Argentina</option>
+                <option value="España">🇪🇸 España</option>
+                <option value="Ecuador">🇪🇨 Ecuador</option>
+                <option value="Bolivia">🇧🇴 Bolivia</option>
+                <option value="Estados Unidos">🇺🇸 Estados Unidos</option>
+                <option value="Panamá">🇵🇦 Panamá</option>
+                <option value="Costa Rica">🇨🇷 Costa Rica</option>
+                <option value="Otro">🌎 Otro país</option>
+              </select>
             </div>
 
             <div>
@@ -424,6 +432,20 @@ function NewContactModalInner({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="contacto@empresa.com"
+                className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3.5 py-2 text-xs text-theme-txt outline-hidden"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-theme-txt mb-1 flex items-center gap-1">
+                <Link2 className="w-3.5 h-3.5 text-[#0a66c2]" />
+                <span>URL de Perfil LinkedIn</span>
+              </label>
+              <input
+                type="url"
+                value={linkedinUrl}
+                onChange={(e) => setLinkedinUrl(e.target.value)}
+                placeholder="https://www.linkedin.com/in/usuario"
                 className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3.5 py-2 text-xs text-theme-txt outline-hidden"
               />
             </div>
@@ -464,6 +486,85 @@ function NewContactModalInner({
                 onChange={(e) => setFollowUpDate(e.target.value)}
                 className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#ff6d3b] rounded-xl px-3 py-1.5 text-xs text-theme-txt outline-hidden"
               />
+            </div>
+
+            {/* Tags / Etiquetas Section */}
+            <div className="sm:col-span-2">
+              <label className="text-xs font-semibold text-theme-txt mb-1.5 flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                  <Tag className="w-3.5 h-3.5 text-[#00a870]" />
+                  <span>Etiquetas (Tags):</span>
+                </span>
+                <span className="text-[10px] text-theme-txt3 font-mono">
+                  Presiona Enter o Añadir
+                </span>
+              </label>
+
+              {/* Tag pills list */}
+              {tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {tags.map((t) => (
+                    <span
+                      key={t}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#00a870]/15 text-[#00a870] border border-[#00a870]/30"
+                    >
+                      <span>{t}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTag(t)}
+                        className="hover:text-red-400 cursor-pointer p-0.5"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Add tag input */}
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddTag();
+                    }
+                  }}
+                  placeholder="Escribe una etiqueta (ej. Capacitación, Liderazgo...)"
+                  className="flex-1 bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3.5 py-2 text-xs text-theme-txt outline-hidden"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddTag}
+                  className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-theme-sur2 hover:bg-theme-sur3 border border-theme-bor text-theme-txt cursor-pointer transition-colors"
+                >
+                  + Agregar
+                </button>
+              </div>
+
+              {/* Quick suggestions */}
+              <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                <span className="text-[10px] text-theme-txt3 font-mono">Sugerencias:</span>
+                {['Capacitación', 'Liderazgo', 'Habilidades Blandas', 'Taller', 'Alianza', 'RRHH', 'Ventas'].map((sug) => (
+                  <button
+                    key={sug}
+                    type="button"
+                    onClick={() => {
+                      if (!tags.includes(sug)) setTags([...tags, sug]);
+                    }}
+                    className={`text-[10px] font-mono px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
+                      tags.includes(sug)
+                        ? 'bg-[#00a870]/20 text-[#00a870] border-[#00a870]/40 font-bold'
+                        : 'bg-theme-sur text-theme-txt2 border-theme-bor hover:text-theme-txt hover:bg-theme-sur2'
+                    }`}
+                  >
+                    +{sug}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 

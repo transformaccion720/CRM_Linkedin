@@ -82,11 +82,12 @@ function ContactDrawerInner({
       setPriority(contact.priority || 1);
       setPostUrl(contact.post_url || '');
       setServiceNeeded(contact.service_needed || '');
-      setBusinessSegment((contact.business_segment as BusinessSegment) || detectBusinessSegment(contact.position));
+      const rawSeg = (contact.business_segment || '').trim().toUpperCase();
+      setBusinessSegment(rawSeg === 'B2B' ? 'B2B' : rawSeg === 'B2C' ? 'B2C' : detectBusinessSegment(contact.position));
       setDealValue(contact.deal_value ? String(contact.deal_value) : '');
       setNextStep(contact.next_step || '');
       setNotes(contact.notes || '');
-      setFollowUpDate(contact.follow_up_date || '');
+      setFollowUpDate(contact.follow_up_date ? String(contact.follow_up_date).slice(0, 10) : '');
       setAssignedTo(contact.assigned_to || (teamMembers[0]?.name) || 'Gabino');
       setTags(contact.tags || []);
       setNewTagInput('');
@@ -497,13 +498,24 @@ function ContactDrawerInner({
                   <Globe className="w-3 h-3 text-theme-txt3" />
                   <span>País / Ubicación</span>
                 </label>
-                <input
-                  type="text"
+                <select
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
-                  placeholder="Perú"
-                  className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3 py-1.5 text-xs text-theme-txt outline-hidden"
-                />
+                  className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl px-3 py-1.5 text-xs text-theme-txt outline-hidden cursor-pointer font-medium"
+                >
+                  <option value="Perú">🇵🇪 Perú</option>
+                  <option value="Colombia">🇨🇴 Colombia</option>
+                  <option value="México">🇲🇽 México</option>
+                  <option value="Chile">🇨🇱 Chile</option>
+                  <option value="Argentina">🇦🇷 Argentina</option>
+                  <option value="España">🇪🇸 España</option>
+                  <option value="Ecuador">🇪🇨 Ecuador</option>
+                  <option value="Bolivia">🇧🇴 Bolivia</option>
+                  <option value="Estados Unidos">🇺🇸 Estados Unidos</option>
+                  <option value="Panamá">🇵🇦 Panamá</option>
+                  <option value="Costa Rica">🇨🇷 Costa Rica</option>
+                  <option value="Otro">🌎 Otro país</option>
+                </select>
               </div>
             </div>
 

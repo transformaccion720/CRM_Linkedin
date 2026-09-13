@@ -121,6 +121,14 @@ export interface MemberStats {
   opportunity: number;
   client: number;
   paused: number;
+  b2b_total?: number;
+  b2c_total?: number;
+  b2b_in_contact?: number;
+  b2b_opportunity?: number;
+  b2b_client?: number;
+  b2c_in_contact?: number;
+  b2c_opportunity?: number;
+  b2c_client?: number;
 }
 
 export interface WeeklyActivityMetrics {

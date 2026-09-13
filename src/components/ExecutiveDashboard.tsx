@@ -131,7 +131,11 @@ export default function ExecutiveDashboard({ stats }: ExecutiveDashboardProps) {
             Panel de Control Estratégico y Analítica Visual
           </h2>
           <p className="text-xs text-theme-txt2 mt-0.5">
-            Métricas diferenciadas para B2B Corporativo (Gabino), B2C Alumnos (Kiara) y vista consolidada integral
+            {segmentView === 'B2B'
+              ? 'Métricas exclusivas del Pipeline B2B Corporativo y Cuentas Clave (Gabino y equipo comercial B2B)'
+              : segmentView === 'B2C'
+              ? 'Métricas exclusivas de Admisiones, Alumnos y Cursos Abiertos (Kiara y equipo B2C)'
+              : 'Visión ejecutiva integral de TransformAcción 720° unificando B2B y B2C con análisis comparativo'}
           </p>
         </div>
 
@@ -157,7 +161,7 @@ export default function ExecutiveDashboard({ stats }: ExecutiveDashboardProps) {
             }`}
           >
             <Building2 className="w-3.5 h-3.5" />
-            <span>B2B Gabino</span>
+            <span>🏢 B2B Corporativo</span>
           </button>
           <button
             onClick={() => setSegmentView('B2C')}
@@ -168,7 +172,7 @@ export default function ExecutiveDashboard({ stats }: ExecutiveDashboardProps) {
             }`}
           >
             <Users className="w-3.5 h-3.5" />
-            <span>B2C Kiara</span>
+            <span>👤 B2C Alumnos</span>
           </button>
         </div>
       </div>
@@ -839,75 +843,111 @@ export default function ExecutiveDashboard({ stats }: ExecutiveDashboardProps) {
                 <span>Rendimiento por Líder / Miembro del Equipo</span>
               </h3>
               <p className="text-xs text-theme-txt2 mt-0.5">
-                Seguimiento de bases asignadas, enriquecimiento de datos y avance en el embudo
+                {segmentView === 'B2B'
+                  ? 'Rendimiento exclusivo del equipo en gestión comercial B2B (cuentas y empresas)'
+                  : segmentView === 'B2C'
+                  ? 'Rendimiento exclusivo del equipo en admisiones B2C (alumnos y programas abiertos)'
+                  : 'Desempeño consolidado del equipo en prospección y enriquecimiento de base'}
               </p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1">
-            {stats.byMember.map((m) => {
-              const mTotal = m.total || 0;
-              const mEmailPct = mTotal > 0 ? Math.round((m.withEmail / mTotal) * 100) : 0;
-              const mPhonePct = mTotal > 0 ? Math.round((m.withPhone / mTotal) * 100) : 0;
-              const mSuccess = mTotal > 0 ? (((m.opportunity + m.client) / mTotal) * 100).toFixed(1) : '0';
+            {stats.byMember
+              .filter((m) => {
+                if (segmentView === 'B2B') return (m.b2b_total ?? m.total) > 0;
+                if (segmentView === 'B2C') return (m.b2c_total ?? m.total) > 0;
+                return true;
+              })
+              .map((m) => {
+                const isB2B = segmentView === 'B2B';
+                const isB2C = segmentView === 'B2C';
 
-              return (
-                <div
-                  key={m.member_name}
-                  className="bg-theme-sur2/70 border border-theme-bor hover:border-theme-bor2 rounded-xl p-4 transition-all shadow-xs space-y-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-[#00a870]/15 text-[#00a870] font-bold text-xs flex items-center justify-center">
-                        {m.member_name.slice(0, 2).toUpperCase()}
+                const mTotal = isB2B ? (m.b2b_total ?? m.total) : isB2C ? (m.b2c_total ?? m.total) : m.total;
+                const mInContact = isB2B ? (m.b2b_in_contact ?? m.inContact) : isB2C ? (m.b2c_in_contact ?? m.inContact) : m.inContact;
+                const mOpportunity = isB2B ? (m.b2b_opportunity ?? m.opportunity) : isB2C ? (m.b2c_opportunity ?? m.opportunity) : m.opportunity;
+                const mClient = isB2B ? (m.b2b_client ?? m.client) : isB2C ? (m.b2c_client ?? m.client) : m.client;
+                const mSuccess = mTotal > 0 ? (((mOpportunity + mClient) / mTotal) * 100).toFixed(1) : '0';
+
+                const mEmailPct = m.total > 0 ? Math.round((m.withEmail / m.total) * 100) : 0;
+                const mPhonePct = m.total > 0 ? Math.round((m.withPhone / m.total) * 100) : 0;
+
+                return (
+                  <div
+                    key={m.member_name}
+                    className="bg-theme-sur2/70 border border-theme-bor hover:border-theme-bor2 rounded-xl p-4 transition-all shadow-xs space-y-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-8 h-8 rounded-lg font-bold text-xs flex items-center justify-center ${
+                          isB2B 
+                            ? 'bg-[#2979ff]/15 text-[#2979ff]' 
+                            : isB2C 
+                            ? 'bg-[#00a870]/15 text-[#00a870]' 
+                            : 'bg-purple-500/15 text-purple-400'
+                        }`}>
+                          {m.member_name.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-xs text-theme-txt">{m.member_name}</h4>
+                          <span className="text-[10px] text-theme-txt3 font-mono">
+                            {m.member_name.toLowerCase().includes('gabino') ? 'Director General & B2B' : m.member_name.toLowerCase().includes('kiara') ? 'Líder B2C Alumnos' : 'Comercial'}
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-bold text-xs text-theme-txt">{m.member_name}</h4>
-                        <span className="text-[10px] text-theme-txt3 font-mono">
-                          {m.member_name.toLowerCase().includes('gabino') ? 'Líder B2B Corporativo' : m.member_name.toLowerCase().includes('kiara') ? 'Líder B2C Alumnos' : 'Comercial asignado'}
+
+                      <div className="text-right">
+                        <span className={`font-mono text-xs font-extrabold px-2 py-0.5 rounded border ${
+                          isB2B
+                            ? 'bg-[#2979ff]/10 text-[#2979ff] border-[#2979ff]/20'
+                            : isB2C
+                            ? 'bg-[#00a870]/10 text-[#00a870] border-[#00a870]/20'
+                            : 'bg-theme-sur text-theme-txt border-theme-bor'
+                        }`}>
+                          {mTotal.toLocaleString()} leads {isB2B ? 'B2B' : isB2C ? 'B2C' : ''}
                         </span>
+                        {segmentView === 'all' && (
+                          <span className="text-[9px] font-mono text-theme-txt3 block mt-0.5">
+                            {m.b2b_total || 0} B2B · {m.b2c_total || 0} B2C
+                          </span>
+                        )}
                       </div>
                     </div>
 
-                    <span className="font-mono text-xs font-extrabold text-[#00a870] bg-[#00a870]/10 px-2 py-0.5 rounded border border-[#00a870]/20">
-                      {mTotal.toLocaleString()} leads
-                    </span>
-                  </div>
-
-                  {/* Funnel mini-bar for this member */}
-                  <div className="space-y-1 pt-1">
-                    <div className="flex items-center justify-between text-[10px] font-mono text-theme-txt2">
-                      <span>Progreso del Funnel:</span>
-                      <span className="text-[#ff6d3b] font-bold">{mSuccess}% avanzado</span>
-                    </div>
-                    <div className="grid grid-cols-4 gap-1 text-center text-[10px] font-mono pt-1">
-                      <div className="p-1 rounded bg-theme-sur border border-theme-bor">
-                        <span className="text-theme-txt3 block text-[8.5px]">CONTACT</span>
-                        <span className="font-bold text-[#2979ff]">{m.inContact}</span>
+                    {/* Funnel mini-bar for this member */}
+                    <div className="space-y-1 pt-1">
+                      <div className="flex items-center justify-between text-[10px] font-mono text-theme-txt2">
+                        <span>Progreso del Funnel:</span>
+                        <span className="text-[#ff6d3b] font-bold">{mSuccess}% avanzado</span>
                       </div>
-                      <div className="p-1 rounded bg-theme-sur border border-theme-bor">
-                        <span className="text-theme-txt3 block text-[8.5px]">OPORT</span>
-                        <span className="font-bold text-[#ff6d3b]">{m.opportunity}</span>
-                      </div>
-                      <div className="p-1 rounded bg-theme-sur border border-theme-bor">
-                        <span className="text-theme-txt3 block text-[8.5px]">CIERRE</span>
-                        <span className="font-bold text-[#00a870]">{m.client}</span>
-                      </div>
-                      <div className="p-1 rounded bg-theme-sur border border-theme-bor">
-                        <span className="text-theme-txt3 block text-[8.5px]">SEGUI</span>
-                        <span className="font-bold text-[#f59e0b]">{m.paused}</span>
+                      <div className="grid grid-cols-4 gap-1 text-center text-[10px] font-mono pt-1">
+                        <div className="p-1 rounded bg-theme-sur border border-theme-bor">
+                          <span className="text-theme-txt3 block text-[8.5px]">CONTACT</span>
+                          <span className="font-bold text-[#2979ff]">{mInContact}</span>
+                        </div>
+                        <div className="p-1 rounded bg-theme-sur border border-theme-bor">
+                          <span className="text-theme-txt3 block text-[8.5px]">OPORT</span>
+                          <span className="font-bold text-[#ff6d3b]">{mOpportunity}</span>
+                        </div>
+                        <div className="p-1 rounded bg-theme-sur border border-theme-bor">
+                          <span className="text-theme-txt3 block text-[8.5px]">{isB2C ? 'ALUMN' : 'GANAD'}</span>
+                          <span className="font-bold text-[#00a870]">{mClient}</span>
+                        </div>
+                        <div className="p-1 rounded bg-theme-sur border border-theme-bor">
+                          <span className="text-theme-txt3 block text-[8.5px]">SEGUI</span>
+                          <span className="font-bold text-[#f59e0b]">{m.paused}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Enriched data pills */}
-                  <div className="flex items-center justify-between text-[10.5px] font-mono text-theme-txt3 pt-2 border-t border-theme-bor">
-                    <span>📧 {m.withEmail} emails ({mEmailPct}%)</span>
-                    <span>📱 {m.withPhone} tels ({mPhonePct}%)</span>
+                    {/* Enriched data pills */}
+                    <div className="flex items-center justify-between text-[10.5px] font-mono text-theme-txt3 pt-2 border-t border-theme-bor">
+                      <span>📧 {m.withEmail} emails ({mEmailPct}%)</span>
+                      <span>📱 {m.withPhone} tels ({mPhonePct}%)</span>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
         </div>
       )}

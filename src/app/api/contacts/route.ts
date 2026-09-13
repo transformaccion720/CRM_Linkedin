@@ -205,7 +205,13 @@ export async function POST(req: NextRequest) {
         ${deal_value ? Number(deal_value) : 0},
         ${next_step || null}
       )
-      RETURNING *
+      RETURNING 
+        id, first_name, last_name, linkedin_url, email, phone, company, position, country,
+        TO_CHAR(connected_on, 'YYYY-MM-DD') as connected_on,
+        status, notes, priority, deal_value, next_step,
+        TO_CHAR(follow_up_date, 'YYYY-MM-DD') as follow_up_date,
+        tags, assigned_to, source, post_url, service_needed, business_segment,
+        created_at, updated_at;
     `;
 
     return NextResponse.json({ contact: result[0] }, { status: 201 });

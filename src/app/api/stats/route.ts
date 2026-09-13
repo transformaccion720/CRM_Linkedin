@@ -39,7 +39,7 @@ export async function GET() {
       `,
       // 2. Status breakdown (global + segmented)
       sql`SELECT COALESCE(business_segment, 'B2B') as business_segment, status, COUNT(*)::int as count FROM contacts GROUP BY business_segment, status`,
-      // 3. Member stats breakdown
+      // 3. Member stats breakdown (with B2B vs B2C segregation)
       sql`
         SELECT 
           COALESCE(assigned_to, 'Sin asignar') as member_name,
@@ -49,7 +49,15 @@ export async function GET() {
           COUNT(CASE WHEN status = 'En contacto' THEN 1 END)::int as in_contact,
           COUNT(CASE WHEN status = 'Oportunidad' THEN 1 END)::int as opportunity,
           COUNT(CASE WHEN status = 'Cliente' THEN 1 END)::int as client,
-          COUNT(CASE WHEN status IN ('Seguimiento', 'En pausa') THEN 1 END)::int as paused
+          COUNT(CASE WHEN status IN ('Seguimiento', 'En pausa') THEN 1 END)::int as paused,
+          COUNT(CASE WHEN business_segment = 'B2B' THEN 1 END)::int as b2b_total,
+          COUNT(CASE WHEN business_segment = 'B2C' THEN 1 END)::int as b2c_total,
+          COUNT(CASE WHEN business_segment = 'B2B' AND status IN ('Contactado', 'Conversación iniciada') THEN 1 END)::int as b2b_in_contact,
+          COUNT(CASE WHEN business_segment = 'B2B' AND status IN ('Discovery / reunión', 'Oportunidad calificada', 'Propuesta enviada', 'Negociación') THEN 1 END)::int as b2b_opportunity,
+          COUNT(CASE WHEN business_segment = 'B2B' AND status = 'Ganada' THEN 1 END)::int as b2b_client,
+          COUNT(CASE WHEN business_segment = 'B2C' AND status = 'En contacto' THEN 1 END)::int as b2c_in_contact,
+          COUNT(CASE WHEN business_segment = 'B2C' AND status = 'Oportunidad' THEN 1 END)::int as b2c_opportunity,
+          COUNT(CASE WHEN business_segment = 'B2C' AND status = 'Cliente' THEN 1 END)::int as b2c_client
         FROM contacts
         GROUP BY assigned_to
         ORDER BY total DESC;
@@ -148,6 +156,14 @@ export async function GET() {
       opportunity: r.opportunity,
       client: r.client,
       paused: r.paused,
+      b2b_total: r.b2b_total || 0,
+      b2c_total: r.b2c_total || 0,
+      b2b_in_contact: r.b2b_in_contact || 0,
+      b2b_opportunity: r.b2b_opportunity || 0,
+      b2b_client: r.b2b_client || 0,
+      b2c_in_contact: r.b2c_in_contact || 0,
+      b2c_opportunity: r.b2c_opportunity || 0,
+      b2c_client: r.b2c_client || 0,
     }));
 
     return NextResponse.json({
