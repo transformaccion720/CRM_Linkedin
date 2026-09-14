@@ -6,7 +6,8 @@ import {
   Users, Mail, Building2, Calendar, TrendingUp, History, RefreshCw, 
   User, Sparkles, Filter, Briefcase, Star, Search, Tag, ExternalLink, 
   ChevronRight, ArrowUpRight, Flame, BarChart3, Layers, Target, Award,
-  CheckCircle2, Globe, FileText, Phone
+  CheckCircle2, Globe, FileText, Phone, Check, Copy, AlertCircle, Clock, Zap,
+  CheckCheck, ArrowRight, ShieldCheck, HelpCircle, Eye
 } from 'lucide-react';
 
 interface AnalyticsViewProps {
@@ -15,83 +16,147 @@ interface AnalyticsViewProps {
   onSelectContact?: (contact: Contact) => void;
 }
 
-// 9 Categories for Executive Demand Radar
-const DEMAND_CATEGORIES = [
+// B2B Corporate Demand Categories
+const B2B_DEMAND_CATEGORIES = [
   {
-    id: 'liderazgo',
-    title: 'Capacitación en Liderazgo & Habilidades Directivas',
-    keywords: ['liderazgo', 'líder', 'lider', 'manager', 'jefe', 'gerencia', 'conducción', 'supervisores', 'coaching'],
+    id: 'liderazgo_directivo',
+    title: 'Capacitación en Liderazgo & Equipos Directivos',
+    keywords: ['liderazgo', 'líder', 'lider', 'manager', 'jefe', 'gerencia', 'conducción', 'supervisores', 'coaching directivo', 'management'],
     color: '#2979ff',
     badgeBg: 'bg-[#2979ff]/15',
     borderColor: 'border-[#2979ff]/30',
     icon: '👑',
+    segment: 'B2B',
   },
   {
-    id: 'habilidades_blandas',
-    title: 'Habilidades Blandas & Comunicación Asertiva',
-    keywords: ['habilidades blandas', 'comunicación', 'comunicacion', 'asertiva', 'feedback', 'inteligencia emocional', 'empatía'],
+    id: 'habilidades_blandas_corp',
+    title: 'Habilidades Blandas In-House & Comunicación Asertiva',
+    keywords: ['habilidades blandas', 'comunicación', 'comunicacion', 'asertiva', 'feedback', 'inteligencia emocional', 'empatía', 'soft skills'],
     color: '#00a870',
     badgeBg: 'bg-[#00a870]/15',
     borderColor: 'border-[#00a870]/30',
     icon: '🗣️',
+    segment: 'B2B',
   },
   {
-    id: 'clima_cultura',
-    title: 'Clima Laboral, Cultura & Engagement',
-    keywords: ['clima', 'cultura', 'clima laboral', 'engagement', 'bienestar', 'desarrollo organizacional', 'clima y cultura', 'cultura'],
+    id: 'clima_cultura_corp',
+    title: 'Clima Laboral, Cultura & Bienestar Organizacional',
+    keywords: ['clima', 'cultura', 'clima laboral', 'engagement', 'bienestar', 'desarrollo organizacional', 'clima y cultura', 'cultura corporativa'],
     color: '#ff6d3b',
     badgeBg: 'bg-[#ff6d3b]/15',
     borderColor: 'border-[#ff6d3b]/30',
     icon: '🏢',
+    segment: 'B2B',
   },
   {
-    id: 'ventas_negociacion',
-    title: 'Ventas B2B, Prospección & Negociación',
-    keywords: ['ventas', 'comercial', 'prospección', 'prospeccion', 'negociación', 'negociacion', 'b2b', 'cierre', 'pipeline'],
+    id: 'ventas_negociacion_b2b',
+    title: 'Ventas Consultivas B2B, Prospección & Negociación',
+    keywords: ['ventas', 'comercial', 'prospección', 'prospeccion', 'negociación', 'negociacion', 'b2b', 'cierre', 'kam', 'ejecutivo comercial'],
     color: '#f59e0b',
     badgeBg: 'bg-[#f59e0b]/15',
     borderColor: 'border-[#f59e0b]/30',
     icon: '💼',
+    segment: 'B2B',
   },
   {
-    id: 'talento_rrhh',
-    title: 'Gestión del Talento Humano & People',
-    keywords: ['rrhh', 'recursos humanos', 'talento', 'gestión humana', 'gestion humana', 'people', 'selección', 'atracción'],
+    id: 'talento_rrhh_consulting',
+    title: 'Gestión del Talento Humano & People Consulting',
+    keywords: ['rrhh', 'recursos humanos', 'talento', 'gestión humana', 'gestion humana', 'people', 'selección', 'headhunting'],
     color: '#a855f7',
     badgeBg: 'bg-[#a855f7]/15',
     borderColor: 'border-[#a855f7]/30',
     icon: '👥',
+    segment: 'B2B',
   },
   {
-    id: 'agilidad_scrum',
-    title: 'Agilidad, Scrum & Transformación Digital',
-    keywords: ['agilidad', 'scrum', 'agile', 'proyectos', 'tecnología', 'ti', 'transformación digital', 'kanban'],
+    id: 'agilidad_scrum_corp',
+    title: 'Agilidad Empresarial, Scrum & Transformación Digital',
+    keywords: ['agilidad', 'scrum', 'agile', 'proyectos', 'tecnología', 'ti', 'transformación digital', 'kanban', 'agilista'],
     color: '#00d2ff',
     badgeBg: 'bg-[#00d2ff]/15',
     borderColor: 'border-[#00d2ff]/30',
     icon: '⚡',
+    segment: 'B2B',
   },
   {
-    id: 'talleres_medida',
-    title: 'Talleres In-House a Medida & Facilitación',
-    keywords: ['taller', 'talleres', 'in-house', 'a medida', 'programa corporativo', 'capacitador', 'facilitador', 'capacitacion', 'capacitación'],
+    id: 'talleres_inhouse_medida',
+    title: 'Talleres In-House a Medida & Facilitación Corporativa',
+    keywords: ['taller', 'talleres', 'in-house', 'a medida', 'programa corporativo', 'capacitador', 'facilitador', 'capacitacion', 'capacitación', 'team building'],
     color: '#10b981',
     badgeBg: 'bg-[#10b981]/15',
     borderColor: 'border-[#10b981]/30',
     icon: '🛠️',
-  },
-  {
-    id: 'empleabilidad_b2c',
-    title: 'Crecimiento Profesional & Cursos Abiertos (B2C)',
-    keywords: ['empleabilidad', 'cv', 'linkedin', 'certificación', 'certificacion', 'alumno', 'curso', 'empleo', 'especialización'],
-    color: '#6366f1',
-    badgeBg: 'bg-[#6366f1]/15',
-    borderColor: 'border-[#6366f1]/30',
-    icon: '🎓',
+    segment: 'B2B',
   },
 ];
 
-// 10 B2B Stages
+// B2C Individual Demand Categories
+const B2C_DEMAND_CATEGORIES = [
+  {
+    id: 'coaching_ejecutivo_b2c',
+    title: 'Coaching Ejecutivo 1 a 1 & Mentoría de Carrera',
+    keywords: ['coaching', 'coach', 'mentoría', 'mentoria', 'sesiones 1 a 1', 'transición de carrera', 'crecimiento personal'],
+    color: '#2979ff',
+    badgeBg: 'bg-[#2979ff]/15',
+    borderColor: 'border-[#2979ff]/30',
+    icon: '🎯',
+    segment: 'B2C',
+  },
+  {
+    id: 'empleabilidad_linkedin_b2c',
+    title: 'Empleabilidad, Optimización de CV & Perfil LinkedIn',
+    keywords: ['empleabilidad', 'cv', 'linkedin', 'perfil', 'búsqueda laboral', 'entrevistas', 'recolocación', 'outplacement', 'empleo'],
+    color: '#00a870',
+    badgeBg: 'bg-[#00a870]/15',
+    borderColor: 'border-[#00a870]/30',
+    icon: '💼',
+    segment: 'B2C',
+  },
+  {
+    id: 'cursos_certificaciones_b2c',
+    title: 'Cursos Abiertos, Certificaciones & Talleres Prácticos',
+    keywords: ['curso', 'cursos', 'certificación', 'certificacion', 'diplomado', 'especialización', 'alumno', 'estudiante', 'taller abierto'],
+    color: '#a855f7',
+    badgeBg: 'bg-[#a855f7]/15',
+    borderColor: 'border-[#a855f7]/30',
+    icon: '🎓',
+    segment: 'B2C',
+  },
+  {
+    id: 'oratoria_marca_personal_b2c',
+    title: 'Oratoria, Marca Personal & Comunicación de Alto Impacto',
+    keywords: ['oratoria', 'marca personal', 'presentaciones', 'comunicación efectiva', 'hablar en público', 'pitch'],
+    color: '#ff6d3b',
+    badgeBg: 'bg-[#ff6d3b]/15',
+    borderColor: 'border-[#ff6d3b]/30',
+    icon: '🗣️',
+    segment: 'B2C',
+  },
+  {
+    id: 'liderazgo_nuevos_mandos_b2c',
+    title: 'Liderazgo para Nuevos Mandos & Primeras Jefaturas',
+    keywords: ['jefe', 'coordinador', 'analista senior', 'primera jefatura', 'ascenso', 'liderazgo personal', 'supervisión'],
+    color: '#f59e0b',
+    badgeBg: 'bg-[#f59e0b]/15',
+    borderColor: 'border-[#f59e0b]/30',
+    icon: '🚀',
+    segment: 'B2C',
+  },
+];
+
+// Keywords lists
+const B2B_POPULAR_KEYWORDS = [
+  'Liderazgo', 'Capacitación', 'Habilidades Blandas', 'Comunicación', 'Clima Laboral',
+  'Ventas B2B', 'RRHH', 'Talento Humano', 'Scrum', 'Agilidad', 'Taller In-House', 'Feedback',
+  'Negociación', 'Cultura Organizacional', 'Team Building'
+];
+
+const B2C_POPULAR_KEYWORDS = [
+  'Empleabilidad', 'CV', 'LinkedIn', 'Coaching', 'Certificación', 'Curso',
+  'Oratoria', 'Marca Personal', 'Alumno', 'Especialización', 'Entrevistas', 'Liderazgo'
+];
+
+// 10 B2B Stages Config
 const B2B_STAGES_CONFIG = [
   { name: 'Prospecto identificado', color: '#7d8fa8', label: '1. Identificado' },
   { name: 'Contactado', color: '#2979ff', label: '2. Contactado' },
@@ -105,7 +170,7 @@ const B2B_STAGES_CONFIG = [
   { name: 'Pausada', color: '#94a3b8', label: '10. Pausada' },
 ];
 
-// B2C Stages
+// B2C Stages Config
 const B2C_STAGES_CONFIG = [
   { name: 'Sin contactar', color: '#7d8fa8', label: 'Sin contactar' },
   { name: 'En contacto', color: '#2979ff', label: 'En contacto' },
@@ -116,12 +181,47 @@ const B2C_STAGES_CONFIG = [
   { name: 'Descartado', color: '#ef4444', label: 'Descartado' },
 ];
 
+// Helper: Check if contact is in ACTIVE MANAGEMENT (not cold unmanaged mass)
+export const isContactInActiveManagement = (c: Contact) => {
+  // 1. Follow up scheduled
+  if (c.follow_up_date && String(c.follow_up_date).trim()) return true;
+  // 2. Commercial notes or agreements logged
+  if (c.notes && c.notes.trim()) return true;
+  // 3. Deal value assigned
+  if (c.deal_value && Number(c.deal_value) > 0) return true;
+  // 4. Signal lead or explicit service demand
+  if (c.service_needed && c.service_needed.trim()) return true;
+  if (c.post_url && c.post_url.trim()) return true;
+  // 5. Star priority 2 or 3
+  if (c.priority && c.priority >= 2) return true;
+  // 6. Direct phone registered
+  if (c.phone && c.phone.trim()) return true;
+  // 7. Tags assigned
+  if (c.tags && c.tags.length > 0) return true;
+  // 8. Stage advanced beyond cold
+  const st = (c.status || '').trim();
+  if (st && st !== 'Sin contactar' && st !== 'Prospecto identificado') return true;
+  return false;
+};
+
 export default function AnalyticsView({ stats, contacts = [], onSelectContact }: AnalyticsViewProps) {
   const [activeSubTab, setActiveSubTab] = useState<'pipeline_dinamico' | 'radar_demanda' | 'auditoria' | 'graficas'>('pipeline_dinamico');
+  
+  // Pipeline Dinámico Filters
   const [pipelineSegment, setPipelineSegment] = useState<'B2B' | 'B2C' | 'all'>('B2B');
+  const [pipelineFocusFilter, setPipelineFocusFilter] = useState<'active_management' | 'scheduled' | 'high_priority' | 'opportunity' | 'all_universe'>('active_management');
+  const [pipelineAssigneeFilter, setPipelineAssigneeFilter] = useState<string>('all');
   const [pipelineSearch, setPipelineSearch] = useState('');
-  const [selectedKeywordFilter, setSelectedKeywordFilter] = useState<string | null>(null);
 
+  // Radar de Demanda Filters
+  const [radarSegment, setRadarSegment] = useState<'B2B' | 'B2C' | 'all'>('B2B');
+  const [selectedKeywordFilter, setSelectedKeywordFilter] = useState<string | null>(null);
+  const [radarSearchKeyword, setRadarSearchKeyword] = useState('');
+  const [radarMatchesFilter, setRadarMatchesFilter] = useState<'all' | 'high_priority' | 'with_email' | 'with_phone' | 'active_management'>('all');
+  const [radarSortBy, setRadarSortBy] = useState<'match_score' | 'priority' | 'name'>('match_score');
+  const [copiedEmailId, setCopiedEmailId] = useState<string | null>(null);
+
+  // Audit activities
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(false);
   const [activityFilter, setActivityFilter] = useState<string>('all');
@@ -147,15 +247,48 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
     }
   }, [activeSubTab]);
 
-  // Filter contacts by pipeline segment and search
+  // Handle email copy with feedback
+  const handleCopyEmail = (email: string, id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(email);
+    setCopiedEmailId(id);
+    setTimeout(() => setCopiedEmailId(null), 2000);
+  };
+
+  // =========================================================================
+  // 1. PIPELINE DINÁMICO ESTRATÉGICO ENGINE
+  // =========================================================================
   const filteredPipelineContacts = useMemo(() => {
     let list = contacts;
+
+    // 1. Filter by Segment
     if (pipelineSegment !== 'all') {
       list = list.filter((c) => {
         const seg = (c.business_segment || '').trim().toUpperCase();
         return seg === pipelineSegment;
       });
     }
+
+    // 2. Filter by Assignee
+    if (pipelineAssigneeFilter !== 'all') {
+      list = list.filter((c) => (c.assigned_to || 'Gabino') === pipelineAssigneeFilter);
+    }
+
+    // 3. Strategic Management Focus (DEFAULT: SOLO EN GESTIÓN ACTIVA)
+    if (pipelineFocusFilter === 'active_management') {
+      list = list.filter(isContactInActiveManagement);
+    } else if (pipelineFocusFilter === 'scheduled') {
+      list = list.filter((c) => !!(c.follow_up_date && c.follow_up_date.trim()));
+    } else if (pipelineFocusFilter === 'high_priority') {
+      list = list.filter((c) => (c.priority || 1) >= 2);
+    } else if (pipelineFocusFilter === 'opportunity') {
+      list = list.filter((c) => {
+        const st = (c.status || '').toLowerCase();
+        return st.includes('oportunidad') || st.includes('propuesta') || st.includes('negociación') || (Number(c.deal_value) > 0);
+      });
+    } // 'all_universe' displays the full base
+
+    // 4. Real-time Search
     if (pipelineSearch.trim()) {
       const q = pipelineSearch.toLowerCase().trim();
       list = list.filter((c) => 
@@ -163,13 +296,16 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
         (c.last_name || '').toLowerCase().includes(q) ||
         (c.company || '').toLowerCase().includes(q) ||
         (c.position || '').toLowerCase().includes(q) ||
-        (c.service_needed || '').toLowerCase().includes(q)
+        (c.service_needed || '').toLowerCase().includes(q) ||
+        (c.notes || '').toLowerCase().includes(q) ||
+        (c.tags || []).some(t => t.toLowerCase().includes(q))
       );
     }
-    return list;
-  }, [contacts, pipelineSegment, pipelineSearch]);
 
-  // Group contacts by stage for the active pipeline
+    return list;
+  }, [contacts, pipelineSegment, pipelineFocusFilter, pipelineAssigneeFilter, pipelineSearch]);
+
+  // Active Pipeline Stages Config
   const activePipelineStages = useMemo(() => {
     return pipelineSegment === 'B2B' 
       ? B2B_STAGES_CONFIG 
@@ -178,6 +314,7 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
       : [...B2B_STAGES_CONFIG, ...B2C_STAGES_CONFIG.filter(s => !B2B_STAGES_CONFIG.some(b => b.name === s.name))];
   }, [pipelineSegment]);
 
+  // Group contacts by stage
   const contactsByStage = useMemo(() => {
     const map: Record<string, Contact[]> = {};
     activePipelineStages.forEach((st) => {
@@ -194,29 +331,77 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
     return map;
   }, [filteredPipelineContacts, activePipelineStages, pipelineSegment]);
 
-  // Executive Demand & Keyword Intelligence Engine
+  // Strategic Pipeline KPIs
+  const pipelineMetrics = useMemo(() => {
+    const totalActiveManaged = filteredPipelineContacts.length;
+    const totalValueUSD = filteredPipelineContacts.reduce((acc, c) => acc + (Number(c.deal_value) || 0), 0);
+    const withFollowUp = filteredPipelineContacts.filter(c => !!(c.follow_up_date && c.follow_up_date.trim())).length;
+    
+    // Advanced stages: beyond first contact
+    const advancedStages = filteredPipelineContacts.filter(c => {
+      const st = (c.status || '').toLowerCase();
+      return (
+        st.includes('conversación') || 
+        st.includes('discovery') || 
+        st.includes('oportunidad') || 
+        st.includes('propuesta') || 
+        st.includes('negociación') || 
+        st.includes('ganada') ||
+        st.includes('seguimiento') ||
+        st.includes('cliente')
+      );
+    }).length;
+
+    const maturationRate = totalActiveManaged > 0 
+      ? Math.round((advancedStages / totalActiveManaged) * 100) 
+      : 0;
+
+    return {
+      totalActiveManaged,
+      totalValueUSD,
+      withFollowUp,
+      advancedStages,
+      maturationRate,
+    };
+  }, [filteredPipelineContacts]);
+
+  // =========================================================================
+  // 2. RADAR DE DEMANDA & MATCHING ENGINE (B2B / B2C SEGREGATED)
+  // =========================================================================
+  const activeDemandCategories = useMemo(() => {
+    if (radarSegment === 'B2B') return B2B_DEMAND_CATEGORIES;
+    if (radarSegment === 'B2C') return B2C_DEMAND_CATEGORIES;
+    return [...B2B_DEMAND_CATEGORIES, ...B2C_DEMAND_CATEGORIES];
+  }, [radarSegment]);
+
+  const activePopularKeywords = useMemo(() => {
+    if (radarSegment === 'B2B') return B2B_POPULAR_KEYWORDS;
+    if (radarSegment === 'B2C') return B2C_POPULAR_KEYWORDS;
+    return Array.from(new Set([...B2B_POPULAR_KEYWORDS, ...B2C_POPULAR_KEYWORDS]));
+  }, [radarSegment]);
+
+  // Filter contacts by radar segment
+  const radarContacts = useMemo(() => {
+    if (radarSegment === 'all') return contacts;
+    return contacts.filter(c => (c.business_segment || '').trim().toUpperCase() === radarSegment);
+  }, [contacts, radarSegment]);
+
+  // Demand intelligence calculation
   const demandAnalysis = useMemo(() => {
-    const categoryCounts: Record<string, { category: typeof DEMAND_CATEGORIES[0]; count: number; contacts: Contact[] }> = {};
-    DEMAND_CATEGORIES.forEach((cat) => {
+    const categoryCounts: Record<string, { category: typeof activeDemandCategories[0]; count: number; contacts: Contact[] }> = {};
+    activeDemandCategories.forEach((cat) => {
       categoryCounts[cat.id] = { category: cat, count: 0, contacts: [] };
     });
 
     const singleKeywordsMap: Record<string, { word: string; count: number; contacts: Contact[] }> = {};
-
-    const POPULAR_KEYWORDS = [
-      'Liderazgo', 'Capacitación', 'Habilidades Blandas', 'Comunicación', 'Clima Laboral',
-      'Ventas B2B', 'RRHH', 'Talento Humano', 'Scrum', 'Agilidad', 'Coaching', 'Cultura',
-      'Taller', 'Feedback', 'Negociación', 'Inteligencia Emocional', 'Empleabilidad'
-    ];
-
-    POPULAR_KEYWORDS.forEach((kw) => {
+    activePopularKeywords.forEach((kw) => {
       singleKeywordsMap[kw] = { word: kw, count: 0, contacts: [] };
     });
 
     let explicitNeedCount = 0;
     let totalDealPotential = 0;
 
-    for (const c of contacts) {
+    for (const c of radarContacts) {
       const textToAnalyze = [
         c.service_needed || '',
         c.notes || '',
@@ -232,8 +417,8 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
       }
 
       // Check demand categories
-      DEMAND_CATEGORIES.forEach((cat) => {
-        const matches = cat.keywords.some((kw) => textToAnalyze.includes(kw));
+      activeDemandCategories.forEach((cat) => {
+        const matches = cat.keywords.some((kw) => textToAnalyze.includes(kw.toLowerCase()));
         if (matches) {
           categoryCounts[cat.id].count++;
           categoryCounts[cat.id].contacts.push(c);
@@ -241,7 +426,7 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
       });
 
       // Check popular single keywords
-      POPULAR_KEYWORDS.forEach((kw) => {
+      activePopularKeywords.forEach((kw) => {
         if (textToAnalyze.includes(kw.toLowerCase())) {
           singleKeywordsMap[kw].count++;
           singleKeywordsMap[kw].contacts.push(c);
@@ -257,7 +442,7 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
       .filter((item) => item.count > 0)
       .sort((a, b) => b.count - a.count);
 
-    const topCategory = categoriesRanked[0]?.category.title || 'Capacitación en Liderazgo & Habilidades Directivas';
+    const topCategory = categoriesRanked[0]?.category.title || (radarSegment === 'B2C' ? 'Coaching Ejecutivo 1 a 1' : 'Capacitación en Liderazgo Directivo');
 
     return {
       categoriesRanked,
@@ -266,22 +451,95 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
       totalDealPotential,
       topCategory,
     };
-  }, [contacts]);
+  }, [radarContacts, activeDemandCategories, activePopularKeywords, radarSegment]);
 
-  // Contacts filtered by selected keyword in Radar
-  const contactsForSelectedKeyword = useMemo(() => {
-    if (!selectedKeywordFilter) return [];
-    const kwLower = selectedKeywordFilter.toLowerCase();
-    return contacts.filter((c) => {
-      const full = [
-        c.service_needed || '',
-        c.notes || '',
-        (c.tags || []).join(' '),
-        c.position || '',
-      ].join(' ').toLowerCase();
-      return full.includes(kwLower);
-    });
-  }, [contacts, selectedKeywordFilter]);
+  // Active searched or selected keyword in Radar
+  const effectiveKeyword = useMemo(() => {
+    if (radarSearchKeyword.trim()) return radarSearchKeyword.trim();
+    if (selectedKeywordFilter) return selectedKeywordFilter;
+    return demandAnalysis.keywordsRanked[0]?.word || null;
+  }, [radarSearchKeyword, selectedKeywordFilter, demandAnalysis.keywordsRanked]);
+
+  // Smart Matching & Scoring Engine for the Selected Keyword
+  const bestOptionsForKeyword = useMemo(() => {
+    if (!effectiveKeyword) return [];
+    const kwLower = effectiveKeyword.toLowerCase();
+
+    const scoredList = radarContacts.map((c) => {
+      let score = 0;
+      const matchReasons: string[] = [];
+
+      const servNeeded = (c.service_needed || '').toLowerCase();
+      const pos = (c.position || '').toLowerCase();
+      const notes = (c.notes || '').toLowerCase();
+      const tags = (c.tags || []).map(t => t.toLowerCase());
+
+      if (servNeeded.includes(kwLower)) {
+        score += 45;
+        matchReasons.push(`🎯 Necesidad: "${c.service_needed}"`);
+      }
+      if (tags.some(t => t.includes(kwLower))) {
+        score += 30;
+        matchReasons.push(`🏷️ Tag: #${tags.find(t => t.includes(kwLower))}`);
+      }
+      if (notes.includes(kwLower)) {
+        score += 25;
+        matchReasons.push(`📝 Nota comercial`);
+      }
+      if (pos.includes(kwLower)) {
+        score += 25;
+        matchReasons.push(`👔 Cargo afín`);
+      }
+
+      // Boosts
+      if (c.priority && c.priority >= 2) {
+        score += c.priority * 5;
+      }
+      if (c.email && c.email.trim()) {
+        score += 10;
+      }
+      if (c.phone && c.phone.trim()) {
+        score += 10;
+      }
+      if (isContactInActiveManagement(c)) {
+        score += 15;
+      }
+
+      // Check if matches at least one criteria
+      const fullText = [servNeeded, pos, notes, tags.join(' ')].join(' ');
+      const isMatch = fullText.includes(kwLower);
+
+      return {
+        contact: c,
+        score: Math.min(score, 100),
+        matchReasons,
+        isMatch,
+      };
+    }).filter(item => item.isMatch);
+
+    // Apply sub-filters
+    let filtered = scoredList;
+    if (radarMatchesFilter === 'high_priority') {
+      filtered = filtered.filter(item => (item.contact.priority || 1) >= 2);
+    } else if (radarMatchesFilter === 'with_email') {
+      filtered = filtered.filter(item => !!(item.contact.email && item.contact.email.trim()));
+    } else if (radarMatchesFilter === 'with_phone') {
+      filtered = filtered.filter(item => !!(item.contact.phone && item.contact.phone.trim()));
+    } else if (radarMatchesFilter === 'active_management') {
+      filtered = filtered.filter(item => isContactInActiveManagement(item.contact));
+    }
+
+    // Sort
+    if (radarSortBy === 'match_score') {
+      filtered.sort((a, b) => b.score - a.score);
+    } else if (radarSortBy === 'priority') {
+      filtered.sort((a, b) => (b.contact.priority || 1) - (a.contact.priority || 1));
+    } else if (radarSortBy === 'name') {
+      filtered.sort((a, b) => a.contact.first_name.localeCompare(b.contact.first_name));
+    }
+
+    return filtered;
+  }, [radarContacts, effectiveKeyword, radarMatchesFilter, radarSortBy]);
 
   if (!stats) return null;
 
@@ -307,20 +565,20 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
 
   return (
     <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-theme-bg">
-      {/* Sub-header navigation with 4 Core Analytics Tabs */}
+      {/* Top Header Navigation */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-theme-sur p-5 rounded-2xl border border-theme-bor shadow-xs">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-[10px] font-mono uppercase tracking-wider text-[#00a870] font-bold bg-[#00a870]/10 px-2 py-0.5 rounded flex items-center gap-1">
               <TrendingUp className="w-3.5 h-3.5 text-[#00a870]" />
-              <span>Inteligencia de Datos & Análisis de Mercado</span>
+              <span>Inteligencia de Datos & Gestión Estratégica</span>
             </span>
           </div>
           <h2 className="text-lg sm:text-xl font-extrabold text-theme-txt">
             Analítica Avanzada de Prospección & Demanda
           </h2>
           <p className="text-xs text-theme-txt2 mt-0.5">
-            Pipeline dinámico en tiempo real, radar de servicios más demandados y trazabilidad de gestiones
+            Monitoreo en tiempo real de gestiones activas, avance por fases y radar inteligente de demanda
           </p>
         </div>
 
@@ -336,6 +594,9 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
           >
             <Layers className="w-3.5 h-3.5" />
             <span>Pipeline Dinámico</span>
+            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-white/20 text-white font-bold">
+              {pipelineMetrics.totalActiveManaged}
+            </span>
           </button>
 
           {/* Sub-tab 2: Radar de Demanda & Palabras Clave */}
@@ -356,7 +617,7 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
             onClick={() => setActiveSubTab('auditoria')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
               activeSubTab === 'auditoria'
-                ? 'bg-theme-sur text-[#00a870] shadow-xs border border-theme-bor'
+                ? 'bg-theme-sur text-[#00a870] shadow-xs border border-theme-bor font-bold'
                 : 'text-theme-txt2 hover:text-theme-txt'
             }`}
           >
@@ -369,7 +630,7 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
             onClick={() => setActiveSubTab('graficas')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
               activeSubTab === 'graficas'
-                ? 'bg-theme-sur text-[#00a870] shadow-xs border border-theme-bor'
+                ? 'bg-theme-sur text-[#00a870] shadow-xs border border-theme-bor font-bold'
                 : 'text-theme-txt2 hover:text-theme-txt'
             }`}
           >
@@ -380,20 +641,114 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
       </div>
 
       {/* =========================================================================
-          TAB 1: PIPELINE DINÁMICO CARGADO CON PERSONAS Y ESTADOS
+          TAB 1: PIPELINE DINÁMICO ESTRATÉGICO (SOLO GESTIONES EN MOVIMIENTO)
           ========================================================================= */}
       {activeSubTab === 'pipeline_dinamico' && (
         <div className="space-y-4">
-          {/* Controls Bar: Segment Switcher & Fast Search */}
-          <div className="bg-theme-sur border border-theme-bor rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-theme-txt font-mono uppercase tracking-wider">
-                Ver Pipeline:
-              </span>
+          {/* Executive Strategic Pipeline KPI Ribbon */}
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            <div className="bg-theme-sur border border-theme-bor p-3.5 rounded-2xl shadow-xs space-y-1">
+              <div className="flex items-center justify-between text-theme-txt3 text-[11px] font-mono">
+                <span>GESTIONES ACTIVAS</span>
+                <Zap className="w-3.5 h-3.5 text-[#2979ff]" />
+              </div>
+              <div className="text-xl font-extrabold text-[#2979ff] font-mono">
+                {pipelineMetrics.totalActiveManaged} <span className="text-xs font-sans text-theme-txt2">leads</span>
+              </div>
+              <p className="text-[10px] text-theme-txt3 font-mono truncate">
+                {pipelineFocusFilter === 'active_management' ? 'Excluye base fría sin tocar' : 'Filtro personalizado'}
+              </p>
+            </div>
+
+            <div className="bg-theme-sur border border-theme-bor p-3.5 rounded-2xl shadow-xs space-y-1">
+              <div className="flex items-center justify-between text-theme-txt3 text-[11px] font-mono">
+                <span>EN MADURACIÓN</span>
+                <TrendingUp className="w-3.5 h-3.5 text-[#00a870]" />
+              </div>
+              <div className="text-xl font-extrabold text-[#00a870] font-mono">
+                {pipelineMetrics.advancedStages} <span className="text-xs font-sans text-theme-txt2">leads</span>
+              </div>
+              <p className="text-[10px] text-theme-txt3 font-mono truncate">
+                Superaron contacto inicial
+              </p>
+            </div>
+
+            <div className="bg-theme-sur border border-theme-bor p-3.5 rounded-2xl shadow-xs space-y-1">
+              <div className="flex items-center justify-between text-theme-txt3 text-[11px] font-mono">
+                <span>CON SEGUIMIENTO</span>
+                <Clock className="w-3.5 h-3.5 text-[#ffb300]" />
+              </div>
+              <div className="text-xl font-extrabold text-[#ffb300] font-mono">
+                {pipelineMetrics.withFollowUp} <span className="text-xs font-sans text-theme-txt2">agendados</span>
+              </div>
+              <p className="text-[10px] text-theme-txt3 font-mono truncate">
+                Fecha próxima programada
+              </p>
+            </div>
+
+            <div className="bg-theme-sur border border-theme-bor p-3.5 rounded-2xl shadow-xs space-y-1">
+              <div className="flex items-center justify-between text-theme-txt3 text-[11px] font-mono">
+                <span>VALOR EN JUEGO</span>
+                <Award className="w-3.5 h-3.5 text-[#00e5a0]" />
+              </div>
+              <div className="text-xl font-extrabold text-[#00e5a0] font-mono">
+                ${pipelineMetrics.totalValueUSD.toLocaleString()} <span className="text-xs font-sans text-theme-txt2">USD</span>
+              </div>
+              <p className="text-[10px] text-theme-txt3 font-mono truncate">
+                Oportunidades con monto
+              </p>
+            </div>
+
+            <div className="col-span-2 lg:col-span-1 bg-theme-sur border border-theme-bor p-3.5 rounded-2xl shadow-xs space-y-1">
+              <div className="flex items-center justify-between text-theme-txt3 text-[11px] font-mono">
+                <span>RATIO DE AVANCE</span>
+                <Target className="w-3.5 h-3.5 text-purple-400" />
+              </div>
+              <div className="text-xl font-extrabold text-purple-400 font-mono">
+                {pipelineMetrics.maturationRate}%
+              </div>
+              <p className="text-[10px] text-theme-txt3 font-mono truncate">
+                Conversión en cadencia
+              </p>
+            </div>
+          </div>
+
+          {/* Strategic Flow Bar (Visual Stepper) */}
+          <div className="bg-theme-sur border border-theme-bor rounded-2xl p-3.5 shadow-xs overflow-x-auto no-scrollbar">
+            <div className="flex items-center justify-between min-w-[700px] gap-2">
+              {activePipelineStages.slice(0, 6).map((st, i) => {
+                const count = (contactsByStage[st.name] || []).length;
+                const isFirst = i === 0;
+
+                return (
+                  <React.Fragment key={st.name}>
+                    {!isFirst && (
+                      <ArrowRight className="w-3.5 h-3.5 text-theme-txt3/40 shrink-0" />
+                    )}
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-theme-sur2/70 border border-theme-bor/60 shrink-0">
+                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: st.color }} />
+                      <span className="text-xs font-semibold text-theme-txt truncate max-w-[130px]">
+                        {st.label || st.name}
+                      </span>
+                      <span className="text-[11px] font-mono font-bold px-1.5 py-0.2 rounded-md bg-theme-sur text-theme-txt border border-theme-bor">
+                        {count}
+                      </span>
+                    </div>
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Controls Bar: Segment Switcher, Focus Filter & Assignee */}
+          <div className="bg-theme-sur border border-theme-bor rounded-2xl p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-3.5 shadow-xs">
+            {/* Left: Segment + Strategic Filter */}
+            <div className="flex flex-wrap items-center gap-2.5">
+              {/* Segment Toggle */}
               <div className="flex items-center bg-theme-sur2 border border-theme-bor p-1 rounded-xl">
                 <button
                   onClick={() => setPipelineSegment('B2B')}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     pipelineSegment === 'B2B'
                       ? 'bg-[#2979ff] text-white shadow-xs'
                       : 'text-theme-txt2 hover:text-theme-txt'
@@ -403,7 +758,7 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
                 </button>
                 <button
                   onClick={() => setPipelineSegment('B2C')}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     pipelineSegment === 'B2C'
                       ? 'bg-[#00a870] text-white shadow-xs'
                       : 'text-theme-txt2 hover:text-theme-txt'
@@ -413,29 +768,124 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
                 </button>
                 <button
                   onClick={() => setPipelineSegment('all')}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     pipelineSegment === 'all'
                       ? 'bg-theme-sur text-theme-txt shadow-xs border border-theme-bor'
                       : 'text-theme-txt2 hover:text-theme-txt'
                   }`}
                 >
-                  🌐 Todo
+                  🌐 Consolidado
+                </button>
+              </div>
+
+              {/* Strategic Management Filter Pills */}
+              <div className="flex items-center bg-theme-sur2 border border-theme-bor p-1 rounded-xl overflow-x-auto no-scrollbar">
+                <button
+                  onClick={() => setPipelineFocusFilter('active_management')}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                    pipelineFocusFilter === 'active_management'
+                      ? 'bg-[#ff6d3b] text-white shadow-xs'
+                      : 'text-theme-txt2 hover:text-theme-txt'
+                  }`}
+                  title="Muestra únicamente prospectos con seguimiento, notas, valor, tags o que avanzaron de fase"
+                >
+                  <Flame className="w-3 h-3" />
+                  <span>En Gestión Activa</span>
+                </button>
+
+                <button
+                  onClick={() => setPipelineFocusFilter('scheduled')}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                    pipelineFocusFilter === 'scheduled'
+                      ? 'bg-theme-sur text-[#ffb300] font-bold border border-theme-bor shadow-xs'
+                      : 'text-theme-txt2 hover:text-theme-txt'
+                  }`}
+                >
+                  <Clock className="w-3 h-3" />
+                  <span>Con Seguimiento</span>
+                </button>
+
+                <button
+                  onClick={() => setPipelineFocusFilter('high_priority')}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                    pipelineFocusFilter === 'high_priority'
+                      ? 'bg-theme-sur text-[#f59e0b] font-bold border border-theme-bor shadow-xs'
+                      : 'text-theme-txt2 hover:text-theme-txt'
+                  }`}
+                >
+                  <Star className="w-3 h-3 fill-[#f59e0b] text-[#f59e0b]" />
+                  <span>Alta Prioridad (2-3★)</span>
+                </button>
+
+                <button
+                  onClick={() => setPipelineFocusFilter('opportunity')}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                    pipelineFocusFilter === 'opportunity'
+                      ? 'bg-theme-sur text-[#00e5a0] font-bold border border-theme-bor shadow-xs'
+                      : 'text-theme-txt2 hover:text-theme-txt'
+                  }`}
+                >
+                  <Award className="w-3 h-3" />
+                  <span>Oportunidades</span>
+                </button>
+
+                <button
+                  onClick={() => setPipelineFocusFilter('all_universe')}
+                  className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-mono transition-all cursor-pointer whitespace-nowrap ${
+                    pipelineFocusFilter === 'all_universe'
+                      ? 'bg-theme-sur text-theme-txt font-bold border border-theme-bor shadow-xs'
+                      : 'text-theme-txt3 hover:text-theme-txt'
+                  }`}
+                  title="Ver toda la base de datos completa sin filtrar fríos"
+                >
+                  <Eye className="w-3 h-3" />
+                  <span>Ver Universo ({contacts.length})</span>
                 </button>
               </div>
             </div>
 
-            {/* Pipeline Search */}
-            <div className="relative min-w-[240px]">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-theme-txt3" />
-              <input
-                type="text"
-                value={pipelineSearch}
-                onChange={(e) => setPipelineSearch(e.target.value)}
-                placeholder="Buscar por prospecto, empresa o cargo..."
-                className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#2979ff] rounded-xl pl-9 pr-3 py-1.5 text-xs text-theme-txt outline-hidden"
-              />
+            {/* Right: Assignee & Search */}
+            <div className="flex items-center gap-2.5">
+              <select
+                value={pipelineAssigneeFilter}
+                onChange={(e) => setPipelineAssigneeFilter(e.target.value)}
+                className="bg-theme-sur2 border border-theme-bor focus:border-[#2979ff] rounded-xl px-3 py-1.5 text-xs text-theme-txt outline-hidden cursor-pointer"
+              >
+                <option value="all">👤 Todos los Responsables</option>
+                <option value="Gabino">Gabino</option>
+                <option value="Kiara Zavala Peralta">Kiara Zavala</option>
+              </select>
+
+              <div className="relative min-w-[220px]">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-theme-txt3" />
+                <input
+                  type="text"
+                  value={pipelineSearch}
+                  onChange={(e) => setPipelineSearch(e.target.value)}
+                  placeholder="Buscar prospecto, empresa o cargo..."
+                  className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#2979ff] rounded-xl pl-9 pr-3 py-1.5 text-xs text-theme-txt outline-hidden"
+                />
+              </div>
             </div>
           </div>
+
+          {/* Notice when viewing active management */}
+          {pipelineFocusFilter === 'active_management' && (
+            <div className="flex items-center justify-between text-xs px-4 py-2 rounded-xl bg-[#ff6d3b]/10 border border-[#ff6d3b]/20 text-theme-txt">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-[#ff6d3b]" />
+                <span>
+                  <b>Modo Estratégico Activo:</b> Mostrando únicamente los <b>{pipelineMetrics.totalActiveManaged} prospectos en gestión comercial</b> (con interacción, seguimiento, notas, o valor). Los prospectos fríos permanecen en Contactos para no saturar el análisis.
+                </span>
+              </div>
+              <button
+                onClick={() => setPipelineFocusFilter('all_universe')}
+                className="text-[11px] font-mono text-[#ff6d3b] hover:underline cursor-pointer ml-2 shrink-0"
+              >
+                Ver universo completo
+              </button>
+            </div>
+          )}
 
           {/* Horizontal Scrollable Pipeline Columns with loaded people */}
           <div className="flex gap-3.5 overflow-x-auto pb-4 pt-1 no-scrollbar">
@@ -446,14 +896,14 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
               return (
                 <div
                   key={st.name}
-                  className="w-[280px] shrink-0 bg-theme-sur border border-theme-bor rounded-2xl flex flex-col max-h-[75vh] shadow-xs"
+                  className="w-[290px] shrink-0 bg-theme-sur border border-theme-bor rounded-2xl flex flex-col max-h-[75vh] shadow-xs"
                 >
                   {/* Stage Column Header */}
-                  <div className="p-3 border-b border-theme-bor bg-theme-sur2/50 rounded-t-2xl space-y-1 shrink-0">
+                  <div className="p-3 border-b border-theme-bor bg-theme-sur2/60 rounded-t-2xl space-y-1 shrink-0">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: st.color }} />
-                        <h4 className="font-bold text-xs text-theme-txt truncate max-w-[180px]">
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: st.color }} />
+                        <h4 className="font-bold text-xs text-theme-txt truncate max-w-[170px]" title={st.name}>
                           {st.name}
                         </h4>
                       </div>
@@ -463,7 +913,11 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
                     </div>
 
                     <div className="flex items-center justify-between text-[10px] font-mono text-theme-txt3 pt-0.5">
-                      <span>{Math.round((stageContacts.length / (filteredPipelineContacts.length || 1)) * 100)}% del total</span>
+                      <span>
+                        {filteredPipelineContacts.length > 0
+                          ? Math.round((stageContacts.length / filteredPipelineContacts.length) * 100)
+                          : 0}% de gestiones
+                      </span>
                       {stageTotalVal > 0 && (
                         <span className="font-bold text-[#00e5a0]">${stageTotalVal.toLocaleString()} USD</span>
                       )}
@@ -473,20 +927,28 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
                   {/* Stage Contacts Cards List */}
                   <div className="p-2.5 space-y-2 overflow-y-auto flex-1">
                     {stageContacts.length === 0 ? (
-                      <div className="py-8 text-center text-xs text-theme-txt3 font-mono">
-                        Sin prospectos en esta etapa
+                      <div className="py-10 px-3 text-center space-y-2">
+                        <div className="w-8 h-8 rounded-full bg-theme-sur2 mx-auto flex items-center justify-center text-theme-txt3">
+                          <CheckCircle2 className="w-4 h-4 text-theme-txt3/50" />
+                        </div>
+                        <p className="text-xs text-theme-txt2 font-medium">
+                          Sin prospectos activos en esta fase
+                        </p>
+                        <p className="text-[10px] text-theme-txt3 font-mono leading-tight">
+                          Aparecerán aquí conforme avance su cadencia de prospección
+                        </p>
                       </div>
                     ) : (
                       stageContacts.map((c) => (
                         <div
                           key={c.id}
                           onClick={() => onSelectContact && onSelectContact(c)}
-                          className="p-3 bg-theme-sur2/70 hover:bg-theme-sur2 border border-theme-bor hover:border-theme-bor2 rounded-xl transition-all cursor-pointer shadow-2xs space-y-2 group"
+                          className="p-3 bg-theme-sur2/70 hover:bg-theme-sur2 border border-theme-bor hover:border-[#2979ff]/40 rounded-xl transition-all cursor-pointer shadow-2xs space-y-2 group"
                         >
-                          {/* Name & Priority */}
+                          {/* Name, Initials & Priority */}
                           <div className="flex items-start justify-between gap-1.5">
-                            <div className="flex items-center gap-2">
-                              <div className="w-7 h-7 rounded-lg bg-[#2979ff]/15 text-[#2979ff] font-bold text-xs flex items-center justify-center shrink-0">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#2979ff]/20 to-[#00a870]/20 text-[#2979ff] font-bold text-xs flex items-center justify-center shrink-0 border border-theme-bor">
                                 {c.first_name.slice(0, 1)}
                               </div>
                               <div className="min-w-0">
@@ -494,7 +956,7 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
                                   {c.first_name} {c.last_name || ''}
                                 </h5>
                                 <span className="text-[10px] text-theme-txt3 block truncate font-mono">
-                                  {c.position || 'Sin cargo'}
+                                  {c.position || 'Sin cargo especificado'}
                                 </span>
                               </div>
                             </div>
@@ -514,7 +976,7 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
                             </div>
                           </div>
 
-                          {/* Company info */}
+                          {/* Company & Country info */}
                           {c.company && (
                             <div className="flex items-center gap-1.5 text-[10.5px] text-theme-txt2 font-mono">
                               <Building2 className="w-3 h-3 text-theme-txt3 shrink-0" />
@@ -525,42 +987,62 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
                             </div>
                           )}
 
-                          {/* Service Needed or Tag */}
-                          {(c.service_needed || (c.tags && c.tags.length > 0)) && (
-                            <div className="flex items-center gap-1 flex-wrap pt-0.5">
-                              {c.service_needed ? (
-                                <span className="text-[9.5px] font-mono px-2 py-0.5 rounded bg-[#ff6d3b]/15 text-[#ff6d3b] border border-[#ff6d3b]/30 truncate max-w-full font-semibold">
-                                  🎯 {c.service_needed}
-                                </span>
-                              ) : (
-                                c.tags?.slice(0, 2).map((t) => (
+                          {/* Dynamic Action Indicators: Follow-up Date, Service Needed, Deal Value */}
+                          <div className="space-y-1 pt-0.5">
+                            {/* Follow up date badge */}
+                            {c.follow_up_date && (
+                              <div className="flex items-center gap-1 text-[10px] font-mono text-[#ffb300] bg-[#ffb300]/10 border border-[#ffb300]/25 px-2 py-0.5 rounded-md">
+                                <Clock className="w-3 h-3 shrink-0" />
+                                <span className="truncate">Seguimiento: {c.follow_up_date}</span>
+                              </div>
+                            )}
+
+                            {/* Service needed badge */}
+                            {c.service_needed && (
+                              <div className="text-[9.5px] font-mono px-2 py-0.5 rounded bg-[#ff6d3b]/15 text-[#ff6d3b] border border-[#ff6d3b]/30 truncate font-semibold">
+                                🎯 {c.service_needed}
+                              </div>
+                            )}
+
+                            {/* Notes snippet preview if exists */}
+                            {c.notes && c.notes.trim() && (
+                              <div className="text-[9.5px] text-theme-txt3 italic truncate font-sans bg-theme-sur px-2 py-0.5 rounded border border-theme-bor/60">
+                                📝 &ldquo;{c.notes.slice(0, 45)}...&rdquo;
+                              </div>
+                            )}
+
+                            {/* Tags */}
+                            {c.tags && c.tags.length > 0 && !c.service_needed && (
+                              <div className="flex items-center gap-1 flex-wrap">
+                                {c.tags.slice(0, 2).map((t) => (
                                   <span
                                     key={t}
-                                    className="text-[9.5px] font-mono px-1.5 py-0.2 rounded bg-theme-sur text-theme-txt3 border border-theme-bor truncate"
+                                    className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-theme-sur text-theme-txt3 border border-theme-bor truncate"
                                   >
                                     #{t}
                                   </span>
-                                ))
-                              )}
-                            </div>
-                          )}
+                                ))}
+                              </div>
+                            )}
+                          </div>
 
-                          {/* Footer: Assigned to & Value */}
+                          {/* Footer: Assigned Member & CTA */}
                           <div className="flex items-center justify-between pt-1 border-t border-theme-bor/60 text-[10px] font-mono">
                             <span className="text-theme-txt3 flex items-center gap-1">
                               <User className="w-2.5 h-2.5" />
                               <span>{c.assigned_to || 'Gabino'}</span>
                             </span>
 
-                            {Number(c.deal_value) > 0 ? (
-                              <span className="font-bold text-[#00e5a0]">
-                                ${Number(c.deal_value).toLocaleString()}
+                            <div className="flex items-center gap-2">
+                              {Number(c.deal_value) > 0 && (
+                                <span className="font-bold text-[#00e5a0]">
+                                  ${Number(c.deal_value).toLocaleString()}
+                                </span>
+                              )}
+                              <span className="text-[#2979ff] font-semibold flex items-center gap-0.5 group-hover:underline">
+                                Ficha <ChevronRight className="w-3 h-3" />
                               </span>
-                            ) : (
-                              <span className="text-theme-txt3 hover:text-[#2979ff] flex items-center gap-0.5">
-                                Ver ficha <ChevronRight className="w-3 h-3" />
-                              </span>
-                            )}
+                            </div>
                           </div>
                         </div>
                       ))
@@ -574,24 +1056,97 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
       )}
 
       {/* =========================================================================
-          TAB 2: RADAR DE DEMANDA & PALABRAS CLAVE (EXECUTIVE DEMAND INTELLIGENCE)
+          TAB 2: RADAR DE DEMANDA & INTELIGENCIA DE PROSPECCIÓN (B2B / B2C SEGREGATED)
           ========================================================================= */}
       {activeSubTab === 'radar_demanda' && (
         <div className="space-y-6">
+          {/* Top Segment Switcher for Demand Radar */}
+          <div className="bg-theme-sur border border-theme-bor rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-theme-txt font-mono uppercase tracking-wider">
+                Segmento a Analizar:
+              </span>
+              <div className="flex items-center bg-theme-sur2 border border-theme-bor p-1 rounded-xl">
+                <button
+                  onClick={() => {
+                    setRadarSegment('B2B');
+                    setSelectedKeywordFilter(null);
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    radarSegment === 'B2B'
+                      ? 'bg-[#2979ff] text-white shadow-xs'
+                      : 'text-theme-txt2 hover:text-theme-txt'
+                  }`}
+                >
+                  <span>🏢 B2B Corporativo</span>
+                  <span className="text-[10px] font-mono opacity-80">
+                    ({contacts.filter(c => (c.business_segment || '').toUpperCase() === 'B2B').length})
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setRadarSegment('B2C');
+                    setSelectedKeywordFilter(null);
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    radarSegment === 'B2C'
+                      ? 'bg-[#00a870] text-white shadow-xs'
+                      : 'text-theme-txt2 hover:text-theme-txt'
+                  }`}
+                >
+                  <span>👤 B2C Alumnos</span>
+                  <span className="text-[10px] font-mono opacity-80">
+                    ({contacts.filter(c => (c.business_segment || '').toUpperCase() === 'B2C').length})
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setRadarSegment('all');
+                    setSelectedKeywordFilter(null);
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    radarSegment === 'all'
+                      ? 'bg-theme-sur text-theme-txt shadow-xs border border-theme-bor'
+                      : 'text-theme-txt2 hover:text-theme-txt'
+                  }`}
+                >
+                  <span>🌐 Todo el Mercado</span>
+                  <span className="text-[10px] font-mono opacity-80">
+                    ({contacts.length})
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Keyword Search Input for on-the-fly exploration */}
+            <div className="relative min-w-[280px]">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-theme-txt3" />
+              <input
+                type="text"
+                value={radarSearchKeyword}
+                onChange={(e) => setRadarSearchKeyword(e.target.value)}
+                placeholder="Escribe palabra clave (ej: minería, rrhh, coach, sgs)..."
+                className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#ff6d3b] rounded-xl pl-9 pr-3 py-1.5 text-xs text-theme-txt outline-hidden"
+              />
+            </div>
+          </div>
+
           {/* Executive KPI Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
             <div className="bg-theme-sur border border-theme-bor p-4.5 rounded-2xl shadow-xs space-y-2">
               <div className="flex items-center justify-between text-theme-txt2">
-                <span className="text-[11px] font-mono uppercase tracking-wider font-bold">Servicio Líder</span>
+                <span className="text-[11px] font-mono uppercase tracking-wider font-bold">Servicio Más Demandado</span>
                 <div className="p-2 rounded-xl bg-[#2979ff]/15 text-[#2979ff]">
                   <Flame className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-sm font-extrabold text-[#2979ff] truncate font-sans">
+              <div className="text-sm font-extrabold text-[#2979ff] truncate font-sans" title={demandAnalysis.topCategory}>
                 {demandAnalysis.topCategory}
               </div>
               <p className="text-[11px] text-theme-txt3 font-mono">
-                Mayor demanda detectada en prospección
+                Segmento: <b className="text-theme-txt">{radarSegment === 'B2B' ? 'B2B Corporativo' : radarSegment === 'B2C' ? 'B2C Alumnos' : 'Consolidado'}</b>
               </p>
             </div>
 
@@ -612,7 +1167,7 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
 
             <div className="bg-theme-sur border border-theme-bor p-4.5 rounded-2xl shadow-xs space-y-2">
               <div className="flex items-center justify-between text-theme-txt2">
-                <span className="text-[11px] font-mono uppercase tracking-wider font-bold">Pipeline en Demanda</span>
+                <span className="text-[11px] font-mono uppercase tracking-wider font-bold">Pipeline Estimado</span>
                 <div className="p-2 rounded-xl bg-[#00e5a0]/15 text-[#00e5a0]">
                   <Award className="w-4 h-4" />
                 </div>
@@ -621,7 +1176,7 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
                 ${demandAnalysis.totalDealPotential.toLocaleString()} USD
               </div>
               <p className="text-[11px] text-theme-txt3 font-mono">
-                Valor estimado acumulado en gestión
+                Monto potencial en seguimiento
               </p>
             </div>
 
@@ -636,7 +1191,7 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
                 {demandAnalysis.categoriesRanked.length} categorías
               </div>
               <p className="text-[11px] text-theme-txt3 font-mono">
-                Diversificación de oferta corporativa y B2C
+                Especialidades activas en este segmento
               </p>
             </div>
           </div>
@@ -649,66 +1204,82 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
                 <div>
                   <h3 className="font-bold text-sm text-theme-txt flex items-center gap-2">
                     <BarChart3 className="w-4 h-4 text-[#00a870]" />
-                    <span>Ranking de Servicios con Mayor Demanda en el Mercado</span>
+                    <span>
+                      Ranking de Servicios {radarSegment === 'B2B' ? 'Corporativos (B2B)' : radarSegment === 'B2C' ? 'Individuales (B2C)' : 'del Mercado'}
+                    </span>
                   </h3>
                   <p className="text-xs text-theme-txt2 mt-0.5">
-                    Extracción inteligente de necesidades, cargos, posts de LinkedIn y notas comerciales
+                    Análisis cruzado de necesidades comerciales, puestos, publicaciones de LinkedIn y etiquetas
                   </p>
                 </div>
               </div>
 
               <div className="space-y-3.5">
-                {demandAnalysis.categoriesRanked.map((item, idx) => {
-                  const pct = Math.round((item.count / (contacts.length || 1)) * 100);
+                {demandAnalysis.categoriesRanked.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-theme-txt3 font-mono">
+                    No hay categorías registradas para este filtro
+                  </div>
+                ) : (
+                  demandAnalysis.categoriesRanked.map((item, idx) => {
+                    const pct = Math.round((item.count / (radarContacts.length || 1)) * 100);
+                    const isSelected = selectedKeywordFilter?.toLowerCase() === item.category.keywords[0].toLowerCase();
 
-                  return (
-                    <div
-                      key={item.category.id}
-                      onClick={() => setSelectedKeywordFilter(item.category.keywords[0])}
-                      className="p-3.5 rounded-xl bg-theme-sur2/60 hover:bg-theme-sur2 border border-theme-bor hover:border-theme-bor2 transition-all cursor-pointer space-y-2"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <span className="text-base">{item.category.icon}</span>
-                          <div>
-                            <h4 className="font-bold text-xs text-theme-txt flex items-center gap-2">
-                              <span>{idx + 1}. {item.category.title}</span>
-                              <span className={`text-[9.5px] font-mono px-1.5 py-0.2 rounded ${item.category.badgeBg} text-theme-txt font-semibold`}>
-                                Nivel {idx === 0 ? 'Muy Alto' : idx < 3 ? 'Alto' : 'En Crecimiento'}
-                              </span>
-                            </h4>
+                    return (
+                      <div
+                        key={item.category.id}
+                        onClick={() => {
+                          setSelectedKeywordFilter(item.category.keywords[0]);
+                          setRadarSearchKeyword('');
+                        }}
+                        className={`p-3.5 rounded-xl border transition-all cursor-pointer space-y-2 ${
+                          isSelected
+                            ? 'bg-[#ff6d3b]/10 border-[#ff6d3b] shadow-xs'
+                            : 'bg-theme-sur2/60 hover:bg-theme-sur2 border-theme-bor hover:border-theme-bor2'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-base">{item.category.icon}</span>
+                            <div>
+                              <h4 className="font-bold text-xs text-theme-txt flex items-center gap-2">
+                                <span>{idx + 1}. {item.category.title}</span>
+                                <span className={`text-[9.5px] font-mono px-1.5 py-0.2 rounded ${item.category.badgeBg} text-theme-txt font-semibold`}>
+                                  {idx === 0 ? 'Demanda Muy Alta' : idx < 3 ? 'Demanda Alta' : 'En Crecimiento'}
+                                </span>
+                              </h4>
+                            </div>
+                          </div>
+
+                          <div className="text-right font-mono">
+                            <span className="font-bold text-xs text-theme-txt">{item.count} prospectos</span>
+                            <span className="text-[10px] text-theme-txt3 block">{pct}% del segmento</span>
                           </div>
                         </div>
 
-                        <div className="text-right font-mono">
-                          <span className="font-bold text-xs text-theme-txt">{item.count} leads</span>
-                          <span className="text-[10px] text-theme-txt3 block">{pct}% de la base</span>
+                        {/* Progress bar */}
+                        <div className="w-full h-2 bg-theme-sur rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-700"
+                            style={{
+                              width: `${Math.max(pct * 2, 6)}%`,
+                              backgroundColor: item.category.color,
+                            }}
+                          />
+                        </div>
+
+                        {/* Sample companies & CTA */}
+                        <div className="flex items-center justify-between text-[10px] font-mono text-theme-txt3 pt-0.5">
+                          <span className="truncate max-w-[320px]">
+                            Muestra: {item.contacts.slice(0, 3).map(c => c.company || c.first_name).join(', ')}
+                          </span>
+                          <span className="text-[#2979ff] font-semibold flex items-center gap-0.5">
+                            Explorar prospectos ideales →
+                          </span>
                         </div>
                       </div>
-
-                      {/* Progress bar */}
-                      <div className="w-full h-2 bg-theme-sur rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-700"
-                          style={{
-                            width: `${Math.max(pct * 2, 4)}%`,
-                            backgroundColor: item.category.color,
-                          }}
-                        />
-                      </div>
-
-                      {/* Sample companies */}
-                      <div className="flex items-center justify-between text-[10px] font-mono text-theme-txt3 pt-0.5">
-                        <span className="truncate max-w-[300px]">
-                          Empresas: {item.contacts.slice(0, 3).map(c => c.company || c.first_name).join(', ')}
-                        </span>
-                        <span className="text-[#2979ff] font-semibold hover:underline flex items-center gap-0.5">
-                          Filtrar prospectos →
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
             </div>
 
@@ -717,23 +1288,24 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
               <div>
                 <h3 className="font-bold text-sm text-theme-txt flex items-center gap-2">
                   <Tag className="w-4 h-4 text-[#ff6d3b]" />
-                  <span>Nube de Palabras Clave</span>
+                  <span>Palabras Clave de Mayor Impacto</span>
                 </h3>
                 <p className="text-xs text-theme-txt2 mt-0.5">
-                  Haz clic en cualquier palabra para ver los prospectos asociados
+                  Haz clic para ubicar inmediatamente a los mejores candidatos
                 </p>
               </div>
 
               {/* Tag Cloud Pills */}
               <div className="flex flex-wrap gap-2 pt-1">
                 {demandAnalysis.keywordsRanked.map((kw) => {
-                  const isSelected = selectedKeywordFilter?.toLowerCase() === kw.word.toLowerCase();
+                  const isSelected = effectiveKeyword?.toLowerCase() === kw.word.toLowerCase();
 
                   return (
                     <button
                       key={kw.word}
                       onClick={() => {
                         setSelectedKeywordFilter(isSelected ? null : kw.word);
+                        setRadarSearchKeyword('');
                       }}
                       className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-all cursor-pointer flex items-center gap-1.5 border ${
                         isSelected
@@ -752,84 +1324,242 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
                 })}
               </div>
 
-              {/* Strategic Advice Card for Directors */}
+              {/* Strategic Advice Card for Decision Makers */}
               <div className="p-3.5 bg-[#00a870]/10 border border-[#00a870]/30 rounded-xl space-y-1.5 text-xs">
                 <div className="flex items-center gap-1.5 font-bold text-[#00a870]">
                   <Sparkles className="w-4 h-4" />
-                  <span>Recomendación para Gabino y Kiara</span>
+                  <span>Recomendación Comercial TransformAcción</span>
                 </div>
                 <p className="text-theme-txt2 text-[11px] leading-relaxed">
-                  Las solicitudes de <b>Liderazgo</b> y <b>Habilidades Blandas</b> concentran el mayor interés corporativo. Se sugiere priorizar en los mensajes de LinkedIn los brochures de <i>Liderazgo TransformAcción</i> y <i>Talleres In-House</i> para acelerar conversiones.
+                  {radarSegment === 'B2B' ? (
+                    <>
+                      Los decisores de <b>Liderazgo Directivo</b> y <b>Habilidades Blandas In-House</b> son los que presentan mayor tracción en empresas medianas y grandes. Prioriza compartir el brochure de programas in-house en el primer contacto.
+                    </>
+                  ) : (
+                    <>
+                      En el segmento individual, la mayor demanda se concentra en <b>Empleabilidad / LinkedIn</b> y <b>Coaching Ejecutivo</b>. Ofrecer sesiones de diagnóstico gratuito acelera la tasa de conversión a alumno.
+                    </>
+                  )}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Drill-down: Leads matching selected keyword */}
-          {selectedKeywordFilter && (
-            <div className="bg-theme-sur border border-theme-bor rounded-2xl p-5 shadow-xs space-y-3.5 animate-in fade-in duration-200">
-              <div className="flex items-center justify-between border-b border-theme-bor pb-3">
-                <div className="flex items-center gap-2">
-                  <span className="p-1.5 rounded-lg bg-[#ff6d3b]/15 text-[#ff6d3b]">
-                    <Search className="w-4 h-4" />
-                  </span>
+          {/* =========================================================================
+              DRILL-DOWN: LAS MEJORES OPCIONES & PROSPECTOS PARA ESTA PALABRA CLAVE
+              ========================================================================= */}
+          {effectiveKeyword && (
+            <div className="bg-theme-sur border border-theme-bor rounded-2xl p-5 shadow-xs space-y-4 animate-in fade-in duration-200">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-theme-bor pb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-[#ff6d3b]/15 text-[#ff6d3b]">
+                    <Target className="w-5 h-5" />
+                  </div>
                   <div>
-                    <h3 className="font-bold text-sm text-theme-txt">
-                      Prospectos interesados en: <span className="text-[#ff6d3b]">#{selectedKeywordFilter}</span>
+                    <h3 className="font-extrabold text-sm sm:text-base text-theme-txt flex items-center gap-2">
+                      <span>Mejores Opciones para:</span>
+                      <span className="text-[#ff6d3b]">#{effectiveKeyword}</span>
+                      <span className="text-xs font-mono font-normal px-2 py-0.5 rounded-full bg-theme-sur2 text-theme-txt border border-theme-bor">
+                        {bestOptionsForKeyword.length} prospectos idóneos
+                      </span>
                     </h3>
-                    <span className="text-xs text-theme-txt2">
-                      {contactsForSelectedKeyword.length} prospectos coinciden con esta necesidad o criterio
-                    </span>
+                    <p className="text-xs text-theme-txt2 mt-0.5">
+                      Ranking por idoneidad, necesidad declarada, cargo estratégico y nivel de prioridad
+                    </p>
                   </div>
                 </div>
 
-                <button
-                  onClick={() => setSelectedKeywordFilter(null)}
-                  className="text-xs font-mono text-theme-txt3 hover:text-theme-txt underline cursor-pointer"
-                >
-                  Limpiar filtro
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {contactsForSelectedKeyword.slice(0, 12).map((c) => (
-                  <div
-                    key={c.id}
-                    onClick={() => onSelectContact && onSelectContact(c)}
-                    className="p-3.5 bg-theme-sur2/70 hover:bg-theme-sur2 border border-theme-bor hover:border-theme-bor2 rounded-xl transition-all cursor-pointer space-y-2 group shadow-2xs"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="font-bold text-xs text-theme-txt group-hover:text-[#2979ff] transition-colors">
-                          {c.first_name} {c.last_name || ''}
-                        </h4>
-                        <span className="text-[10px] text-theme-txt3 font-mono block truncate max-w-[200px]">
-                          {c.position || 'Sin cargo especificado'}
-                        </span>
-                      </div>
-                      <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold ${
-                        c.business_segment === 'B2B' ? 'bg-[#2979ff]/15 text-[#2979ff]' : 'bg-[#00a870]/15 text-[#00a870]'
-                      }`}>
-                        {c.business_segment || 'B2B'}
-                      </span>
-                    </div>
-
-                    {c.company && (
-                      <div className="flex items-center gap-1 text-[11px] text-theme-txt2 font-mono">
-                        <Building2 className="w-3 h-3 text-theme-txt3" />
-                        <span>{c.company}</span>
-                      </div>
-                    )}
-
-                    <div className="flex items-center justify-between text-[10px] font-mono pt-1 border-t border-theme-bor/60">
-                      <span className="text-theme-txt3">Estado: <b className="text-theme-txt">{c.status}</b></span>
-                      <span className="text-[#2979ff] font-semibold flex items-center gap-0.5">
-                        Abrir <ChevronRight className="w-3 h-3" />
-                      </span>
-                    </div>
+                {/* Sub-filters within keyword results */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center bg-theme-sur2 border border-theme-bor p-0.5 rounded-xl text-xs">
+                    <button
+                      onClick={() => setRadarMatchesFilter('all')}
+                      className={`px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
+                        radarMatchesFilter === 'all'
+                          ? 'bg-theme-sur text-theme-txt shadow-xs font-bold'
+                          : 'text-theme-txt2 hover:text-theme-txt'
+                      }`}
+                    >
+                      Todos ({bestOptionsForKeyword.length})
+                    </button>
+                    <button
+                      onClick={() => setRadarMatchesFilter('high_priority')}
+                      className={`px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
+                        radarMatchesFilter === 'high_priority'
+                          ? 'bg-[#f59e0b] text-white shadow-xs font-bold'
+                          : 'text-theme-txt2 hover:text-theme-txt'
+                      }`}
+                    >
+                      ⭐ 2-3 Estrellas
+                    </button>
+                    <button
+                      onClick={() => setRadarMatchesFilter('with_email')}
+                      className={`px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
+                        radarMatchesFilter === 'with_email'
+                          ? 'bg-[#2979ff] text-white shadow-xs font-bold'
+                          : 'text-theme-txt2 hover:text-theme-txt'
+                      }`}
+                    >
+                      📧 Con Email
+                    </button>
+                    <button
+                      onClick={() => setRadarMatchesFilter('active_management')}
+                      className={`px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
+                        radarMatchesFilter === 'active_management'
+                          ? 'bg-[#00a870] text-white shadow-xs font-bold'
+                          : 'text-theme-txt2 hover:text-theme-txt'
+                      }`}
+                    >
+                      🔥 En Gestión
+                    </button>
                   </div>
-                ))}
+
+                  {/* Sorter */}
+                  <select
+                    value={radarSortBy}
+                    onChange={(e) => setRadarSortBy(e.target.value as any)}
+                    className="bg-theme-sur2 border border-theme-bor rounded-xl px-2.5 py-1 text-xs text-theme-txt outline-hidden cursor-pointer"
+                  >
+                    <option value="match_score">🎯 Mejor Match (Scoring)</option>
+                    <option value="priority">⭐ Mayor Prioridad</option>
+                    <option value="name">Abc Nombre A-Z</option>
+                  </select>
+                </div>
               </div>
+
+              {/* Grid of Matched Prospects */}
+              {bestOptionsForKeyword.length === 0 ? (
+                <div className="py-12 text-center space-y-2">
+                  <div className="w-10 h-10 rounded-full bg-theme-sur2 mx-auto flex items-center justify-center text-theme-txt3">
+                    <Search className="w-5 h-5 text-theme-txt3/60" />
+                  </div>
+                  <p className="text-sm font-semibold text-theme-txt">
+                    No se encontraron prospectos para los filtros seleccionados
+                  </p>
+                  <p className="text-xs text-theme-txt3 font-mono">
+                    Prueba cambiando de palabra clave o seleccionando &ldquo;Todos&rdquo; en el filtro
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                  {bestOptionsForKeyword.slice(0, 18).map(({ contact: c, score, matchReasons }) => {
+                    const isTopMatch = score >= 70;
+                    const isCopied = copiedEmailId === c.id;
+
+                    return (
+                      <div
+                        key={c.id}
+                        onClick={() => onSelectContact && onSelectContact(c)}
+                        className="p-4 bg-theme-sur2/70 hover:bg-theme-sur2 border border-theme-bor hover:border-[#2979ff]/40 rounded-xl transition-all cursor-pointer space-y-2.5 group shadow-2xs"
+                      >
+                        {/* Header: Match Score + Segment + Stars */}
+                        <div className="flex items-center justify-between gap-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold border ${
+                              isTopMatch
+                                ? 'bg-[#00a870]/15 text-[#00a870] border-[#00a870]/30'
+                                : 'bg-[#2979ff]/15 text-[#2979ff] border-[#2979ff]/30'
+                            }`}>
+                              {score}% Match {isTopMatch ? '💎' : '⭐'}
+                            </span>
+                            <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold ${
+                              c.business_segment === 'B2B' ? 'bg-[#2979ff]/10 text-[#2979ff]' : 'bg-[#00a870]/10 text-[#00a870]'
+                            }`}>
+                              {c.business_segment || 'B2B'}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center shrink-0">
+                            {[1, 2, 3].map((star) => (
+                              <Star
+                                key={star}
+                                className={`w-3 h-3 ${
+                                  (c.priority || 1) >= star
+                                    ? 'text-[#f59e0b] fill-[#f59e0b]'
+                                    : 'text-theme-txt3/30'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Name & Position */}
+                        <div>
+                          <h4 className="font-bold text-xs text-theme-txt group-hover:text-[#2979ff] transition-colors truncate">
+                            {c.first_name} {c.last_name || ''}
+                          </h4>
+                          <span className="text-[10px] text-theme-txt3 font-mono block truncate">
+                            {c.position || 'Sin cargo especificado'}
+                          </span>
+                        </div>
+
+                        {/* Company & Country */}
+                        {c.company && (
+                          <div className="flex items-center gap-1.5 text-[11px] text-theme-txt2 font-mono">
+                            <Building2 className="w-3 h-3 text-theme-txt3 shrink-0" />
+                            <span className="truncate">{c.company}</span>
+                            {c.country && (
+                              <span className="text-theme-txt3 text-[9.5px] ml-auto">({c.country})</span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Match Reason Badges */}
+                        {matchReasons.length > 0 && (
+                          <div className="flex flex-wrap gap-1 pt-0.5">
+                            {matchReasons.slice(0, 2).map((r, idx) => (
+                              <span
+                                key={idx}
+                                className="text-[9.5px] font-mono px-1.5 py-0.5 rounded bg-theme-sur text-theme-txt border border-theme-bor truncate max-w-full font-medium"
+                              >
+                                {r}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Action Footer: Email, LinkedIn, Ficha */}
+                        <div className="flex items-center justify-between pt-2 border-t border-theme-bor/60 text-[10px] font-mono">
+                          <div className="flex items-center gap-1.5">
+                            {c.email ? (
+                              <button
+                                onClick={(e) => handleCopyEmail(c.email!, c.id, e)}
+                                className="flex items-center gap-1 text-theme-txt3 hover:text-[#2979ff] p-1 rounded hover:bg-theme-sur transition-colors cursor-pointer"
+                                title="Copiar correo"
+                              >
+                                {isCopied ? (
+                                  <Check className="w-3 h-3 text-[#00a870]" />
+                                ) : (
+                                  <Mail className="w-3 h-3" />
+                                )}
+                                <span className="text-[9px]">{isCopied ? '¡Copiado!' : 'Email'}</span>
+                              </button>
+                            ) : null}
+
+                            {c.linkedin_url ? (
+                              <a
+                                href={c.linkedin_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="flex items-center gap-0.5 text-theme-txt3 hover:text-[#2979ff] p-1 rounded hover:bg-theme-sur transition-colors"
+                                title="Abrir perfil de LinkedIn"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                                <span className="text-[9px]">LinkedIn</span>
+                              </a>
+                            ) : null}
+                          </div>
+
+                          <span className="text-[#2979ff] font-semibold flex items-center gap-0.5 group-hover:underline">
+                            Ver ficha <ChevronRight className="w-3 h-3" />
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>
