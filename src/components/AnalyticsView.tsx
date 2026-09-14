@@ -7,7 +7,7 @@ import {
   User, Sparkles, Filter, Briefcase, Star, Search, Tag, ExternalLink, 
   ChevronRight, ArrowUpRight, Flame, BarChart3, Layers, Target, Award,
   CheckCircle2, Globe, FileText, Phone, Check, Copy, AlertCircle, Clock, Zap,
-  CheckCheck, ArrowRight, ShieldCheck, HelpCircle, Eye
+  CheckCheck, ArrowRight, ShieldCheck, HelpCircle, Eye, RefreshCcw
 } from 'lucide-react';
 
 interface AnalyticsViewProps {
@@ -16,7 +16,7 @@ interface AnalyticsViewProps {
   onSelectContact?: (contact: Contact) => void;
 }
 
-// B2B Corporate Demand Categories
+// B2B Corporate Demand Categories (Aligned with TransformAcción 720° Portfolio)
 const B2B_DEMAND_CATEGORIES = [
   {
     id: 'liderazgo_directivo',
@@ -29,19 +29,19 @@ const B2B_DEMAND_CATEGORIES = [
     segment: 'B2B',
   },
   {
-    id: 'habilidades_blandas_corp',
-    title: 'Habilidades Blandas In-House & Comunicación Asertiva',
-    keywords: ['habilidades blandas', 'comunicación', 'comunicacion', 'asertiva', 'feedback', 'inteligencia emocional', 'empatía', 'soft skills'],
-    color: '#00a870',
-    badgeBg: 'bg-[#00a870]/15',
-    borderColor: 'border-[#00a870]/30',
-    icon: '🗣️',
+    id: 'gestion_cambio_transformacion',
+    title: 'Gestión del Cambio & Transformación Organizacional',
+    keywords: ['gestión del cambio', 'gestion del cambio', 'change management', 'transformación', 'transformacion', 'cambio organizacional', 'adopción del cambio', 'transformación cultural', 'transformacion cultural'],
+    color: '#00d2ff',
+    badgeBg: 'bg-[#00d2ff]/15',
+    borderColor: 'border-[#00d2ff]/30',
+    icon: '🔄',
     segment: 'B2B',
   },
   {
-    id: 'clima_cultura_corp',
-    title: 'Clima Laboral, Cultura & Bienestar Organizacional',
-    keywords: ['clima', 'cultura', 'clima laboral', 'engagement', 'bienestar', 'desarrollo organizacional', 'clima y cultura', 'cultura corporativa'],
+    id: 'cultura_desarrollo_organizacional',
+    title: 'Cultura, Clima & Desarrollo Organizacional (D.O.)',
+    keywords: ['cultura y talento', 'desarrollo organizacional', 'cultura organizacional', 'clima laboral', 'clima', 'cultura', 'engagement', 'bienestar', 'desarrollo del talento'],
     color: '#ff6d3b',
     badgeBg: 'bg-[#ff6d3b]/15',
     borderColor: 'border-[#ff6d3b]/30',
@@ -49,19 +49,19 @@ const B2B_DEMAND_CATEGORIES = [
     segment: 'B2B',
   },
   {
-    id: 'ventas_negociacion_b2b',
-    title: 'Ventas Consultivas B2B, Prospección & Negociación',
-    keywords: ['ventas', 'comercial', 'prospección', 'prospeccion', 'negociación', 'negociacion', 'b2b', 'cierre', 'kam', 'ejecutivo comercial'],
-    color: '#f59e0b',
-    badgeBg: 'bg-[#f59e0b]/15',
-    borderColor: 'border-[#f59e0b]/30',
-    icon: '💼',
+    id: 'habilidades_blandas_corp',
+    title: 'Habilidades Blandas In-House & Comunicación Asertiva',
+    keywords: ['habilidades blandas', 'comunicación', 'comunicacion', 'asertiva', 'feedback', 'inteligencia emocional', 'empatía', 'soft skills', 'comunicación asertiva'],
+    color: '#00a870',
+    badgeBg: 'bg-[#00a870]/15',
+    borderColor: 'border-[#00a870]/30',
+    icon: '🗣️',
     segment: 'B2B',
   },
   {
     id: 'talento_rrhh_consulting',
     title: 'Gestión del Talento Humano & People Consulting',
-    keywords: ['rrhh', 'recursos humanos', 'talento', 'gestión humana', 'gestion humana', 'people', 'selección', 'headhunting'],
+    keywords: ['rrhh', 'recursos humanos', 'talento', 'gestión humana', 'gestion humana', 'people', 'selección', 'headhunting', 'gestión del talento'],
     color: '#a855f7',
     badgeBg: 'bg-[#a855f7]/15',
     borderColor: 'border-[#a855f7]/30',
@@ -70,11 +70,11 @@ const B2B_DEMAND_CATEGORIES = [
   },
   {
     id: 'agilidad_scrum_corp',
-    title: 'Agilidad Empresarial, Scrum & Transformación Digital',
-    keywords: ['agilidad', 'scrum', 'agile', 'proyectos', 'tecnología', 'ti', 'transformación digital', 'kanban', 'agilista'],
-    color: '#00d2ff',
-    badgeBg: 'bg-[#00d2ff]/15',
-    borderColor: 'border-[#00d2ff]/30',
+    title: 'Agilidad Empresarial, Scrum & Procesos Ágiles',
+    keywords: ['agilidad', 'scrum', 'agile', 'proyectos', 'tecnología', 'ti', 'transformación digital', 'kanban', 'agilista', 'agilidad empresarial'],
+    color: '#38bdf8',
+    badgeBg: 'bg-[#38bdf8]/15',
+    borderColor: 'border-[#38bdf8]/30',
     icon: '⚡',
     segment: 'B2B',
   },
@@ -86,6 +86,16 @@ const B2B_DEMAND_CATEGORIES = [
     badgeBg: 'bg-[#10b981]/15',
     borderColor: 'border-[#10b981]/30',
     icon: '🛠️',
+    segment: 'B2B',
+  },
+  {
+    id: 'ventas_negociacion_b2b',
+    title: 'Ventas Consultivas B2B, Prospección & Negociación',
+    keywords: ['ventas', 'comercial', 'prospección', 'prospeccion', 'negociación', 'negociacion', 'b2b', 'cierre', 'kam', 'ejecutivo comercial'],
+    color: '#f59e0b',
+    badgeBg: 'bg-[#f59e0b]/15',
+    borderColor: 'border-[#f59e0b]/30',
+    icon: '💼',
     segment: 'B2B',
   },
 ];
@@ -144,16 +154,38 @@ const B2C_DEMAND_CATEGORIES = [
   },
 ];
 
-// Keywords lists
+// Keywords lists aligned with TransformAcción 720°
 const B2B_POPULAR_KEYWORDS = [
-  'Liderazgo', 'Capacitación', 'Habilidades Blandas', 'Comunicación', 'Clima Laboral',
-  'Ventas B2B', 'RRHH', 'Talento Humano', 'Scrum', 'Agilidad', 'Taller In-House', 'Feedback',
-  'Negociación', 'Cultura Organizacional', 'Team Building'
+  'Gestión del Cambio',
+  'Desarrollo Organizacional',
+  'Cultura y Talento',
+  'Liderazgo',
+  'Habilidades Blandas',
+  'Capacitación',
+  'Clima Laboral',
+  'Talento Humano',
+  'Agilidad',
+  'Comunicación',
+  'Talleres In-House',
+  'Ventas B2B',
+  'RRHH',
+  'Feedback',
+  'Team Building'
 ];
 
 const B2C_POPULAR_KEYWORDS = [
-  'Empleabilidad', 'CV', 'LinkedIn', 'Coaching', 'Certificación', 'Curso',
-  'Oratoria', 'Marca Personal', 'Alumno', 'Especialización', 'Entrevistas', 'Liderazgo'
+  'Empleabilidad',
+  'CV',
+  'LinkedIn',
+  'Coaching',
+  'Certificación',
+  'Curso',
+  'Oratoria',
+  'Marca Personal',
+  'Alumno',
+  'Especialización',
+  'Entrevistas',
+  'Liderazgo'
 ];
 
 // 10 B2B Stages Config
@@ -215,6 +247,7 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
 
   // Radar de Demanda Filters
   const [radarSegment, setRadarSegment] = useState<'B2B' | 'B2C' | 'all'>('B2B');
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
   const [selectedKeywordFilter, setSelectedKeywordFilter] = useState<string | null>(null);
   const [radarSearchKeyword, setRadarSearchKeyword] = useState('');
   const [radarMatchesFilter, setRadarMatchesFilter] = useState<'all' | 'high_priority' | 'with_email' | 'with_phone' | 'active_management'>('all');
@@ -453,17 +486,38 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
     };
   }, [radarContacts, activeDemandCategories, activePopularKeywords, radarSegment]);
 
-  // Active searched or selected keyword in Radar
-  const effectiveKeyword = useMemo(() => {
-    if (radarSearchKeyword.trim()) return radarSearchKeyword.trim();
-    if (selectedKeywordFilter) return selectedKeywordFilter;
-    return demandAnalysis.keywordsRanked[0]?.word || null;
-  }, [radarSearchKeyword, selectedKeywordFilter, demandAnalysis.keywordsRanked]);
-
-  // Smart Matching & Scoring Engine for the Selected Keyword
+  // Smart Matching & Scoring Engine: Supports Category Full Universe, Single Keyword, or Search String
   const bestOptionsForKeyword = useMemo(() => {
-    if (!effectiveKeyword) return [];
-    const kwLower = effectiveKeyword.toLowerCase();
+    let targetKeywords: string[] = [];
+    let displayTitle = '';
+    let isCategory = false;
+
+    if (radarSearchKeyword.trim()) {
+      targetKeywords = [radarSearchKeyword.trim().toLowerCase()];
+      displayTitle = `Búsqueda: "${radarSearchKeyword.trim()}"`;
+    } else if (selectedKeywordFilter) {
+      targetKeywords = [selectedKeywordFilter.toLowerCase()];
+      displayTitle = `#${selectedKeywordFilter}`;
+    } else if (selectedCategoryFilter) {
+      const cat = activeDemandCategories.find(c => c.id === selectedCategoryFilter);
+      if (cat) {
+        targetKeywords = cat.keywords.map(k => k.toLowerCase());
+        displayTitle = cat.title;
+        isCategory = true;
+      }
+    }
+
+    if (targetKeywords.length === 0) {
+      // Default to top ranked category so user always sees the top opportunities right away
+      const topCat = demandAnalysis.categoriesRanked[0]?.category;
+      if (topCat) {
+        targetKeywords = topCat.keywords.map(k => k.toLowerCase());
+        displayTitle = topCat.title;
+        isCategory = true;
+      } else {
+        return { list: [], displayTitle: '', isCategory: false };
+      }
+    }
 
     const scoredList = radarContacts.map((c) => {
       let score = 0;
@@ -473,25 +527,39 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
       const pos = (c.position || '').toLowerCase();
       const notes = (c.notes || '').toLowerCase();
       const tags = (c.tags || []).map(t => t.toLowerCase());
+      const fullText = [servNeeded, pos, notes, tags.join(' ')].join(' ');
 
-      if (servNeeded.includes(kwLower)) {
-        score += 45;
-        matchReasons.push(`🎯 Necesidad: "${c.service_needed}"`);
-      }
-      if (tags.some(t => t.includes(kwLower))) {
-        score += 30;
-        matchReasons.push(`🏷️ Tag: #${tags.find(t => t.includes(kwLower))}`);
-      }
-      if (notes.includes(kwLower)) {
-        score += 25;
-        matchReasons.push(`📝 Nota comercial`);
-      }
-      if (pos.includes(kwLower)) {
-        score += 25;
-        matchReasons.push(`👔 Cargo afín`);
+      let isMatch = false;
+
+      for (const kw of targetKeywords) {
+        if (servNeeded.includes(kw)) {
+          score += 45;
+          matchReasons.push(`🎯 Necesidad: "${c.service_needed}"`);
+          isMatch = true;
+        }
+        if (tags.some(t => t.includes(kw))) {
+          score += 30;
+          matchReasons.push(`🏷️ Tag: #${tags.find(t => t.includes(kw))}`);
+          isMatch = true;
+        }
+        if (notes.includes(kw)) {
+          score += 25;
+          matchReasons.push(`📝 Nota comercial`);
+          isMatch = true;
+        }
+        if (pos.includes(kw)) {
+          score += 25;
+          matchReasons.push(`👔 Cargo afín`);
+          isMatch = true;
+        }
+        if (fullText.includes(kw)) {
+          isMatch = true;
+        }
       }
 
-      // Boosts
+      if (!isMatch) return null;
+
+      // Strategic Boosts
       if (c.priority && c.priority >= 2) {
         score += c.priority * 5;
       }
@@ -505,17 +573,21 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
         score += 15;
       }
 
-      // Check if matches at least one criteria
-      const fullText = [servNeeded, pos, notes, tags.join(' ')].join(' ');
-      const isMatch = fullText.includes(kwLower);
+      // Fallback base score for relevant match
+      if (score === 0) {
+        score = 25;
+        matchReasons.push('🔍 Coincidencia de perfil');
+      }
+
+      const uniqueReasons = Array.from(new Set(matchReasons));
 
       return {
         contact: c,
         score: Math.min(score, 100),
-        matchReasons,
-        isMatch,
+        matchReasons: uniqueReasons,
+        isMatch: true,
       };
-    }).filter(item => item.isMatch);
+    }).filter((item): item is { contact: Contact; score: number; matchReasons: string[]; isMatch: boolean } => item !== null);
 
     // Apply sub-filters
     let filtered = scoredList;
@@ -538,8 +610,12 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
       filtered.sort((a, b) => a.contact.first_name.localeCompare(b.contact.first_name));
     }
 
-    return filtered;
-  }, [radarContacts, effectiveKeyword, radarMatchesFilter, radarSortBy]);
+    return {
+      list: filtered,
+      displayTitle,
+      isCategory,
+    };
+  }, [radarContacts, radarSearchKeyword, selectedKeywordFilter, selectedCategoryFilter, activeDemandCategories, demandAnalysis.categoriesRanked, radarMatchesFilter, radarSortBy]);
 
   if (!stats) return null;
 
@@ -1070,6 +1146,7 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
                 <button
                   onClick={() => {
                     setRadarSegment('B2B');
+                    setSelectedCategoryFilter(null);
                     setSelectedKeywordFilter(null);
                   }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
@@ -1087,6 +1164,7 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
                 <button
                   onClick={() => {
                     setRadarSegment('B2C');
+                    setSelectedCategoryFilter(null);
                     setSelectedKeywordFilter(null);
                   }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
@@ -1104,6 +1182,7 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
                 <button
                   onClick={() => {
                     setRadarSegment('all');
+                    setSelectedCategoryFilter(null);
                     setSelectedKeywordFilter(null);
                   }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
@@ -1126,8 +1205,14 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
               <input
                 type="text"
                 value={radarSearchKeyword}
-                onChange={(e) => setRadarSearchKeyword(e.target.value)}
-                placeholder="Escribe palabra clave (ej: minería, rrhh, coach, sgs)..."
+                onChange={(e) => {
+                  setRadarSearchKeyword(e.target.value);
+                  if (e.target.value) {
+                    setSelectedCategoryFilter(null);
+                    setSelectedKeywordFilter(null);
+                  }
+                }}
+                placeholder="Escribe palabra clave (ej: gestión del cambio, minería, agile)..."
                 className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#ff6d3b] rounded-xl pl-9 pr-3 py-1.5 text-xs text-theme-txt outline-hidden"
               />
             </div>
@@ -1209,7 +1294,7 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
                     </span>
                   </h3>
                   <p className="text-xs text-theme-txt2 mt-0.5">
-                    Análisis cruzado de necesidades comerciales, puestos, publicaciones de LinkedIn y etiquetas
+                    Haz clic en cualquier categoría para desplegar abajo todos los prospectos de esa línea de servicio
                   </p>
                 </div>
               </div>
@@ -1222,18 +1307,19 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
                 ) : (
                   demandAnalysis.categoriesRanked.map((item, idx) => {
                     const pct = Math.round((item.count / (radarContacts.length || 1)) * 100);
-                    const isSelected = selectedKeywordFilter?.toLowerCase() === item.category.keywords[0].toLowerCase();
+                    const isSelected = selectedCategoryFilter === item.category.id;
 
                     return (
                       <div
                         key={item.category.id}
                         onClick={() => {
-                          setSelectedKeywordFilter(item.category.keywords[0]);
+                          setSelectedCategoryFilter(item.category.id);
+                          setSelectedKeywordFilter(null);
                           setRadarSearchKeyword('');
                         }}
                         className={`p-3.5 rounded-xl border transition-all cursor-pointer space-y-2 ${
                           isSelected
-                            ? 'bg-[#ff6d3b]/10 border-[#ff6d3b] shadow-xs'
+                            ? 'bg-[#ff6d3b]/10 border-[#ff6d3b] shadow-xs ring-1 ring-[#ff6d3b]/30'
                             : 'bg-theme-sur2/60 hover:bg-theme-sur2 border-theme-bor hover:border-theme-bor2'
                         }`}
                       >
@@ -1273,7 +1359,7 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
                             Muestra: {item.contacts.slice(0, 3).map(c => c.company || c.first_name).join(', ')}
                           </span>
                           <span className="text-[#2979ff] font-semibold flex items-center gap-0.5">
-                            Explorar prospectos ideales →
+                            {isSelected ? 'Mostrando abajo los ' + item.count + ' prospectos ↓' : 'Explorar todos los ' + item.count + ' prospectos →'}
                           </span>
                         </div>
                       </div>
@@ -1288,24 +1374,29 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
               <div>
                 <h3 className="font-bold text-sm text-theme-txt flex items-center gap-2">
                   <Tag className="w-4 h-4 text-[#ff6d3b]" />
-                  <span>Palabras Clave de Mayor Impacto</span>
+                  <span>Palabras Clave Estratégicas</span>
                 </h3>
                 <p className="text-xs text-theme-txt2 mt-0.5">
-                  Haz clic para ubicar inmediatamente a los mejores candidatos
+                  Haz clic en cualquier término para filtrar a los prospectos afines
                 </p>
               </div>
 
               {/* Tag Cloud Pills */}
               <div className="flex flex-wrap gap-2 pt-1">
                 {demandAnalysis.keywordsRanked.map((kw) => {
-                  const isSelected = effectiveKeyword?.toLowerCase() === kw.word.toLowerCase();
+                  const isSelected = selectedKeywordFilter?.toLowerCase() === kw.word.toLowerCase();
 
                   return (
                     <button
                       key={kw.word}
                       onClick={() => {
-                        setSelectedKeywordFilter(isSelected ? null : kw.word);
-                        setRadarSearchKeyword('');
+                        if (isSelected) {
+                          setSelectedKeywordFilter(null);
+                        } else {
+                          setSelectedKeywordFilter(kw.word);
+                          setSelectedCategoryFilter(null);
+                          setRadarSearchKeyword('');
+                        }
                       }}
                       className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-all cursor-pointer flex items-center gap-1.5 border ${
                         isSelected
@@ -1328,12 +1419,12 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
               <div className="p-3.5 bg-[#00a870]/10 border border-[#00a870]/30 rounded-xl space-y-1.5 text-xs">
                 <div className="flex items-center gap-1.5 font-bold text-[#00a870]">
                   <Sparkles className="w-4 h-4" />
-                  <span>Recomendación Comercial TransformAcción</span>
+                  <span>Portafolio TransformAcción 720°</span>
                 </div>
                 <p className="text-theme-txt2 text-[11px] leading-relaxed">
                   {radarSegment === 'B2B' ? (
                     <>
-                      Los decisores de <b>Liderazgo Directivo</b> y <b>Habilidades Blandas In-House</b> son los que presentan mayor tracción en empresas medianas y grandes. Prioriza compartir el brochure de programas in-house en el primer contacto.
+                      Las empresas valoran la sinergia entre <b>Gestión del Cambio</b>, <b>Desarrollo Organizacional</b> y <b>Cultura & Talento</b>. Proponer diagnósticos de adopción del cambio permite abrir cuentas corporativas de alto valor.
                     </>
                   ) : (
                     <>
@@ -1346,9 +1437,9 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
           </div>
 
           {/* =========================================================================
-              DRILL-DOWN: LAS MEJORES OPCIONES & PROSPECTOS PARA ESTA PALABRA CLAVE
+              DRILL-DOWN: LAS MEJORES OPCIONES & PROSPECTOS PARA ESTA CATEGORÍA / PALABRA CLAVE
               ========================================================================= */}
-          {effectiveKeyword && (
+          {bestOptionsForKeyword.displayTitle && (
             <div className="bg-theme-sur border border-theme-bor rounded-2xl p-5 shadow-xs space-y-4 animate-in fade-in duration-200">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-theme-bor pb-4">
                 <div className="flex items-center gap-2.5">
@@ -1356,15 +1447,17 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
                     <Target className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-extrabold text-sm sm:text-base text-theme-txt flex items-center gap-2">
+                    <h3 className="font-extrabold text-sm sm:text-base text-theme-txt flex items-center gap-2 flex-wrap">
                       <span>Mejores Opciones para:</span>
-                      <span className="text-[#ff6d3b]">#{effectiveKeyword}</span>
+                      <span className="text-[#ff6d3b]">{bestOptionsForKeyword.displayTitle}</span>
                       <span className="text-xs font-mono font-normal px-2 py-0.5 rounded-full bg-theme-sur2 text-theme-txt border border-theme-bor">
-                        {bestOptionsForKeyword.length} prospectos idóneos
+                        {bestOptionsForKeyword.list.length} prospectos identificados
                       </span>
                     </h3>
                     <p className="text-xs text-theme-txt2 mt-0.5">
-                      Ranking por idoneidad, necesidad declarada, cargo estratégico y nivel de prioridad
+                      {bestOptionsForKeyword.isCategory 
+                        ? 'Mostrando el universo completo de esta línea de servicio, ordenado por idoneidad comercial'
+                        : 'Prospectos afines a esta necesidad o término específico'}
                     </p>
                   </div>
                 </div>
@@ -1380,7 +1473,7 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
                           : 'text-theme-txt2 hover:text-theme-txt'
                       }`}
                     >
-                      Todos ({bestOptionsForKeyword.length})
+                      Todos ({bestOptionsForKeyword.list.length})
                     </button>
                     <button
                       onClick={() => setRadarMatchesFilter('high_priority')}
@@ -1424,11 +1517,26 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
                     <option value="priority">⭐ Mayor Prioridad</option>
                     <option value="name">Abc Nombre A-Z</option>
                   </select>
+
+                  {(selectedCategoryFilter || selectedKeywordFilter || radarSearchKeyword) && (
+                    <button
+                      onClick={() => {
+                        setSelectedCategoryFilter(null);
+                        setSelectedKeywordFilter(null);
+                        setRadarSearchKeyword('');
+                      }}
+                      className="p-1.5 rounded-xl bg-theme-sur2 border border-theme-bor hover:text-[#ff6d3b] text-theme-txt3 transition-colors cursor-pointer text-xs flex items-center gap-1"
+                      title="Restablecer a la categoría líder"
+                    >
+                      <RefreshCcw className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Restablecer</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
               {/* Grid of Matched Prospects */}
-              {bestOptionsForKeyword.length === 0 ? (
+              {bestOptionsForKeyword.list.length === 0 ? (
                 <div className="py-12 text-center space-y-2">
                   <div className="w-10 h-10 rounded-full bg-theme-sur2 mx-auto flex items-center justify-center text-theme-txt3">
                     <Search className="w-5 h-5 text-theme-txt3/60" />
@@ -1437,12 +1545,12 @@ export default function AnalyticsView({ stats, contacts = [], onSelectContact }:
                     No se encontraron prospectos para los filtros seleccionados
                   </p>
                   <p className="text-xs text-theme-txt3 font-mono">
-                    Prueba cambiando de palabra clave o seleccionando &ldquo;Todos&rdquo; en el filtro
+                    Prueba cambiando de filtro o seleccionando &ldquo;Todos&rdquo;
                   </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                  {bestOptionsForKeyword.slice(0, 18).map(({ contact: c, score, matchReasons }) => {
+                  {bestOptionsForKeyword.list.slice(0, 24).map(({ contact: c, score, matchReasons }) => {
                     const isTopMatch = score >= 70;
                     const isCopied = copiedEmailId === c.id;
 
