@@ -5,7 +5,8 @@ import { FollowUpReminder, TeamMember, Contact, ContactStatus, BusinessSegment }
 import { 
   Calendar, Clock, AlertTriangle, CheckCircle2, UserCheck, ExternalLink, 
   Search, RefreshCw, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, CalendarDays, Star, MessageSquare, Phone, 
-  Filter, LayoutGrid, LayoutList, Flame, Users, Sparkles, Loader2, X, Building2, Briefcase, DollarSign
+  Filter, LayoutGrid, LayoutList, Flame, Users, Sparkles, Loader2, X, Building2, Briefcase, DollarSign,
+  ListOrdered, ArrowUpDown, ShieldAlert, CheckCircle, MapPin
 } from 'lucide-react';
 
 interface FollowUpsCalendarViewProps {
@@ -90,11 +91,40 @@ const BUCKET_CONFIG = {
 
 type BucketKey = keyof typeof BUCKET_CONFIG;
 
+type PipelineGroup = 'all' | 'contacted' | 'in_conversation' | 'meeting' | 'opportunity_won';
+
+type OverdueSubBucket = 'all' | 'overdue_week_plus' | 'overdue_this_week' | 'overdue_yesterday' | 'today' | 'tomorrow' | 'this_week';
+
+type TableSort = 'urgency' | 'priority' | 'date_asc' | 'date_desc' | 'deal_value';
+
 const WEEKDAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const MONTH_NAMES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ];
+
+interface FollowUpStats {
+  total: number;
+  overdue: number;
+  overdue_week_plus: number;
+  overdue_this_week: number;
+  overdue_yesterday: number;
+  today: number;
+  tomorrow: number;
+  this_week: number;
+  plus_1_day: number;
+  plus_3_days: number;
+  plus_1_week: number;
+  plus_1_month: number;
+  future: number;
+  upcoming: number;
+  b2bCount?: number;
+  b2cCount?: number;
+  contactedCount?: number;
+  inConversationCount?: number;
+  meetingCount?: number;
+  opportunityWonCount?: number;
+}
 
 export default function FollowUpsCalendarView({
   currentUser,
@@ -103,22 +133,15 @@ export default function FollowUpsCalendarView({
   onOpenTemplates,
 }: FollowUpsCalendarViewProps) {
   const [reminders, setReminders] = useState<FollowUpReminder[]>([]);
-  const [stats, setStats] = useState<{ 
-    total: number; 
-    overdue: number; 
-    today: number; 
-    plus_1_day: number;
-    plus_3_days: number;
-    plus_1_week: number;
-    plus_1_month: number;
-    future: number;
-    upcoming: number;
-    b2bCount?: number;
-    b2cCount?: number;
-  }>({
+  const [stats, setStats] = useState<FollowUpStats>({
     total: 0,
     overdue: 0,
+    overdue_week_plus: 0,
+    overdue_this_week: 0,
+    overdue_yesterday: 0,
     today: 0,
+    tomorrow: 0,
+    this_week: 0,
     plus_1_day: 0,
     plus_3_days: 0,
     plus_1_week: 0,
@@ -127,16 +150,23 @@ export default function FollowUpsCalendarView({
     upcoming: 0,
     b2bCount: 0,
     b2cCount: 0,
+    contactedCount: 0,
+    inConversationCount: 0,
+    meetingCount: 0,
+    opportunityWonCount: 0,
   });
 
   // Filters & State
   const [businessSegment, setBusinessSegment] = useState<'all' | 'B2B' | 'B2C'>('all');
   const [memberFilter, setMemberFilter] = useState<string>('');
+  const [pipelineGroup, setPipelineGroup] = useState<PipelineGroup>('all');
+  const [overdueSubFilter, setOverdueSubFilter] = useState<OverdueSubBucket>('all');
   const [activeSegment, setActiveSegment] = useState<'all' | BucketKey>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [search, setSearch] = useState<string>('');
-  const [viewLayout, setViewLayout] = useState<'calendar' | 'grouped' | 'grid'>('calendar');
+  const [viewLayout, setViewLayout] = useState<'table' | 'calendar' | 'grouped' | 'grid'>('table');
+  const [tableSort, setTableSort] = useState<TableSort>('urgency');
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState<boolean>(true);
   const [openingContactId, setOpeningContactId] = useState<string | null>(null);
@@ -151,14 +181,15 @@ export default function FollowUpsCalendarView({
       if (businessSegment !== 'all') params.set('segment', businessSegment);
       if (memberFilter && memberFilter !== 'all') params.set('member', memberFilter);
       if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter);
+      if (pipelineGroup !== 'all') params.set('pipelineGroup', pipelineGroup);
 
       const res = await fetch(`/api/follow-ups?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setReminders(data.reminders || []);
-        setStats(data.stats || { 
-          total: 0, overdue: 0, today: 0, plus_1_day: 0, plus_3_days: 0, plus_1_week: 0, plus_1_month: 0, future: 0, upcoming: 0, b2bCount: 0, b2cCount: 0 
-        });
+        if (data.stats) {
+          setStats(data.stats);
+        }
       }
     } catch (e) {
       console.error('Error fetching follow-ups:', e);
@@ -169,7 +200,7 @@ export default function FollowUpsCalendarView({
 
   useEffect(() => {
     fetchFollowUps();
-  }, [businessSegment, memberFilter, statusFilter]);
+  }, [businessSegment, memberFilter, statusFilter, pipelineGroup]);
 
   const toggleSectionCollapse = (key: string) => {
     setCollapsedSections((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -213,15 +244,124 @@ export default function FollowUpsCalendarView({
     onOpenTemplates(syntheticContact);
   };
 
-  // Filter list by Segment + Search + Priority
+  // Helper for overdue sub-bucket badge & styling
+  const getOverdueSubBadge = (subBucket?: string, daysDiff: number = 0) => {
+    if (subBucket === 'overdue_week_plus') {
+      return {
+        label: `Vencido Crítico (${Math.abs(daysDiff)}d atrás)`,
+        shortLabel: `Vencido +1 sem (${Math.abs(daysDiff)}d)`,
+        bg: 'bg-red-500/15 text-red-500 border-red-500/30',
+        dot: 'bg-red-500',
+        severity: 'critical'
+      };
+    }
+    if (subBucket === 'overdue_this_week') {
+      return {
+        label: `Vencido esta sem (${Math.abs(daysDiff)}d atrás)`,
+        shortLabel: `Vencido ${Math.abs(daysDiff)}d`,
+        bg: 'bg-[#ff6d3b]/15 text-[#ff6d3b] border-[#ff6d3b]/30',
+        dot: 'bg-[#ff6d3b]',
+        severity: 'high'
+      };
+    }
+    if (subBucket === 'overdue_yesterday') {
+      return {
+        label: `Vencido ayer (-1d)`,
+        shortLabel: `Ayer (-1d)`,
+        bg: 'bg-[#f59e0b]/15 text-[#f59e0b] border-[#f59e0b]/30',
+        dot: 'bg-[#f59e0b]',
+        severity: 'medium'
+      };
+    }
+    if (subBucket === 'today') {
+      return {
+        label: `Para Hoy (0d)`,
+        shortLabel: `Para Hoy`,
+        bg: 'bg-[#00a870]/15 text-[#00a870] border-[#00a870]/30',
+        dot: 'bg-[#00a870]',
+        severity: 'today'
+      };
+    }
+    if (subBucket === 'tomorrow') {
+      return {
+        label: `Mañana (+1d)`,
+        shortLabel: `Mañana`,
+        bg: 'bg-[#2979ff]/15 text-[#2979ff] border-[#2979ff]/30',
+        dot: 'bg-[#2979ff]',
+        severity: 'tomorrow'
+      };
+    }
+    if (subBucket === 'this_week') {
+      return {
+        label: `Esta semana (+${daysDiff}d)`,
+        shortLabel: `En ${daysDiff}d`,
+        bg: 'bg-[#a855f7]/15 text-[#a855f7] border-[#a855f7]/30',
+        dot: 'bg-[#a855f7]',
+        severity: 'week'
+      };
+    }
+    return {
+      label: `Futuro (+${daysDiff}d)`,
+      shortLabel: `+${daysDiff}d`,
+      bg: 'bg-theme-sur2 text-theme-txt3 border-theme-bor',
+      dot: 'bg-theme-txt3',
+      severity: 'future'
+    };
+  };
+
+  // Helper for pipeline stage badges
+  const getStageBadge = (status: string, isB2B: boolean) => {
+    switch (status) {
+      case 'Contactado':
+        return { label: '1. Contactado', bg: 'bg-sky-500/15 text-sky-400 border-sky-500/30' };
+      case 'Conversación iniciada':
+        return { label: '2. Conversación activa', bg: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30' };
+      case 'Discovery / reunión':
+        return { label: '3. Discovery / reunión', bg: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' };
+      case 'Oportunidad calificada':
+      case 'Propuesta enviada':
+      case 'Negociación':
+        return { label: status, bg: 'bg-amber-500/15 text-amber-400 border-amber-500/30' };
+      case 'Ganada':
+      case 'Cliente':
+        return { label: status, bg: 'bg-[#00e5a0]/15 text-[#00e5a0] border-[#00e5a0]/30' };
+      case 'En contacto':
+        return { label: '1. En contacto', bg: 'bg-sky-500/15 text-sky-400 border-sky-500/30' };
+      case 'Seguimiento':
+        return { label: '2. Seguimiento activo', bg: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30' };
+      case 'Oportunidad':
+        return { label: '3. Oportunidad', bg: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' };
+      default:
+        return { label: status, bg: 'bg-theme-sur2 text-theme-txt2 border-theme-bor' };
+    }
+  };
+
+  const formatFollowUpDate = (dateStr: string | null) => {
+    if (!dateStr) return 'Sin fecha';
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      const dayName = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'][d.getDay()];
+      const monthShort = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][d.getMonth()];
+      return `${dayName}, ${parts[2]} ${monthShort} ${parts[0]}`;
+    }
+    return dateStr;
+  };
+
+  // Filter list by Radar Overdue Sub-Bucket + Search + Priority + Time bucket
   const filteredReminders = useMemo(() => {
     return reminders.filter((r) => {
-      // 1. Time bucket filter (only for grouped/grid views)
-      if (viewLayout !== 'calendar' && activeSegment !== 'all' && r.time_bucket !== activeSegment) {
+      // 1. Radar Overdue Sub-bucket filter
+      if (overdueSubFilter !== 'all' && r.overdue_sub_bucket !== overdueSubFilter) {
         return false;
       }
 
-      // 2. Priority filter
+      // 2. Time bucket filter (only for grouped/grid views)
+      if (viewLayout !== 'calendar' && viewLayout !== 'table' && activeSegment !== 'all' && r.time_bucket !== activeSegment) {
+        return false;
+      }
+
+      // 3. Priority filter
       if (priorityFilter !== 'all') {
         if (priorityFilter === '2_3') {
           if (r.priority < 2) return false;
@@ -231,7 +371,7 @@ export default function FollowUpsCalendarView({
         }
       }
 
-      // 3. Search query
+      // 4. Search query
       if (search.trim()) {
         const q = search.toLowerCase().trim();
         const matchName = `${r.first_name} ${r.last_name || ''}`.toLowerCase().includes(q);
@@ -244,9 +384,31 @@ export default function FollowUpsCalendarView({
 
       return true;
     });
-  }, [reminders, activeSegment, priorityFilter, search, viewLayout]);
+  }, [reminders, overdueSubFilter, activeSegment, priorityFilter, search, viewLayout]);
 
-  // Group filtered reminders by time bucket
+  // Sorted list for Table View
+  const sortedTableReminders = useMemo(() => {
+    return [...filteredReminders].sort((a, b) => {
+      if (tableSort === 'urgency') {
+        return (a.days_diff ?? 999) - (b.days_diff ?? 999);
+      }
+      if (tableSort === 'priority') {
+        return (b.priority ?? 0) - (a.priority ?? 0);
+      }
+      if (tableSort === 'date_asc') {
+        return (a.follow_up_date || '').localeCompare(b.follow_up_date || '');
+      }
+      if (tableSort === 'date_desc') {
+        return (b.follow_up_date || '').localeCompare(a.follow_up_date || '');
+      }
+      if (tableSort === 'deal_value') {
+        return (b.deal_value ?? 0) - (a.deal_value ?? 0);
+      }
+      return 0;
+    });
+  }, [filteredReminders, tableSort]);
+
+  // Group filtered reminders by time bucket for Grouped view
   const groupedReminders = useMemo(() => {
     const buckets: Record<BucketKey, FollowUpReminder[]> = {
       overdue: [],
@@ -281,12 +443,11 @@ export default function FollowUpsCalendarView({
   // Calendar Grid Builder (Google Calendar style 7x6 / 7x5)
   const calendarGrid = useMemo(() => {
     const year = calendarDate.getFullYear();
-    const month = calendarDate.getMonth(); // 0-indexed
+    const month = calendarDate.getMonth();
 
     const firstDayOfMonth = new Date(year, month, 1);
     const lastDayOfMonth = new Date(year, month + 1, 0);
 
-    // Monday = 0, Sunday = 6
     let startingDayOfWeek = firstDayOfMonth.getDay() - 1;
     if (startingDayOfWeek === -1) startingDayOfWeek = 6;
 
@@ -302,7 +463,6 @@ export default function FollowUpsCalendarView({
       isToday: boolean;
     }[] = [];
 
-    // 1. Previous month trailing days
     for (let i = startingDayOfWeek - 1; i >= 0; i--) {
       const d = daysInPrevMonth - i;
       const prevDate = new Date(year, month - 1, d);
@@ -315,7 +475,6 @@ export default function FollowUpsCalendarView({
       });
     }
 
-    // 2. Current month days
     for (let d = 1; d <= daysInMonth; d++) {
       const currDate = new Date(year, month, d);
       const isoStr = currDate.toISOString().split('T')[0];
@@ -327,7 +486,6 @@ export default function FollowUpsCalendarView({
       });
     }
 
-    // 3. Next month leading days to complete 35 or 42 grid cells
     const remaining = (7 - (cells.length % 7)) % 7;
     for (let d = 1; d <= remaining; d++) {
       const nextDate = new Date(year, month + 1, d);
@@ -355,30 +513,12 @@ export default function FollowUpsCalendarView({
     setCalendarDate(new Date());
   };
 
-  const getBucketBadge = (bucket: string, dateStr: string, diff: number) => {
-    switch (bucket) {
-      case 'today':
-        return { label: `🔔 HOY (${dateStr})`, bg: 'bg-[#00a870]/20 text-[#00a870] border-[#00a870]/40' };
-      case 'overdue':
-        return { label: `⚠️ VENCIDO (${Math.abs(diff)}d atrás - ${dateStr})`, bg: 'bg-[#ff6d3b]/20 text-[#ff6d3b] border-[#ff6d3b]/40' };
-      case 'plus_1_day':
-        return { label: `⚡ Mañana (+1 día - ${dateStr})`, bg: 'bg-[#2979ff]/20 text-[#2979ff] border-[#2979ff]/40' };
-      case 'plus_3_days':
-        return { label: `📅 En ${diff} días (${dateStr})`, bg: 'bg-[#2979ff]/15 text-[#2979ff] border-[#2979ff]/30' };
-      case 'plus_1_week':
-        return { label: `🗓️ En ${diff} días (${dateStr})`, bg: 'bg-[#a855f7]/15 text-[#a855f7] border-[#a855f7]/30' };
-      case 'plus_1_month':
-        return { label: `📌 En ${diff} días (${dateStr})`, bg: 'bg-[#f59e0b]/15 text-[#f59e0b] border-[#f59e0b]/30' };
-      default:
-        return { label: `📆 Futuro (+${diff}d - ${dateStr})`, bg: 'bg-theme-sur2 text-theme-txt3 border-theme-bor' };
-    }
-  };
-
   const renderCard = (r: FollowUpReminder) => {
-    const badge = getBucketBadge(r.time_bucket, r.follow_up_date, r.days_diff);
     const isOpening = openingContactId === r.id;
     const bucketCfg = BUCKET_CONFIG[r.time_bucket in BUCKET_CONFIG ? (r.time_bucket as BucketKey) : 'future'];
     const isB2B = r.business_segment === 'B2B';
+    const overdueBadge = getOverdueSubBadge(r.overdue_sub_bucket, r.days_diff);
+    const stageBadge = getStageBadge(r.status, isB2B);
 
     return (
       <div
@@ -401,9 +541,9 @@ export default function FollowUpsCalendarView({
               </span>
 
               {/* Urgency Badge */}
-              <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border flex items-center gap-1 ${badge.bg}`}>
-                <Calendar className="w-3 h-3" />
-                <span>{badge.label}</span>
+              <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border flex items-center gap-1.5 ${overdueBadge.bg}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${overdueBadge.dot}`} />
+                <span>{overdueBadge.label}</span>
               </span>
             </div>
 
@@ -417,7 +557,7 @@ export default function FollowUpsCalendarView({
                 </span>
               )}
 
-              <span className="text-[10px] font-mono text-theme-txt3 bg-theme-sur2 px-2 py-0.5 rounded">
+              <span className="text-[10px] font-mono text-theme-txt3 bg-theme-sur2 px-2 py-0.5 rounded border border-theme-bor">
                 {r.assigned_to}
               </span>
             </div>
@@ -438,6 +578,16 @@ export default function FollowUpsCalendarView({
             <p className="text-xs text-theme-txt2 line-clamp-1 mt-0.5">
               {r.position || 'Sin cargo'} {r.company ? `• ${r.company}` : ''}
             </p>
+          </div>
+
+          {/* Pipeline Stage Banner */}
+          <div className="flex items-center justify-between text-[11px] pt-1">
+            <span className={`text-[10.5px] font-mono font-bold px-2 py-0.5 rounded border ${stageBadge.bg}`}>
+              {stageBadge.label}
+            </span>
+            <span className="text-[10.5px] font-mono text-theme-txt3">
+              {formatFollowUpDate(r.follow_up_date)}
+            </span>
           </div>
 
           {/* Next Step if present */}
@@ -463,7 +613,7 @@ export default function FollowUpsCalendarView({
         {/* Card Footer Actions */}
         <div className="pt-2.5 border-t border-theme-bor flex items-center justify-between">
           <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-theme-sur2 text-theme-txt3 border border-theme-bor/60">
-            {r.status}
+            {r.country || 'Sin país'}
           </span>
 
           <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
@@ -471,7 +621,7 @@ export default function FollowUpsCalendarView({
               <button
                 onClick={() => handleOpenTemplatesHelper(r)}
                 className="p-1.5 rounded-lg bg-theme-sur2 hover:bg-[#2979ff]/15 text-theme-txt2 hover:text-[#2979ff] border border-theme-bor cursor-pointer transition-colors"
-                title="Redactar mensaje comercial"
+                title="Redactar mensaje comercial con plantillas"
               >
                 <MessageSquare className="w-3.5 h-3.5" />
               </button>
@@ -513,17 +663,17 @@ export default function FollowUpsCalendarView({
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-theme-bg">
+    <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 bg-theme-bg">
       {/* Header & Metric Banner with Segment Selector */}
       <div className="bg-theme-sur p-5 rounded-2xl border border-theme-bor shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-2 mb-1">
             <span className="text-[10px] font-mono uppercase tracking-wider text-[#ff6d3b] font-bold bg-[#ff6d3b]/10 px-2 py-0.5 rounded flex items-center gap-1">
               <Calendar className="w-3 h-3 text-[#ff6d3b]" />
-              <span>Agenda de Seguimientos & Google Calendar</span>
+              <span>Agenda de Seguimientos Comercial</span>
             </span>
             <span className="text-[10px] font-mono text-theme-txt3 bg-theme-sur2 px-2 py-0.5 rounded border border-theme-bor">
-              {stats.total} agendados
+              {stats.total} programados
             </span>
             <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
               businessSegment === 'B2B' 
@@ -532,15 +682,15 @@ export default function FollowUpsCalendarView({
                 ? 'bg-[#00a870]/15 text-[#00a870] border-[#00a870]/30' 
                 : 'bg-purple-500/15 text-purple-400 border-purple-500/30'
             }`}>
-              {businessSegment === 'B2B' ? '🏢 Foco B2B Corporativo' : businessSegment === 'B2C' ? '👤 Foco B2C Alumnos' : '🌐 Vista Consolidada'}
+              {businessSegment === 'B2B' ? '🏢 B2B Corporativo' : businessSegment === 'B2C' ? '👤 B2C Alumnos' : '🌐 Vista Consolidada'}
             </span>
           </div>
 
           <h2 className="text-lg sm:text-xl font-extrabold text-theme-txt">
-            Mapeo y Seguimiento Comercial de Agendas
+            Seguimiento de Agenda y Radar de Vencimientos
           </h2>
           <p className="text-xs text-theme-txt2 mt-0.5">
-            Vista interactiva estilo Google Calendar. Foco exclusivo en etapas avanzadas: B2B desde Discovery / reunión y B2C en Oportunidad
+            Mapeo cronológico y estratégico para atacar invitaciones, conversaciones activas, reuniones y cierres tanto B2B como B2C.
           </p>
         </div>
 
@@ -567,7 +717,7 @@ export default function FollowUpsCalendarView({
               }`}
             >
               <Building2 className="w-3.5 h-3.5" />
-              <span>B2B Corporativo</span>
+              <span>B2B ({stats.b2bCount ?? 0})</span>
             </button>
             <button
               onClick={() => setBusinessSegment('B2C')}
@@ -578,12 +728,24 @@ export default function FollowUpsCalendarView({
               }`}
             >
               <Users className="w-3.5 h-3.5" />
-              <span>B2C Alumnos</span>
+              <span>B2C ({stats.b2cCount ?? 0})</span>
             </button>
           </div>
 
-          {/* View Mode Toggle: Google Calendar vs Grouped vs Grid */}
+          {/* View Mode Toggle: Tabla Ordenada vs Google Calendar vs Vencimientos vs Cuadrícula */}
           <div className="flex items-center bg-theme-sur2 p-1 rounded-xl border border-theme-bor text-xs">
+            <button
+              onClick={() => setViewLayout('table')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                viewLayout === 'table'
+                  ? 'bg-[#00a870] text-[#00110b] shadow-xs font-extrabold'
+                  : 'text-theme-txt2 hover:text-theme-txt'
+              }`}
+              title="Tabla de Seguimiento Ordenado con prioridades y acciones"
+            >
+              <ListOrdered className="w-3.5 h-3.5" />
+              <span>Tabla Ordenada</span>
+            </button>
             <button
               onClick={() => setViewLayout('calendar')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
@@ -594,31 +756,31 @@ export default function FollowUpsCalendarView({
               title="Vista mensual estilo Google Calendar"
             >
               <Calendar className="w-3.5 h-3.5" />
-              <span>Calendario Google</span>
+              <span>Calendario</span>
             </button>
             <button
               onClick={() => setViewLayout('grouped')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
                 viewLayout === 'grouped'
-                  ? 'bg-[#00a870] text-[#00110b] font-bold shadow-xs'
+                  ? 'bg-theme-sur text-theme-txt border border-theme-bor shadow-xs'
                   : 'text-theme-txt2 hover:text-theme-txt'
               }`}
               title="Vista agrupada por urgencia temporal"
             >
               <LayoutList className="w-3.5 h-3.5" />
-              <span>Vencimientos</span>
+              <span>Bloques</span>
             </button>
             <button
               onClick={() => setViewLayout('grid')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
                 viewLayout === 'grid'
-                  ? 'bg-[#00a870] text-[#00110b] font-bold shadow-xs'
+                  ? 'bg-theme-sur text-theme-txt border border-theme-bor shadow-xs'
                   : 'text-theme-txt2 hover:text-theme-txt'
               }`}
               title="Vista en cuadrícula plana"
             >
               <LayoutGrid className="w-3.5 h-3.5" />
-              <span>Cuadrícula</span>
+              <span>Tarjetas</span>
             </button>
           </div>
 
@@ -633,7 +795,241 @@ export default function FollowUpsCalendarView({
         </div>
       </div>
 
-      {/* Multi-Dimensional Filter Toolbar: Search, Pipeline Status & Priority */}
+      {/* RADAR DE VENCIMIENTOS POR SEMANA Y DÍA (INTERACTIVO) */}
+      <div className="bg-theme-sur border border-theme-bor p-4 rounded-2xl shadow-xs space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#ff6d3b] animate-pulse" />
+            <h3 className="text-xs font-extrabold text-theme-txt font-mono uppercase tracking-wider">
+              Radar de Vencimientos: Por Semana y Día
+            </h3>
+            <span className="text-[10.5px] text-theme-txt3 hidden md:inline">
+              (Haz clic en un cuadrante para filtrar inmediatamente)
+            </span>
+          </div>
+
+          {overdueSubFilter !== 'all' && (
+            <button
+              onClick={() => setOverdueSubFilter('all')}
+              className="text-[11px] font-mono text-[#2979ff] hover:underline flex items-center gap-1 cursor-pointer font-bold"
+            >
+              <span>Mostrar todos ({stats.total})</span>
+              <X className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+          {/* 1. Vencido >1 sem */}
+          <button
+            type="button"
+            onClick={() => setOverdueSubFilter(overdueSubFilter === 'overdue_week_plus' ? 'all' : 'overdue_week_plus')}
+            className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+              overdueSubFilter === 'overdue_week_plus'
+                ? 'bg-red-500/20 border-red-500 ring-2 ring-red-500/40 shadow-xs'
+                : 'bg-theme-sur2/60 border-red-500/30 hover:border-red-500/60'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono font-bold text-red-400 uppercase">🔴 Vencido &gt;1 sem</span>
+              <ShieldAlert className="w-3.5 h-3.5 text-red-400" />
+            </div>
+            <div className="mt-2">
+              <div className="text-xl font-mono font-extrabold text-red-500">{stats.overdue_week_plus}</div>
+              <div className="text-[9.5px] text-theme-txt3 mt-0.5">Urgencia Crítica (&gt;7d)</div>
+            </div>
+          </button>
+
+          {/* 2. Vencido 2 a 6 días */}
+          <button
+            type="button"
+            onClick={() => setOverdueSubFilter(overdueSubFilter === 'overdue_this_week' ? 'all' : 'overdue_this_week')}
+            className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+              overdueSubFilter === 'overdue_this_week'
+                ? 'bg-[#ff6d3b]/20 border-[#ff6d3b] ring-2 ring-[#ff6d3b]/40 shadow-xs'
+                : 'bg-theme-sur2/60 border-[#ff6d3b]/30 hover:border-[#ff6d3b]/60'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono font-bold text-[#ff6d3b] uppercase">🟠 Vencido 2-6d</span>
+              <AlertTriangle className="w-3.5 h-3.5 text-[#ff6d3b]" />
+            </div>
+            <div className="mt-2">
+              <div className="text-xl font-mono font-extrabold text-[#ff6d3b]">{stats.overdue_this_week}</div>
+              <div className="text-[9.5px] text-theme-txt3 mt-0.5">Semana en curso (-2 a -6d)</div>
+            </div>
+          </button>
+
+          {/* 3. Vencido Ayer */}
+          <button
+            type="button"
+            onClick={() => setOverdueSubFilter(overdueSubFilter === 'overdue_yesterday' ? 'all' : 'overdue_yesterday')}
+            className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+              overdueSubFilter === 'overdue_yesterday'
+                ? 'bg-[#f59e0b]/20 border-[#f59e0b] ring-2 ring-[#f59e0b]/40 shadow-xs'
+                : 'bg-theme-sur2/60 border-[#f59e0b]/30 hover:border-[#f59e0b]/60'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono font-bold text-[#f59e0b] uppercase">🟡 Vencido Ayer</span>
+              <Clock className="w-3.5 h-3.5 text-[#f59e0b]" />
+            </div>
+            <div className="mt-2">
+              <div className="text-xl font-mono font-extrabold text-[#f59e0b]">{stats.overdue_yesterday}</div>
+              <div className="text-[9.5px] text-theme-txt3 mt-0.5">Ayer (-1 día)</div>
+            </div>
+          </button>
+
+          {/* 4. Para Hoy */}
+          <button
+            type="button"
+            onClick={() => setOverdueSubFilter(overdueSubFilter === 'today' ? 'all' : 'today')}
+            className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+              overdueSubFilter === 'today'
+                ? 'bg-[#00a870]/20 border-[#00a870] ring-2 ring-[#00a870]/40 shadow-xs'
+                : 'bg-theme-sur2/60 border-[#00a870]/30 hover:border-[#00a870]/60'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono font-bold text-[#00a870] uppercase">🟢 Para Hoy</span>
+              <Flame className="w-3.5 h-3.5 text-[#00a870]" />
+            </div>
+            <div className="mt-2">
+              <div className="text-xl font-mono font-extrabold text-[#00a870]">{stats.today}</div>
+              <div className="text-[9.5px] text-theme-txt3 mt-0.5">Plan comercial de hoy (0d)</div>
+            </div>
+          </button>
+
+          {/* 5. Mañana */}
+          <button
+            type="button"
+            onClick={() => setOverdueSubFilter(overdueSubFilter === 'tomorrow' ? 'all' : 'tomorrow')}
+            className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+              overdueSubFilter === 'tomorrow'
+                ? 'bg-[#2979ff]/20 border-[#2979ff] ring-2 ring-[#2979ff]/40 shadow-xs'
+                : 'bg-theme-sur2/60 border-[#2979ff]/30 hover:border-[#2979ff]/60'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono font-bold text-[#2979ff] uppercase">🔵 Mañana</span>
+              <Clock className="w-3.5 h-3.5 text-[#2979ff]" />
+            </div>
+            <div className="mt-2">
+              <div className="text-xl font-mono font-extrabold text-[#2979ff]">{stats.tomorrow}</div>
+              <div className="text-[9.5px] text-theme-txt3 mt-0.5">Preparar para mañana (+1d)</div>
+            </div>
+          </button>
+
+          {/* 6. Próximos esta semana */}
+          <button
+            type="button"
+            onClick={() => setOverdueSubFilter(overdueSubFilter === 'this_week' ? 'all' : 'this_week')}
+            className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+              overdueSubFilter === 'this_week'
+                ? 'bg-[#a855f7]/20 border-[#a855f7] ring-2 ring-[#a855f7]/40 shadow-xs'
+                : 'bg-theme-sur2/60 border-[#a855f7]/30 hover:border-[#a855f7]/60'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono font-bold text-[#a855f7] uppercase">🟣 En la semana</span>
+              <CalendarDays className="w-3.5 h-3.5 text-[#a855f7]" />
+            </div>
+            <div className="mt-2">
+              <div className="text-xl font-mono font-extrabold text-[#a855f7]">{stats.this_week}</div>
+              <div className="text-[9.5px] text-theme-txt3 mt-0.5">Próximos 2 a 7 días</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {/* FILTRO ESTRATÉGICO DE PIPELINE: CÓMO ATACAR PROSPECTOS */}
+      <div className="bg-theme-sur border border-theme-bor p-3.5 rounded-2xl shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+          <span className="text-[11px] font-mono text-theme-txt3 uppercase tracking-wider font-bold shrink-0 mr-1">
+            Estrategia de Ataque:
+          </span>
+          <button
+            type="button"
+            onClick={() => setPipelineGroup('all')}
+            className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+              pipelineGroup === 'all'
+                ? 'bg-theme-txt text-theme-sur shadow-xs'
+                : 'bg-theme-sur2 text-theme-txt2 hover:text-theme-txt border border-theme-bor'
+            }`}
+          >
+            Todos ({stats.total})
+          </button>
+          <button
+            type="button"
+            onClick={() => setPipelineGroup('contacted')}
+            className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 ${
+              pipelineGroup === 'contacted'
+                ? 'bg-sky-500 text-white shadow-xs font-extrabold'
+                : 'bg-theme-sur2 text-theme-txt2 hover:text-sky-400 border border-theme-bor'
+            }`}
+            title="Prospectos con invitación enviada o primer contacto"
+          >
+            <span>🎯 1. Invitación / Contactado</span>
+            <span className="text-[10px] font-mono opacity-85">({stats.contactedCount ?? 0})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setPipelineGroup('in_conversation')}
+            className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 ${
+              pipelineGroup === 'in_conversation'
+                ? 'bg-indigo-500 text-white shadow-xs font-extrabold'
+                : 'bg-theme-sur2 text-theme-txt2 hover:text-indigo-400 border border-theme-bor'
+            }`}
+            title="Prospectos con conversación activa o diálogo en curso"
+          >
+            <span>💬 2. Conversación activa</span>
+            <span className="text-[10px] font-mono opacity-85">({stats.inConversationCount ?? 0})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setPipelineGroup('meeting')}
+            className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 ${
+              pipelineGroup === 'meeting'
+                ? 'bg-emerald-500 text-white shadow-xs font-extrabold'
+                : 'bg-theme-sur2 text-theme-txt2 hover:text-emerald-400 border border-theme-bor'
+            }`}
+            title="Discovery o reuniones programadas"
+          >
+            <span>📅 3. Reunión / Discovery</span>
+            <span className="text-[10px] font-mono opacity-85">({stats.meetingCount ?? 0})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setPipelineGroup('opportunity_won')}
+            className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 ${
+              pipelineGroup === 'opportunity_won'
+                ? 'bg-amber-500 text-white shadow-xs font-extrabold'
+                : 'bg-theme-sur2 text-theme-txt2 hover:text-amber-400 border border-theme-bor'
+            }`}
+            title="Oportunidades calificadas, propuestas y cierres"
+          >
+            <span>💼 4. Oportunidades & Cierres</span>
+            <span className="text-[10px] font-mono opacity-85">({stats.opportunityWonCount ?? 0})</span>
+          </button>
+        </div>
+
+        {/* Quick Clear when filtered */}
+        {(pipelineGroup !== 'all' || overdueSubFilter !== 'all' || search) && (
+          <button
+            onClick={() => {
+              setPipelineGroup('all');
+              setOverdueSubFilter('all');
+              setSearch('');
+            }}
+            className="text-xs text-theme-txt3 hover:text-[#ff6d3b] flex items-center gap-1 cursor-pointer shrink-0 font-medium"
+          >
+            <X className="w-3.5 h-3.5" />
+            <span>Limpiar filtros</span>
+          </button>
+        )}
+      </div>
+
+      {/* Multi-Dimensional Filter Toolbar: Search, Specific Pipeline Stage, Priority & Responsable */}
       <div className="bg-theme-sur border border-theme-bor p-4 rounded-2xl shadow-xs space-y-3">
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
           {/* Search bar */}
@@ -643,7 +1039,7 @@ export default function FollowUpsCalendarView({
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por prospecto, empresa, cargo, notas o próximo paso..."
+              placeholder="Buscar prospecto, empresa, cargo, notas o próximo paso..."
               className="w-full bg-theme-sur2 border border-theme-bor focus:border-[#00a870] rounded-xl pl-8 pr-8 py-2 text-xs text-theme-txt outline-hidden placeholder:text-theme-txt3"
             />
             {search && (
@@ -656,9 +1052,9 @@ export default function FollowUpsCalendarView({
             )}
           </div>
 
-          {/* Secondary Filter Dropdowns (Pipeline Stage, Priority, Responsable) */}
+          {/* Secondary Filter Dropdowns */}
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Status / Pipeline stage filter */}
+            {/* Specific Pipeline stage filter */}
             <div className="flex items-center gap-1.5 bg-theme-sur2 border border-theme-bor rounded-xl px-2.5 py-1 text-xs text-theme-txt2">
               <Filter className="w-3.5 h-3.5 text-[#00a870]" />
               <select
@@ -666,15 +1062,19 @@ export default function FollowUpsCalendarView({
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="bg-transparent text-theme-txt outline-hidden cursor-pointer text-xs font-medium"
               >
-                <option value="all">Etapas Calificadas: Todas</option>
-                <optgroup label="🏢 B2B (Discovery en adelante)">
+                <option value="all">Etapas Individuales: Todas</option>
+                <optgroup label="🏢 B2B Pipeline Completo">
+                  <option value="Contactado">Contactado (Primer acercamiento)</option>
+                  <option value="Conversación iniciada">Conversación iniciada</option>
                   <option value="Discovery / reunión">Discovery / reunión</option>
                   <option value="Oportunidad calificada">Oportunidad calificada</option>
                   <option value="Propuesta enviada">Propuesta enviada</option>
                   <option value="Negociación">Negociación</option>
                   <option value="Ganada">Ganada</option>
                 </optgroup>
-                <optgroup label="👤 B2C (Oportunidad / Alumnos)">
+                <optgroup label="👤 B2C Pipeline Completo">
+                  <option value="En contacto">En contacto</option>
+                  <option value="Seguimiento">Seguimiento activo</option>
                   <option value="Oportunidad">Oportunidad</option>
                   <option value="Cliente">Cliente</option>
                 </optgroup>
@@ -701,7 +1101,9 @@ export default function FollowUpsCalendarView({
 
         {/* Team Member Filter Pills */}
         <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-theme-bor/60">
-          <span className="text-[11px] font-mono text-theme-txt3 uppercase tracking-wider">Responsable:</span>
+          <span className="text-[11px] font-mono text-theme-txt3 uppercase tracking-wider font-bold">
+            Responsable:
+          </span>
           <button
             onClick={() => setMemberFilter('')}
             className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
@@ -737,20 +1139,22 @@ export default function FollowUpsCalendarView({
         <div className="flex-1 flex items-center justify-center p-16 text-xs text-theme-txt2">
           <div className="flex items-center gap-2">
             <div className="w-2.5 h-2.5 rounded-full bg-[#2979ff] animate-ping" />
-            <span>Cargando calendario de seguimientos comerciales...</span>
+            <span>Cargando agenda comercial y radar de vencimientos...</span>
           </div>
         </div>
       ) : filteredReminders.length === 0 && viewLayout !== 'calendar' ? (
         <div className="bg-theme-sur border border-theme-bor rounded-2xl p-12 text-center text-xs text-theme-txt2 space-y-2 shadow-xs">
           <Calendar className="w-10 h-10 text-theme-txt3 mx-auto opacity-40" />
-          <h3 className="font-bold text-sm text-theme-txt">No se encontraron seguimientos con los filtros actuales</h3>
+          <h3 className="font-bold text-sm text-theme-txt">No se encontraron seguimientos con los filtros seleccionados</h3>
           <p className="max-w-md mx-auto text-theme-txt3">
-            Intenta cambiar el segmento comercial (B2B / B2C), limpiar la búsqueda o ajustar el filtro de etapa.
+            Intenta cambiar el cuadrante de vencimientos, el segmento (B2B/B2C) o restablecer los filtros para ver todos los prospectos agendados.
           </p>
           <div className="pt-2">
             <button
               onClick={() => {
                 setBusinessSegment('all');
+                setPipelineGroup('all');
+                setOverdueSubFilter('all');
                 setActiveSegment('all');
                 setSearch('');
                 setPriorityFilter('all');
@@ -759,8 +1163,214 @@ export default function FollowUpsCalendarView({
               }}
               className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-[#00a870]/15 text-[#00a870] hover:bg-[#00a870]/25 border border-[#00a870]/30 cursor-pointer"
             >
-              Restablecer Filtros
+              Restablecer Todos los Filtros
             </button>
+          </div>
+        </div>
+      ) : viewLayout === 'table' ? (
+        /* TABLA DE SEGUIMIENTO ORDENADO (VISTA PRINCIPAL SOLICITADA) */
+        <div className="bg-theme-sur border border-theme-bor rounded-2xl shadow-xs overflow-hidden">
+          {/* Table Header Controls */}
+          <div className="p-4 border-b border-theme-bor flex flex-wrap items-center justify-between gap-3 bg-theme-sur2/40">
+            <div className="flex items-center gap-2.5">
+              <ListOrdered className="w-4 h-4 text-[#00a870]" />
+              <span className="text-xs font-extrabold text-theme-txt">
+                Tabla de Seguimiento Ordenado ({sortedTableReminders.length} prospectos)
+              </span>
+              <span className="text-[11px] text-theme-txt3 hidden sm:inline">
+                • Orden prioritario para ejecución comercial
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-theme-txt3 font-mono text-[11px] font-bold">Ordenar por:</span>
+              <select
+                value={tableSort}
+                onChange={(e) => setTableSort(e.target.value as TableSort)}
+                className="bg-theme-sur border border-theme-bor focus:border-[#00a870] rounded-lg px-2.5 py-1 text-xs text-theme-txt font-semibold outline-hidden cursor-pointer"
+              >
+                <option value="urgency">⚠️ Urgencia (Más atrasados primero)</option>
+                <option value="priority">⭐ Prioridad Comercial (3⭐ primero)</option>
+                <option value="date_asc">📅 Fecha (Cronológico próximo)</option>
+                <option value="date_desc">📅 Fecha (Futuro a pasado)</option>
+                <option value="deal_value">💰 Mayor Valor Deal (USD)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Table Container */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-theme-bor bg-theme-sur2/60 text-theme-txt2 font-mono text-[10.5px] uppercase tracking-wider">
+                  <th className="py-3 px-4 font-bold">Urgencia / Vencimiento</th>
+                  <th className="py-3 px-4 font-bold">Fecha Agendada</th>
+                  <th className="py-3 px-4 font-bold">Prospecto & Cargo</th>
+                  <th className="py-3 px-3 font-bold">Segmento</th>
+                  <th className="py-3 px-3 font-bold">Etapa Pipeline</th>
+                  <th className="py-3 px-3 font-bold">Deal USD</th>
+                  <th className="py-3 px-3 font-bold text-center">Prioridad</th>
+                  <th className="py-3 px-4 font-bold">Próximo Paso / Notas</th>
+                  <th className="py-3 px-3 font-bold">Responsable</th>
+                  <th className="py-3 px-4 font-bold text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-theme-bor/60">
+                {sortedTableReminders.map((r) => {
+                  const isB2B = r.business_segment === 'B2B';
+                  const overdueBadge = getOverdueSubBadge(r.overdue_sub_bucket, r.days_diff);
+                  const stageBadge = getStageBadge(r.status, isB2B);
+                  const isOpening = openingContactId === r.id;
+
+                  return (
+                    <tr 
+                      key={r.id}
+                      onClick={() => handleManageClick(r.id)}
+                      className="hover:bg-theme-sur2/50 transition-colors cursor-pointer group"
+                    >
+                      {/* Urgencia / Vencimiento */}
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1.5 text-[10.5px] font-mono font-bold px-2 py-0.5 rounded-md border ${overdueBadge.bg}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${overdueBadge.dot}`} />
+                          <span>{overdueBadge.label}</span>
+                        </span>
+                      </td>
+
+                      {/* Fecha Agendada */}
+                      <td className="py-3 px-4 whitespace-nowrap font-mono text-[11px] text-theme-txt">
+                        <div className="font-bold">{formatFollowUpDate(r.follow_up_date)}</div>
+                        <div className="text-[10px] text-theme-txt3 font-sans">
+                          {r.days_diff === 0 ? 'Hoy' : r.days_diff < 0 ? `Hace ${Math.abs(r.days_diff)} días` : `En ${r.days_diff} días`}
+                        </div>
+                      </td>
+
+                      {/* Prospecto & Cargo */}
+                      <td className="py-3 px-4 max-w-[200px]">
+                        <div className="font-bold text-theme-txt group-hover:text-[#00a870] transition-colors truncate">
+                          {r.first_name} {r.last_name || ''}
+                        </div>
+                        <div className="text-[11px] text-theme-txt2 truncate mt-0.5">
+                          {r.position || 'Sin cargo'}
+                        </div>
+                        <div className="flex items-center gap-1 text-[10px] text-theme-txt3 truncate">
+                          {r.company && <span>{r.company}</span>}
+                          {r.country && <span>• {r.country}</span>}
+                        </div>
+                      </td>
+
+                      {/* Segmento */}
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 w-fit ${
+                          isB2B 
+                            ? 'bg-[#2979ff]/15 text-[#2979ff] border-[#2979ff]/30' 
+                            : 'bg-[#00a870]/15 text-[#00a870] border-[#00a870]/30'
+                        }`}>
+                          {isB2B ? <Building2 className="w-3 h-3" /> : <Users className="w-3 h-3" />}
+                          <span>{isB2B ? 'B2B' : 'B2C'}</span>
+                        </span>
+                      </td>
+
+                      {/* Etapa Pipeline */}
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        <span className={`text-[10.5px] font-mono font-bold px-2 py-0.5 rounded border ${stageBadge.bg}`}>
+                          {stageBadge.label}
+                        </span>
+                      </td>
+
+                      {/* Deal USD */}
+                      <td className="py-3 px-3 whitespace-nowrap font-mono">
+                        {isB2B && r.deal_value && r.deal_value > 0 ? (
+                          <span className="font-bold text-[#00e5a0] bg-[#00e5a0]/10 px-1.5 py-0.5 rounded border border-[#00e5a0]/30">
+                            ${r.deal_value.toLocaleString()} USD
+                          </span>
+                        ) : (
+                          <span className="text-theme-txt3">-</span>
+                        )}
+                      </td>
+
+                      {/* Prioridad */}
+                      <td className="py-3 px-3 text-center whitespace-nowrap">
+                        {r.priority > 0 ? (
+                          <div className="flex items-center justify-center text-[#f59e0b]">
+                            {Array.from({ length: r.priority }).map((_, i) => (
+                              <Star key={i} className="w-3 h-3 fill-current" />
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-theme-txt3">-</span>
+                        )}
+                      </td>
+
+                      {/* Próximo Paso / Notas */}
+                      <td className="py-3 px-4 max-w-[220px]">
+                        {r.next_step && (
+                          <div className="text-[11px] font-semibold text-[#2979ff] truncate mb-0.5 flex items-center gap-1">
+                            <Clock className="w-3 h-3 shrink-0" />
+                            <span>{r.next_step}</span>
+                          </div>
+                        )}
+                        {r.notes ? (
+                          <div className="text-[11px] text-theme-txt2 italic line-clamp-2">
+                            &quot;{r.notes}&quot;
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-theme-txt3 italic">Sin notas</span>
+                        )}
+                      </td>
+
+                      {/* Responsable */}
+                      <td className="py-3 px-3 whitespace-nowrap font-mono text-[10.5px] text-theme-txt3">
+                        <span className="bg-theme-sur2 px-2 py-0.5 rounded border border-theme-bor">
+                          {r.assigned_to}
+                        </span>
+                      </td>
+
+                      {/* Acciones */}
+                      <td className="py-3 px-4 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1.5">
+                          {onOpenTemplates && (
+                            <button
+                              onClick={() => handleOpenTemplatesHelper(r)}
+                              className="p-1.5 rounded-lg bg-theme-sur2 hover:bg-[#2979ff]/15 text-theme-txt2 hover:text-[#2979ff] border border-theme-bor cursor-pointer transition-colors"
+                              title="Redactar mensaje con plantillas inteligentes"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+
+                          {r.linkedin_url && (
+                            <a
+                              href={r.linkedin_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1.5 rounded-lg bg-theme-sur2 hover:bg-[#0a66c2]/15 text-theme-txt2 hover:text-[#0a66c2] border border-theme-bor cursor-pointer transition-colors"
+                              title="Abrir perfil de LinkedIn"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                          )}
+
+                          <button
+                            onClick={() => handleManageClick(r.id)}
+                            disabled={isOpening}
+                            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#00a870]/15 text-[#00a870] hover:bg-[#00a870]/25 border border-[#00a870]/30 flex items-center gap-1 cursor-pointer transition-all disabled:opacity-50"
+                          >
+                            {isOpening ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <>
+                                <span>Gestionar</span>
+                                <ChevronRight className="w-3 h-3" />
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       ) : viewLayout === 'calendar' ? (
@@ -870,7 +1480,7 @@ export default function FollowUpsCalendarView({
                               ? 'bg-[#2979ff]/15 hover:bg-[#2979ff]/25 text-[#2979ff] border-[#2979ff]/30'
                               : 'bg-[#00a870]/15 hover:bg-[#00a870]/25 text-[#00a870] border-[#00a870]/30'
                           }`}
-                          title={`${isB2B ? '🏢 B2B' : '👤 B2C'}: ${ev.first_name} ${ev.last_name || ''} ${ev.company ? `(${ev.company})` : ''} - Estado: ${ev.status}`}
+                          title={`${isB2B ? '🏢 B2B' : '👤 B2C'}: ${ev.first_name} ${ev.last_name || ''} ${ev.company ? `(${ev.company})` : ''} - Etapa: ${ev.status}`}
                         >
                           <div className="flex items-center gap-1 truncate">
                             {isOverdue ? (
@@ -881,6 +1491,7 @@ export default function FollowUpsCalendarView({
                             <span className="truncate font-semibold">
                               {ev.first_name} {ev.company ? `• ${ev.company}` : ''}
                             </span>
+                            <span className="text-[9px] opacity-75 font-mono">[{ev.status.split(' ')[0]}]</span>
                           </div>
 
                           {isB2B && ev.deal_value && ev.deal_value > 0 ? (

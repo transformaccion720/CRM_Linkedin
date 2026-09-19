@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Contact } from '@/lib/types';
+import { Contact, ContactStatus } from '@/lib/types';
 import { MessageTemplate } from '@/lib/templates';
 import { X, Copy, ExternalLink, Check, MessageSquare, Settings, Briefcase, Building2 } from 'lucide-react';
 
@@ -14,7 +14,7 @@ interface MessageTemplatesModalProps {
   templates: MessageTemplate[];
   activeTemplateId: string;
   onOpenTemplateManager?: () => void;
-  onMarkContacted?: (id: string) => void;
+  onMarkContacted?: (id: string, targetStatus?: ContactStatus) => void;
 }
 
 export default function MessageTemplatesModal({
@@ -31,6 +31,24 @@ export default function MessageTemplatesModal({
   const [customText, setCustomText] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
   const [autoMark, setAutoMark] = useState<boolean>(true);
+
+  const isB2B = (contact?.business_segment || '').toUpperCase() === 'B2B';
+
+  const computeDefaultTargetStatus = (c: Contact | null): ContactStatus => {
+    if (!c) return 'Contactado';
+    const b2b = (c.business_segment || '').toUpperCase() === 'B2B';
+    if (b2b) {
+      if (c.status === 'Contactado') return 'Conversación iniciada';
+      if (c.status === 'Conversación iniciada') return 'Conversación iniciada';
+      return 'Contactado';
+    } else {
+      if (c.status === 'En contacto') return 'Seguimiento';
+      if (c.status === 'Seguimiento') return 'Oportunidad';
+      return 'En contacto';
+    }
+  };
+
+  const [targetStatus, setTargetStatus] = useState<ContactStatus>(() => computeDefaultTargetStatus(contact));
 
   if (!isOpen || !contact) return null;
 
@@ -65,7 +83,7 @@ export default function MessageTemplatesModal({
       await navigator.clipboard.writeText(activeMessage);
       setCopied(true);
       if (autoMark && onMarkContacted) {
-        onMarkContacted(contact.id);
+        onMarkContacted(contact.id, targetStatus);
       }
       setTimeout(() => setCopied(false), 2500);
     } catch (e) {
@@ -245,18 +263,52 @@ export default function MessageTemplatesModal({
             />
           </div>
 
-          {/* Options */}
-          <div className="flex items-center gap-2 pt-1">
-            <input
-              type="checkbox"
-              id="auto-mark"
-              checked={autoMark}
-              onChange={(e) => setAutoMark(e.target.checked)}
-              className="accent-[#00a870] w-4 h-4 rounded cursor-pointer"
-            />
-            <label htmlFor="auto-mark" className="text-xs text-theme-txt2 cursor-pointer select-none">
-              Marcar automáticamente a este prospecto como <b className="text-theme-txt">"En contacto"</b> al copiar
-            </label>
+          {/* Options with Intelligent Pipeline Stage Selector */}
+          <div className="p-3 bg-theme-sur2/70 border border-theme-bor rounded-xl space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="auto-mark"
+                  checked={autoMark}
+                  onChange={(e) => setAutoMark(e.target.checked)}
+                  className="accent-[#00a870] w-4 h-4 rounded cursor-pointer"
+                />
+                <label htmlFor="auto-mark" className="text-xs font-semibold text-theme-txt cursor-pointer select-none">
+                  Avanzar pipeline automáticamente al copiar mensaje
+                </label>
+              </div>
+
+              <span className="text-[10.5px] font-mono text-theme-txt3">
+                Estado Actual: <b className="text-theme-txt font-semibold">{contact.status}</b> ({isB2B ? 'B2B' : 'B2C'})
+              </span>
+            </div>
+
+            {autoMark && (
+              <div className="flex items-center gap-2 pl-6 text-xs">
+                <span className="text-theme-txt2">Avanzar a etapa:</span>
+                <select
+                  value={targetStatus}
+                  onChange={(e) => setTargetStatus(e.target.value as ContactStatus)}
+                  className="bg-theme-sur border border-theme-bor focus:border-[#00a870] rounded-lg px-2.5 py-1 text-xs font-bold text-theme-txt outline-hidden cursor-pointer"
+                >
+                  {isB2B ? (
+                    <>
+                      <option value="Contactado">1. Contactado (Primer acercamiento / Invitación)</option>
+                      <option value="Conversación iniciada">2. Conversación iniciada (Ya respondió / Diálogo)</option>
+                      <option value="Discovery / reunión">3. Discovery / reunión agendada</option>
+                      <option value="Oportunidad calificada">4. Oportunidad calificada</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="En contacto">1. En contacto</option>
+                      <option value="Seguimiento">2. Seguimiento activo</option>
+                      <option value="Oportunidad">3. Oportunidad</option>
+                    </>
+                  )}
+                </select>
+              </div>
+            )}
           </div>
         </div>
 

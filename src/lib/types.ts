@@ -246,6 +246,7 @@ export interface FollowUpReminder {
   last_name: string | null;
   company: string | null;
   position: string | null;
+  country?: string | null;
   phone?: string | null;
   linkedin_url: string | null;
   status: ContactStatus;
@@ -260,6 +261,7 @@ export interface FollowUpReminder {
   is_today: boolean;
   days_diff: number;
   time_bucket: 'overdue' | 'today' | 'plus_1_day' | 'plus_3_days' | 'plus_1_week' | 'plus_1_month' | 'future';
+  overdue_sub_bucket?: 'overdue_week_plus' | 'overdue_this_week' | 'overdue_yesterday' | 'today' | 'tomorrow' | 'this_week' | 'future';
 }
 
 export interface ContactStats {

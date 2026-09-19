@@ -116,6 +116,10 @@ export default function Home() {
     setIsProfileOpen(false);
   };
 
+  const handleCloseProfile = () => {
+    setIsProfileOpen(false);
+  };
+
   // Fetch Message Templates from Neon DB
   const fetchTemplates = useCallback(async () => {
     try {
@@ -329,9 +333,28 @@ export default function Home() {
     setContacts((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
     fetchStats();
   }, [fetchStats]);
-  const handleCloseProfile = useCallback(() => setIsProfileOpen(false), []);
   const handleCloseZernio = useCallback(() => setTemplateContact(null), []);
-  const handleZernioMarkContacted = useCallback((id: string) => handleQuickStatusChange(id, 'En contacto'), [handleQuickStatusChange]);
+  const handleZernioMarkContacted = useCallback((id: string, targetStatus?: ContactStatus) => {
+    if (targetStatus) {
+      handleQuickStatusChange(id, targetStatus);
+      return;
+    }
+    const c = contacts.find((item) => item.id === id) || templateContact;
+    const isB2B = (c?.business_segment || '').toUpperCase() === 'B2B';
+    if (isB2B) {
+      if (c?.status === 'Contactado') {
+        handleQuickStatusChange(id, 'Conversación iniciada');
+      } else {
+        handleQuickStatusChange(id, 'Contactado');
+      }
+    } else {
+      if (c?.status === 'En contacto') {
+        handleQuickStatusChange(id, 'Seguimiento');
+      } else {
+        handleQuickStatusChange(id, 'En contacto');
+      }
+    }
+  }, [handleQuickStatusChange, contacts, templateContact]);
   const handleCloseTemplateManager = useCallback(() => setIsTemplateManagerOpen(false), []);
   const handleCloseTeamManager = useCallback(() => setIsTeamManagerOpen(false), []);
   const handleCloseNewContact = useCallback(() => setIsNewContactOpen(false), []);

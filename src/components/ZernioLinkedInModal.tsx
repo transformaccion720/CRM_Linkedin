@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, memo } from 'react';
 import { X, Globe, User, ExternalLink, Check, Copy, MessageSquare, Send, ShieldCheck, Zap, AlertCircle, RefreshCw } from 'lucide-react';
-import { Contact, TeamMember } from '@/lib/types';
+import { Contact, TeamMember, ContactStatus } from '@/lib/types';
 import { MessageTemplate } from '@/lib/templates';
 
 import { getCategoryBadge } from './TemplateManagerModal';
@@ -13,7 +13,7 @@ interface ZernioLinkedInModalProps {
   onClose: () => void;
   currentUser: TeamMember | null;
   templates?: MessageTemplate[];
-  onMarkContacted?: (id: string) => void;
+  onMarkContacted?: (id: string, targetStatus?: ContactStatus) => void;
   onOpenTemplateManager?: () => void;
 }
 
@@ -25,7 +25,7 @@ function ZernioLinkedInModalInner({
   templates = [],
   onMarkContacted,
   onOpenTemplateManager,
-}: ZernioLinkedInModalProps) {
+  }: ZernioLinkedInModalProps) {
   const [accountStatus, setAccountStatus] = useState<any>(null);
   const [loadingStatus, setLoadingStatus] = useState<boolean>(true);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>(templates[0]?.id || '');
@@ -33,6 +33,24 @@ function ZernioLinkedInModalInner({
   const [customMessage, setCustomMessage] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
   const [autoMark, setAutoMark] = useState<boolean>(true);
+
+  const isB2B = (contact?.business_segment || '').toUpperCase() === 'B2B';
+
+  const computeDefaultTargetStatus = (c: Contact | null): ContactStatus => {
+    if (!c) return 'Contactado';
+    const b2b = (c.business_segment || '').toUpperCase() === 'B2B';
+    if (b2b) {
+      if (c.status === 'Contactado') return 'Conversación iniciada';
+      if (c.status === 'Conversación iniciada') return 'Conversación iniciada';
+      return 'Contactado';
+    } else {
+      if (c.status === 'En contacto') return 'Seguimiento';
+      if (c.status === 'Seguimiento') return 'Oportunidad';
+      return 'En contacto';
+    }
+  };
+
+  const [targetStatus, setTargetStatus] = useState<ContactStatus>(() => computeDefaultTargetStatus(contact));
 
   const activeMemberName = contact?.assigned_to || currentUser?.name || 'Gabino';
 
@@ -91,6 +109,7 @@ function ZernioLinkedInModalInner({
           .replace(/{cargo}/g, contact.position || 'tu rol actual');
         setCustomMessage(personalized);
       }
+      setTargetStatus(computeDefaultTargetStatus(contact));
       setCopied(false);
     }
   }, [isOpen, contact, activeMemberName]);
@@ -141,9 +160,9 @@ function ZernioLinkedInModalInner({
   };
 
   const handleCopy = async () => {
-    // 1. Immediately trigger the status change to 'En contacto'
+    // 1. Immediately trigger the intelligent status change to targetStatus
     if (autoMark && onMarkContacted && contact?.id) {
-      onMarkContacted(contact.id);
+      onMarkContacted(contact.id, targetStatus);
     }
 
     // 2. Copy text to clipboard with fallback
@@ -365,18 +384,52 @@ function ZernioLinkedInModalInner({
             />
           </div>
 
-          {/* Option Checkbox */}
-          <div className="flex items-center gap-2 pt-0.5">
-            <input
-              type="checkbox"
-              id="zernio-auto-mark"
-              checked={autoMark}
-              onChange={(e) => setAutoMark(e.target.checked)}
-              className="accent-[#00a870] w-4 h-4 rounded cursor-pointer"
-            />
-            <label htmlFor="zernio-auto-mark" className="text-xs text-theme-txt2 cursor-pointer select-none">
-              Marcar automáticamente a este prospecto como <b className="text-theme-txt">"En contacto"</b> al enviar
-            </label>
+          {/* Option Checkbox with Intelligent Pipeline Stage Selector */}
+          <div className="p-3 bg-theme-sur2/70 border border-theme-bor rounded-xl space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="zernio-auto-mark"
+                  checked={autoMark}
+                  onChange={(e) => setAutoMark(e.target.checked)}
+                  className="accent-[#00a870] w-4 h-4 rounded cursor-pointer"
+                />
+                <label htmlFor="zernio-auto-mark" className="text-xs font-semibold text-theme-txt cursor-pointer select-none">
+                  Avanzar pipeline automáticamente al copiar mensaje
+                </label>
+              </div>
+
+              <span className="text-[10.5px] font-mono text-theme-txt3">
+                Estado Actual: <b className="text-theme-txt font-semibold">{contact.status}</b> ({isB2B ? 'B2B' : 'B2C'})
+              </span>
+            </div>
+
+            {autoMark && (
+              <div className="flex items-center gap-2 pl-6 text-xs">
+                <span className="text-theme-txt2">Avanzar a etapa:</span>
+                <select
+                  value={targetStatus}
+                  onChange={(e) => setTargetStatus(e.target.value as ContactStatus)}
+                  className="bg-theme-sur border border-theme-bor focus:border-[#00a870] rounded-lg px-2.5 py-1 text-xs font-bold text-theme-txt outline-hidden cursor-pointer"
+                >
+                  {isB2B ? (
+                    <>
+                      <option value="Contactado">1. Contactado (Primer acercamiento / Invitación)</option>
+                      <option value="Conversación iniciada">2. Conversación iniciada (Ya respondió / Diálogo)</option>
+                      <option value="Discovery / reunión">3. Discovery / reunión agendada</option>
+                      <option value="Oportunidad calificada">4. Oportunidad calificada</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="En contacto">1. En contacto</option>
+                      <option value="Seguimiento">2. Seguimiento activo</option>
+                      <option value="Oportunidad">3. Oportunidad</option>
+                    </>
+                  )}
+                </select>
+              </div>
+            )}
           </div>
         </div>
 
