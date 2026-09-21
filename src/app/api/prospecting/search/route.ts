@@ -143,17 +143,31 @@ function formatWhatsAppNumber(rawPhone?: string | null): { phone: string; whatsa
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { city = 'Lima', category = 'distribuidora', onlyWithoutWebsite = true } = body;
+    const { city = 'Arequipa', category = 'distribuidora', onlyWithoutWebsite = true } = body;
 
-    // 1. Fetch Google Places API Key from Settings
+    // 1. Fetch Google Places API Key from Settings in DB or Env
     const settingsRows = await sql`
       SELECT value FROM settings WHERE key = 'prospecting_apis' LIMIT 1;
     `;
 
+    const todayDate = new Date().toISOString().split('T')[0];
     const settingsVal = settingsRows.length > 0 ? (settingsRows[0].value as any) : {};
     const googleApiKey = settingsVal.google_places_api_key || process.env.GOOGLE_PLACES_API_KEY || '';
     const openRouterApiKey = settingsVal.openrouter_api_key || process.env.OPENROUTER_API_KEY || '';
     const openRouterModel = settingsVal.openrouter_model || 'google/gemini-2.5-flash';
+    const dailyLimit = typeof settingsVal.daily_search_limit === 'number' ? settingsVal.daily_search_limit : 30;
+    const searchesToday = settingsVal.today_date === todayDate ? (settingsVal.searches_today || 0) : 0;
+
+    // Check daily limit for live calls to prevent unexpected usage
+    if (googleApiKey && googleApiKey.trim() !== '' && searchesToday >= dailyLimit) {
+      return NextResponse.json({
+        success: false,
+        error: `🛡️ Límite diario de seguridad alcanzado (${searchesToday}/${dailyLimit} búsquedas hoy). Puedes modificar este límite en 'Configurar APIs' si deseas realizar más prospecciones hoy.`,
+        limit_reached: true,
+        daily_limit: dailyLimit,
+        searches_today: searchesToday,
+      }, { status: 429 });
+    }
 
     // 2. Fetch existing imported place IDs from Neon contacts table to cross-check
     const existingContacts = await sql`
@@ -184,89 +198,151 @@ export async function POST(req: Request) {
         message: 'Modo demostración activo. Configura tu Google API Key en Ajustes para realizar búsquedas en vivo en todo el Perú.',
         count: demoList.length,
         results: demoList,
+        daily_limit: dailyLimit,
+        searches_today: searchesToday,
       });
     }
 
-    // 4. Live Mode with Google Places API
+    // 4. Live Mode with Google Places API (New) - Single lightweight call with FieldMask
     const query = `${category} en ${city}, Perú`;
-    const googleUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&region=pe&language=es&key=${encodeURIComponent(googleApiKey)}`;
+    const cleanKey = googleApiKey.trim();
+    let rawPlaces: any[] = [];
+    let isPlacesNew = true;
 
-    const gRes = await fetch(googleUrl);
-    const gData = await gRes.json();
+    try {
+      const newPlacesRes = await fetch('https://places.googleapis.com/v1/places:searchText', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': cleanKey,
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.internationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount,places.googleMapsUri,places.primaryTypeDisplayName',
+        },
+        body: JSON.stringify({
+          textQuery: query,
+          languageCode: 'es',
+          maxResultCount: 15, // Safe limit to protect free tier
+        }),
+      });
 
-    if (gData.status !== 'OK' && gData.status !== 'ZERO_RESULTS') {
-      console.warn('Google Places API returned status:', gData.status, gData.error_message);
-      return NextResponse.json({
-        success: false,
-        error: `Google Places API respondió: ${gData.status}. ${gData.error_message || ''}`,
-      }, { status: 400 });
+      if (newPlacesRes.ok) {
+        const newData = await newPlacesRes.json();
+        rawPlaces = newData.places || [];
+      } else {
+        const errJson = await newPlacesRes.json().catch(() => ({}));
+        console.warn('Places API New returned error, attempting fallback to Legacy:', newPlacesRes.status, errJson);
+        isPlacesNew = false;
+      }
+    } catch (err: any) {
+      console.warn('Places API New request failed:', err.message);
+      isPlacesNew = false;
     }
 
-    const rawPlaces = gData.results || [];
+    // Fallback to Legacy Text Search if Places New was not enabled or failed
+    if (!isPlacesNew || rawPlaces.length === 0) {
+      try {
+        const legacyUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&region=pe&language=es&key=${encodeURIComponent(cleanKey)}`;
+        const legacyRes = await fetch(legacyUrl);
+        const legacyData = await legacyRes.json();
+        if (legacyData.status === 'OK') {
+          rawPlaces = legacyData.results || [];
+        }
+      } catch (err: any) {
+        console.warn('Legacy Places search failed:', err.message);
+      }
+    }
+
     const formattedResults: ExploredBusiness[] = [];
 
-    // Limit to top 15 results for performance and deep details lookup
-    const placesToProcess = rawPlaces.slice(0, 15);
-
-    for (const p of placesToProcess) {
-      const placeId = p.place_id;
-
-      // Fetch place details for phone and website if needed
+    for (const p of rawPlaces) {
+      let placeId = '';
+      let name = '';
+      let address = '';
       let phoneNumber = '';
       let websiteUri: string | null = null;
-      let emailFound: string | null = null;
+      let rating = 0;
+      let userRatingCount = 0;
+      let mapsUrl = '';
+      let primaryType = category;
 
-      try {
-        const detailUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name,formatted_address,formatted_phone_number,international_phone_number,website,rating,user_ratings_total,url,types&key=${encodeURIComponent(googleApiKey)}`;
-        const dRes = await fetch(detailUrl);
-        const dData = await dRes.json();
-        if (dData.result) {
-          phoneNumber = dData.result.formatted_phone_number || dData.result.international_phone_number || '';
-          websiteUri = dData.result.website || null;
-        }
-      } catch (e) {
-        console.error('Error fetching place details for', placeId, e);
+      if (isPlacesNew) {
+        placeId = p.id || '';
+        name = p.displayName?.text || 'Negocio Local';
+        address = p.formattedAddress || '';
+        phoneNumber = p.nationalPhoneNumber || p.internationalPhoneNumber || '';
+        websiteUri = p.websiteUri || null;
+        rating = p.rating || 0;
+        userRatingCount = p.userRatingCount || 0;
+        mapsUrl = p.googleMapsUri || `https://www.google.com/maps/place/?q=place_id:${placeId}`;
+        primaryType = p.primaryTypeDisplayName?.text || category;
+      } else {
+        placeId = p.place_id;
+        name = p.name || 'Negocio Local';
+        address = p.formatted_address || '';
+        rating = p.rating || 0;
+        userRatingCount = p.user_ratings_total || 0;
+        mapsUrl = `https://www.google.com/maps/place/?q=place_id:${placeId}`;
       }
 
-      // Filter: if onlyWithoutWebsite is true and business has a valid website, skip it
+      // Filter: if onlyWithoutWebsite is true and business already has a valid website, skip it
       if (onlyWithoutWebsite && websiteUri && websiteUri.trim().length > 5) {
         continue;
       }
 
       const phoneInfo = formatWhatsAppNumber(phoneNumber);
-      const isImported = importedPlaceIds.has(placeId) || importedCompanies.has((p.name || '').toLowerCase().trim());
-      const matchingContact = existingContacts.find((c) => c.google_place_id === placeId || (c.company || '').toLowerCase().trim() === (p.name || '').toLowerCase().trim());
+      const isImported = importedPlaceIds.has(placeId) || importedCompanies.has(name.toLowerCase().trim());
+      const matchingContact = existingContacts.find((c) => c.google_place_id === placeId || (c.company || '').toLowerCase().trim() === name.toLowerCase().trim());
 
-      // Attempt smart commercial email deduction if missing
-      const cleanName = (p.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-      emailFound = `contacto.${cleanName.substring(0, 15)}@gmail.com`;
+      // Smart commercial email deduction for prospect outreach
+      const cleanName = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const emailFound = `contacto.${cleanName.substring(0, 16)}@gmail.com`;
 
       formattedResults.push({
         place_id: placeId,
-        name: p.name || 'Negocio Local',
-        address: p.formatted_address || '',
+        name: name,
+        address: address,
         city: city !== 'Todo el Perú' ? city : 'Perú',
-        district: p.vicinity || '',
+        district: '',
         phone: phoneInfo.phone || null,
         whatsapp_number: phoneInfo.whatsapp || null,
         has_whatsapp: phoneInfo.isMobile,
         website: websiteUri,
         website_status: websiteUri ? 'ACTIVE' : 'NONE',
         email: emailFound,
-        rating: p.rating || 0,
-        reviews_count: p.user_ratings_total || 0,
-        google_maps_url: `https://www.google.com/maps/place/?q=place_id:${placeId}`,
-        category: category,
+        rating: rating,
+        reviews_count: userRatingCount,
+        google_maps_url: mapsUrl,
+        category: primaryType,
         is_imported: isImported,
         imported_id: matchingContact?.id,
       });
     }
 
+    // Increment searches_today in settings for live searches
+    const updatedSearchesToday = searchesToday + 1;
+    try {
+      const updatedValue = {
+        ...settingsVal,
+        today_date: todayDate,
+        searches_today: updatedSearchesToday,
+      };
+      await sql`
+        INSERT INTO settings (key, value, updated_at)
+        VALUES ('prospecting_apis', ${JSON.stringify(updatedValue)}::jsonb, NOW())
+        ON CONFLICT (key) DO UPDATE
+        SET value = ${JSON.stringify(updatedValue)}::jsonb, updated_at = NOW();
+      `;
+    } catch (dbErr) {
+      console.warn('Could not update search counter in settings:', dbErr);
+    }
+
     return NextResponse.json({
       success: true,
       is_demo: false,
+      api_version: isPlacesNew ? 'places_new' : 'legacy',
       count: formattedResults.length,
       results: formattedResults,
+      daily_limit: dailyLimit,
+      searches_today: updatedSearchesToday,
     });
   } catch (error: any) {
     console.error('Error in prospecting search API:', error);

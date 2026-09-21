@@ -25,30 +25,66 @@ export async function POST(req: Request) {
     const results = {
       google_ok: false,
       google_message: '',
+      google_api_version: 'none',
       openrouter_ok: false,
       openrouter_message: '',
     };
 
-    // 1. Test Google Places API Key
+    // 1. Test Google Places API Key (First try Places API New, then Legacy)
     if (google_places_api_key) {
+      const cleanKey = google_places_api_key.trim();
+      let testedNewOk = false;
+
+      // Try 1: Places API (New) endpoint
       try {
-        const gRes = await fetch(
-          `https://maps.googleapis.com/maps/api/place/textsearch/json?query=empresa+lima+peru&key=${encodeURIComponent(google_places_api_key)}`
-        );
-        const gData = await gRes.json();
-        if (gData.status === 'OK' || gData.status === 'ZERO_RESULTS') {
+        const newRes = await fetch('https://places.googleapis.com/v1/places:searchText', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': cleanKey,
+            'X-Goog-FieldMask': 'places.id,places.displayName',
+          },
+          body: JSON.stringify({
+            textQuery: 'empresa en lima peru',
+            maxResultCount: 1,
+          }),
+        });
+
+        if (newRes.ok) {
+          testedNewOk = true;
           results.google_ok = true;
-          results.google_message = 'Conexión exitosa con Google Places API. Clave activa y válida.';
-        } else if (gData.status === 'REQUEST_DENIED') {
-          results.google_ok = false;
-          results.google_message = `Acceso denegado: ${gData.error_message || 'Verifica que Places API esté habilitada en Google Cloud.'}`;
+          results.google_api_version = 'places_new';
+          results.google_message = 'Conexión exitosa con Google Places API (New). Clave activa y lista para usar.';
         } else {
-          results.google_ok = false;
-          results.google_message = `Google respondió: ${gData.status} - ${gData.error_message || ''}`;
+          const errData = await newRes.json().catch(() => ({}));
+          console.log('Places New API error:', newRes.status, errData);
         }
       } catch (err: any) {
-        results.google_ok = false;
-        results.google_message = `Error de red al conectar con Google: ${err.message}`;
+        console.warn('Places API New test fetch error:', err.message);
+      }
+
+      // Try 2: If New failed, try Legacy TextSearch
+      if (!testedNewOk) {
+        try {
+          const gRes = await fetch(
+            `https://maps.googleapis.com/maps/api/place/textsearch/json?query=empresa+lima+peru&key=${encodeURIComponent(cleanKey)}`
+          );
+          const gData = await gRes.json();
+          if (gData.status === 'OK' || gData.status === 'ZERO_RESULTS') {
+            results.google_ok = true;
+            results.google_api_version = 'legacy';
+            results.google_message = 'Conexión exitosa con Google Places API (Legacy). Clave activa.';
+          } else if (gData.status === 'REQUEST_DENIED') {
+            results.google_ok = false;
+            results.google_message = `Acceso denegado por Google: ${gData.error_message || 'Verifica que la API Places API (New) esté habilitada en Google Cloud.'}`;
+          } else {
+            results.google_ok = false;
+            results.google_message = `Google respondió: ${gData.status} - ${gData.error_message || 'Verifica restricciones de API Key en Google Cloud.'}`;
+          }
+        } catch (err: any) {
+          results.google_ok = false;
+          results.google_message = `Error de conexión con Google: ${err.message}`;
+        }
       }
     } else {
       results.google_message = 'No se ha configurado la clave de Google Places.';
@@ -65,11 +101,8 @@ export async function POST(req: Request) {
         if (oRes.ok) {
           const oData = await oRes.json();
           results.openrouter_ok = true;
-          const limit = oData.data?.limit ? `$${oData.data.limit}` : '';
-          const usage = oData.data?.usage ? `$${oData.data.usage}` : '';
           results.openrouter_message = `Conexión exitosa con OpenRouter. Saldo disponible detectado.`;
         } else {
-          const errData = await oRes.json().catch(() => ({}));
           results.openrouter_ok = false;
           results.openrouter_message = `Clave OpenRouter inválida o no autorizada (${oRes.status}).`;
         }

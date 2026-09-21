@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Search, Globe, MapPin, Phone, MessageSquare, ExternalLink, Star, Plus, Check, 
-  RefreshCw, Filter, Building2, Users, Flame, ShieldAlert, Sparkles, AlertCircle, 
+  RefreshCw, Filter, Building2, Users, Flame, ShieldAlert, ShieldCheck, Sparkles, AlertCircle, 
   ArrowUpRight, Copy, Mail, CheckCircle2, ChevronRight, UserCheck, KeyRound, Clock,
   Compass, Send, CheckSquare, Loader2
 } from 'lucide-react';
@@ -81,10 +81,14 @@ export default function LeadHunterView({
   const [assignedTarget, setAssignedTarget] = useState<string>(currentUser?.name || 'Gabino');
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
 
-  // API status check
+  // API status check & Quota
   const [apiStatus, setApiStatus] = useState<{ has_google_key: boolean; has_openrouter_key: boolean }>({
     has_google_key: false,
     has_openrouter_key: false,
+  });
+  const [searchQuota, setSearchQuota] = useState<{ limit: number; today: number }>({
+    limit: 30,
+    today: 0,
   });
 
   // Check API keys status
@@ -97,6 +101,12 @@ export default function LeadHunterView({
           has_google_key: data.has_google_key || false,
           has_openrouter_key: data.has_openrouter_key || false,
         });
+        if (typeof data.daily_search_limit === 'number') {
+          setSearchQuota({
+            limit: data.daily_search_limit,
+            today: data.searches_today || 0,
+          });
+        }
       }
     } catch (e) {
       console.error('Error checking API keys:', e);
@@ -147,6 +157,13 @@ export default function LeadHunterView({
       });
 
       const data = await res.json();
+      if (typeof data.daily_limit === 'number') {
+        setSearchQuota({
+          limit: data.daily_limit,
+          today: data.searches_today || 0,
+        });
+      }
+
       if (res.ok && data.success) {
         setSearchResults(data.results || []);
         setIsDemoMode(Boolean(data.is_demo));
@@ -260,13 +277,24 @@ export default function LeadHunterView({
             {apiStatus.has_google_key ? (
               <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded border bg-[#00a870]/15 text-[#00a870] border-[#00a870]/30 flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3" />
-                <span>Google Places Activo</span>
+                <span>Google Places (New) Activo</span>
               </span>
             ) : (
               <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded border bg-[#f59e0b]/15 text-[#f59e0b] border-[#f59e0b]/30 flex items-center gap-1">
                 <AlertCircle className="w-3 h-3" />
                 <span>Modo Demostración</span>
               </span>
+            )}
+
+            {apiStatus.has_google_key && (
+              <button
+                onClick={onOpenApiSettings}
+                className="text-[10px] font-mono px-2 py-0.5 rounded bg-theme-sur2 text-theme-txt2 hover:text-[#00a870] border border-theme-bor hover:border-[#00a870]/40 flex items-center gap-1 transition-colors cursor-pointer"
+                title="Límite diario de seguridad activo para evitar consumos inesperados. Haz clic para configurar."
+              >
+                <ShieldCheck className="w-3 h-3 text-[#00a870]" />
+                <span>Búsquedas hoy: {searchQuota.today}/{searchQuota.limit}</span>
+              </button>
             )}
 
             <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-theme-sur2 text-theme-txt3 border border-theme-bor">

@@ -7,11 +7,15 @@ export async function GET() {
       SELECT value FROM settings WHERE key = 'prospecting_apis' LIMIT 1;
     `;
 
+    const todayDate = new Date().toISOString().split('T')[0];
+
     if (rows.length === 0 || !rows[0]?.value) {
       return NextResponse.json({
         google_places_api_key: '',
         openrouter_api_key: '',
         openrouter_model: 'google/gemini-2.5-flash',
+        daily_search_limit: 30,
+        searches_today: 0,
         has_google_key: false,
         has_openrouter_key: false,
       });
@@ -20,11 +24,15 @@ export async function GET() {
     const val = rows[0].value as any;
     const gKey = val.google_places_api_key || '';
     const oKey = val.openrouter_api_key || '';
+    const searchesToday = val.today_date === todayDate ? (val.searches_today || 0) : 0;
+    const dailyLimit = typeof val.daily_search_limit === 'number' ? val.daily_search_limit : 30;
 
     return NextResponse.json({
       google_places_api_key: gKey ? `${gKey.substring(0, 8)}...${gKey.substring(gKey.length - 4)}` : '',
       openrouter_api_key: oKey ? `${oKey.substring(0, 8)}...${oKey.substring(oKey.length - 4)}` : '',
       openrouter_model: val.openrouter_model || 'google/gemini-2.5-flash',
+      daily_search_limit: dailyLimit,
+      searches_today: searchesToday,
       has_google_key: Boolean(gKey && gKey.length > 10),
       has_openrouter_key: Boolean(oKey && oKey.length > 10),
     });
@@ -37,7 +45,9 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { google_places_api_key, openrouter_api_key, openrouter_model } = body;
+    const { google_places_api_key, openrouter_api_key, openrouter_model, daily_search_limit } = body;
+
+    const todayDate = new Date().toISOString().split('T')[0];
 
     // Fetch existing settings to prevent overwriting with masked strings
     const existing = await sql`
@@ -56,11 +66,20 @@ export async function POST(req: Request) {
     }
 
     const finalModel = openrouter_model?.trim() || existingVal.openrouter_model || 'google/gemini-2.5-flash';
+    const finalLimit = typeof daily_search_limit === 'number' && daily_search_limit > 0 
+      ? daily_search_limit 
+      : (typeof existingVal.daily_search_limit === 'number' ? existingVal.daily_search_limit : 30);
+
+    const searchesToday = existingVal.today_date === todayDate ? (existingVal.searches_today || 0) : 0;
 
     const newValue = {
+      ...existingVal,
       google_places_api_key: finalGoogleKey,
       openrouter_api_key: finalOpenRouterKey,
       openrouter_model: finalModel,
+      daily_search_limit: finalLimit,
+      today_date: todayDate,
+      searches_today: searchesToday,
       updated_at: new Date().toISOString(),
     };
 
@@ -76,6 +95,8 @@ export async function POST(req: Request) {
       has_google_key: Boolean(finalGoogleKey && finalGoogleKey.length > 10),
       has_openrouter_key: Boolean(finalOpenRouterKey && finalOpenRouterKey.length > 10),
       openrouter_model: finalModel,
+      daily_search_limit: finalLimit,
+      searches_today: searchesToday,
     });
   } catch (error: any) {
     console.error('Error saving settings:', error);

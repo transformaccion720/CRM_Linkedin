@@ -20,6 +20,10 @@ export default function ApiSettingsModal({
   const [googleKey, setGoogleKey] = useState<string>('');
   const [openRouterKey, setOpenRouterKey] = useState<string>('');
   const [openRouterModel, setOpenRouterModel] = useState<string>('google/gemini-2.5-flash');
+  const [dailyLimit, setDailyLimit] = useState<number>(30);
+  const [searchesToday, setSearchesToday] = useState<number>(0);
+  const [showHardCapGuide, setShowHardCapGuide] = useState<boolean>(false);
+  const [showProgrammableSearchInfo, setShowProgrammableSearchInfo] = useState<boolean>(false);
   
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
@@ -46,6 +50,8 @@ export default function ApiSettingsModal({
           setGoogleKey(data.google_places_api_key || '');
           setOpenRouterKey(data.openrouter_api_key || '');
           setOpenRouterModel(data.openrouter_model || 'google/gemini-2.5-flash');
+          setDailyLimit(data.daily_search_limit || 30);
+          setSearchesToday(data.searches_today || 0);
         })
         .catch((e) => console.error('Error loading API settings:', e))
         .finally(() => setLoading(false));
@@ -89,6 +95,7 @@ export default function ApiSettingsModal({
           google_places_api_key: googleKey,
           openrouter_api_key: openRouterKey,
           openrouter_model: openRouterModel,
+          daily_search_limit: dailyLimit,
         }),
       });
 
@@ -109,7 +116,7 @@ export default function ApiSettingsModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4">
-      <div className="bg-theme-sur border border-theme-bor rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col text-theme-txt animate-in fade-in zoom-in-95 duration-150">
+      <div className="bg-theme-sur border border-theme-bor rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col text-theme-txt animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
         <div className="p-4 px-6 border-b border-theme-bor flex items-center justify-between bg-theme-sur">
           <div className="flex items-center gap-3">
@@ -117,9 +124,9 @@ export default function ApiSettingsModal({
               <KeyRound className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-theme-txt">Conexiones & APIs de Prospección</h3>
+              <h3 className="font-bold text-sm text-theme-txt">Conexiones & Blindaje de APIs</h3>
               <p className="text-xs text-theme-txt2">
-                Credenciales seguras para Google Places y OpenRouter IA
+                Google Places API (New) • OpenRouter IA • Protección Anti-Cobros
               </p>
             </div>
           </div>
@@ -141,13 +148,13 @@ export default function ApiSettingsModal({
             </div>
           ) : (
             <>
-              {/* 1. Google Places API */}
+              {/* 1. Google Places API (New) */}
               <div className="p-4 bg-theme-sur2/70 border border-theme-bor rounded-xl space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Globe className="w-4 h-4 text-[#2979ff]" />
                     <label className="text-xs font-bold text-theme-txt uppercase tracking-wider font-mono">
-                      Google Places API Key
+                      Google Places API (New) Key
                     </label>
                   </div>
                   <a
@@ -156,25 +163,144 @@ export default function ApiSettingsModal({
                     rel="noopener noreferrer"
                     className="text-[11px] font-mono text-[#2979ff] hover:underline flex items-center gap-1 font-semibold"
                   >
-                    <span>Obtener clave en Google Cloud</span>
+                    <span>Credenciales Google Cloud</span>
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>
 
-                <input
-                  type="text"
-                  value={googleKey}
-                  onChange={(e) => setGoogleKey(e.target.value)}
-                  placeholder="AIzaSy..."
-                  className="w-full bg-theme-sur border border-theme-bor focus:border-[#2979ff] rounded-xl px-3.5 py-2.5 text-xs text-theme-txt font-mono outline-hidden"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={googleKey}
+                    onChange={(e) => setGoogleKey(e.target.value)}
+                    placeholder="AIzaSy..."
+                    className="w-full bg-theme-sur border border-theme-bor focus:border-[#2979ff] rounded-xl px-3.5 py-2.5 text-xs text-theme-txt font-mono outline-hidden pr-24"
+                  />
+                  {googleKey && googleKey.length > 10 && (
+                    <span className="absolute right-2.5 top-2.5 text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#00a870]/15 text-[#00a870] border border-[#00a870]/30">
+                      ✓ Configurada
+                    </span>
+                  )}
+                </div>
 
-                <div className="text-[11px] text-theme-txt3 leading-relaxed">
-                  💡 <b>Crédito mensual gratis:</b> Google otorga $200 USD todos los meses para Places API. Te permite buscar hasta 4,000 negocios en Perú a costo $0.
+                <div className="text-[11px] text-theme-txt3 leading-relaxed flex items-start gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-[#00a870] shrink-0 mt-0.5" />
+                  <span>
+                    <b>Optimización de costo 95%:</b> Usamos la nueva <i>Places API (New)</i> con <code>FieldMask</code>. Obtenemos nombre, teléfono, WhatsApp, web y rating en <b>1 sola petición compacta</b> por cada lote de 15 negocios, sin llamadas secundarias.
+                  </span>
                 </div>
               </div>
 
-              {/* 2. OpenRouter API Key & Model */}
+              {/* 2. Blindaje de Costos & Límite Diario */}
+              <div className="p-4 bg-theme-sur2/70 border border-theme-bor rounded-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-[#00a870]" />
+                    <label className="text-xs font-bold text-theme-txt uppercase tracking-wider font-mono">
+                      Blindaje de Costos & Límite Diario
+                    </label>
+                  </div>
+                  <span className="text-[11px] font-mono text-theme-txt2 font-bold bg-theme-sur px-2 py-0.5 rounded border border-theme-bor">
+                    {searchesToday} / {dailyLimit} hoy
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                  <div>
+                    <label className="text-xs text-theme-txt2 block mb-1">
+                      Máximo de búsquedas por día en CRM:
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min={5}
+                        max={200}
+                        value={dailyLimit}
+                        onChange={(e) => setDailyLimit(Math.max(5, parseInt(e.target.value) || 30))}
+                        className="w-24 bg-theme-sur border border-theme-bor focus:border-[#00a870] rounded-xl px-3 py-1.5 text-xs text-theme-txt font-mono font-bold outline-hidden"
+                      />
+                      <span className="text-xs text-theme-txt3 font-mono">
+                        ≈ {dailyLimit * 15} prospectos/día
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="text-[11px] text-theme-txt3 bg-theme-sur p-2.5 rounded-lg border border-theme-bor">
+                    🔒 <b>Corte Automático:</b> Al llegar al límite ({dailyLimit}), el CRM detiene las búsquedas automáticamente para evitar cargos accidentales en Google Cloud.
+                  </div>
+                </div>
+
+                {/* Toggle Guía Hard Cap Google Cloud */}
+                <div className="pt-2 border-t border-theme-bor/60">
+                  <button
+                    type="button"
+                    onClick={() => setShowHardCapGuide(!showHardCapGuide)}
+                    className="text-xs text-[#2979ff] hover:underline font-semibold flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>{showHardCapGuide ? '▼ Ocultar' : '▶ Ver'} cómo garantizar 0 cobros en Google Cloud Console (Hard Cap)</span>
+                  </button>
+
+                  {showHardCapGuide && (
+                    <div className="mt-3 p-3.5 bg-theme-sur rounded-xl border border-theme-bor text-xs space-y-2.5 text-theme-txt2 animate-in fade-in">
+                      <div className="font-bold text-theme-txt text-xs flex items-center gap-1.5">
+                        <span>🛡️ Guía para Blindar tu Cuenta de Google Cloud al 100%:</span>
+                      </div>
+                      
+                      <div className="space-y-2 text-[11px] leading-relaxed">
+                        <div className="flex items-start gap-2">
+                          <span className="w-4 h-4 rounded-full bg-[#2979ff]/20 text-[#2979ff] flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">1</span>
+                          <div>
+                            <span className="font-semibold text-theme-txt">Límite Duro en Cuotas (Hard Cap): </span>
+                            Ve a <a href="https://console.cloud.google.com/apis/api/places.googleapis.com/quotas" target="_blank" rel="noreferrer" className="text-[#2979ff] underline">Google Cloud ➔ Cuotas de Places API</a>. Edita <i>&quot;Requests per day&quot;</i> y fija un máximo estricto (ej. 30 o 50). Si se supera, Google rechaza la petición con error 429 y <b>es técnicamente imposible que te cobre</b>.
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-2">
+                          <span className="w-4 h-4 rounded-full bg-[#2979ff]/20 text-[#2979ff] flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">2</span>
+                          <div>
+                            <span className="font-semibold text-theme-txt">Alerta de Presupuesto a $1 USD: </span>
+                            Ve a <a href="https://console.cloud.google.com/billing/budgets" target="_blank" rel="noreferrer" className="text-[#2979ff] underline">Facturación ➔ Presupuestos y alertas</a>. Crea un presupuesto de $1.00 USD con alerta al 50% ($0.50) y 100%. Te llegará un email inmediato si hubiera cualquier centavo.
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-2">
+                          <span className="w-4 h-4 rounded-full bg-[#2979ff]/20 text-[#2979ff] flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">3</span>
+                          <div>
+                            <span className="font-semibold text-theme-txt">Restricción de API Key: </span>
+                            En <a href="https://console.cloud.google.com/google/maps-apis/credentials" target="_blank" rel="noreferrer" className="text-[#2979ff] underline">Credenciales</a>, edita tu clave y bajo <i>&quot;Restricciones de API&quot;</i> selecciona únicamente <code>Places API (New)</code> para que ninguna otra API consuma crédito.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Toggle Info Google Programmable Search */}
+                <div className="pt-2 border-t border-theme-bor/60">
+                  <button
+                    type="button"
+                    onClick={() => setShowProgrammableSearchInfo(!showProgrammableSearchInfo)}
+                    className="text-xs text-theme-txt3 hover:text-theme-txt hover:underline font-semibold flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>{showProgrammableSearchInfo ? '▼ Ocultar' : '▶ ¿Qué es Google Programmable Search Engine? (Alternativa sin tarjeta)'}</span>
+                  </button>
+
+                  {showProgrammableSearchInfo && (
+                    <div className="mt-3 p-3.5 bg-theme-sur rounded-xl border border-theme-bor text-xs space-y-2 text-theme-txt2 animate-in fade-in text-[11px] leading-relaxed">
+                      <p>
+                        <b>Google Programmable Search Engine</b> (antes Custom Search Engine) es el motor de búsqueda web de Google.
+                      </p>
+                      <ul className="list-disc list-inside space-y-1 text-theme-txt3">
+                        <li><b>¿Dónde se obtiene?</b> En <a href="https://programmablesearchengine.google.com/" target="_blank" rel="noreferrer" className="text-[#2979ff] underline">programmablesearchengine.google.com</a> creando un buscador y activando la <i>Custom Search JSON API</i> en Google Cloud.</li>
+                        <li><b>Ventaja:</b> Es 100% gratuito de por vida (100 búsquedas al día) <b>sin requerir tarjeta de crédito</b>.</li>
+                        <li><b>Diferencia clave con Places API:</b> Programmable Search solo busca páginas web públicas en Google (enlaces HTML). En cambio, <b>Places API</b> entrega las fichas oficiales de Google Maps con teléfonos verificados, WhatsApp, rating y dirección física. Para prospección local B2B, Places API es inmensamente superior.</li>
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 3. OpenRouter API Key & Model */}
               <div className="p-4 bg-theme-sur2/70 border border-theme-bor rounded-xl space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -203,7 +329,7 @@ export default function ApiSettingsModal({
                 />
 
                 {/* Model Selector */}
-                <div className="flex items-center justify-between gap-2 pt-1">
+                <div className="flex items-center justify-between gap-2 pt-1 flex-wrap">
                   <span className="text-xs text-theme-txt2 font-medium">Modelo para Análisis & Mensajes:</span>
                   <select
                     value={openRouterModel}
@@ -226,14 +352,14 @@ export default function ApiSettingsModal({
                 <div className="p-3.5 rounded-xl border space-y-2 bg-theme-sur border-theme-bor">
                   <div className="text-xs font-bold text-theme-txt flex items-center gap-2">
                     <ShieldCheck className="w-4 h-4 text-[#00a870]" />
-                    <span>Diagnóstico de Conectividad:</span>
+                    <span>Diagnóstico de Conectividad en Vivo:</span>
                   </div>
 
                   <div className="space-y-1.5 text-xs">
                     <div className="flex items-start gap-2">
                       <span className={`w-2 h-2 rounded-full mt-1 shrink-0 ${testResults.google_ok ? 'bg-[#00a870]' : 'bg-[#ff6d3b]'}`} />
                       <div>
-                        <span className="font-semibold text-theme-txt">Google Places: </span>
+                        <span className="font-semibold text-theme-txt">Google Places API (New): </span>
                         <span className={testResults.google_ok ? 'text-[#00a870]' : 'text-[#ff6d3b]'}>
                           {testResults.google_message}
                         </span>

@@ -326,3 +326,13 @@ export interface ContactStats {
   byMember?: MemberStats[];
   weeklySprint?: WeeklySprintData;
 }
+
+export interface ProspectingSettings {
+  google_places_api_key?: string;
+  openrouter_api_key?: string;
+  openrouter_model?: string;
+  daily_search_limit?: number;
+  searches_today?: number;
+  has_google_key?: boolean;
+  has_openrouter_key?: boolean;
+}
