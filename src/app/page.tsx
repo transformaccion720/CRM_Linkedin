@@ -15,6 +15,7 @@ import FollowUpsCalendarView from '@/components/FollowUpsCalendarView';
 import MessagingInboxView from '@/components/MessagingInboxView';
 import ResourcesDirectoryView from '@/components/ResourcesDirectoryView';
 import SettingsCenterView from '@/components/SettingsCenterView';
+import LeadHunterView from '@/components/LeadHunterView';
 import ContactDrawer from '@/components/ContactDrawer';
 import CsvUploader from '@/components/CsvUploader';
 import NewContactModal from '@/components/NewContactModal';
@@ -22,6 +23,7 @@ import TeamManagerModal from '@/components/TeamManagerModal';
 import ZernioLinkedInModal from '@/components/ZernioLinkedInModal';
 import TemplateManagerModal from '@/components/TemplateManagerModal';
 import ProfileModal from '@/components/ProfileModal';
+import ApiSettingsModal from '@/components/ApiSettingsModal';
 import LoginScreen from '@/components/LoginScreen';
 import { Search, ShieldAlert, LayoutGrid, LayoutList, UserCheck, X } from 'lucide-react';
 
@@ -50,7 +52,7 @@ export default function Home() {
   const [activeTemplateId, setActiveTemplateId] = useState<string>(DEFAULT_TEMPLATES[0].id);
 
   // Tabs & Views
-  const [activeTab, setActiveTab] = useState<'contactos' | 'segmentos' | 'funnel' | 'objetivos' | 'seguimientos' | 'mensajeria' | 'recursos' | 'analytics' | 'ejecutivo' | 'configuracion'>('contactos');
+  const [activeTab, setActiveTab] = useState<'contactos' | 'segmentos' | 'funnel' | 'objetivos' | 'seguimientos' | 'lead-hunter' | 'mensajeria' | 'recursos' | 'analytics' | 'ejecutivo' | 'configuracion'>('contactos');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
 
   // Filters
@@ -82,6 +84,7 @@ export default function Home() {
   const [isTeamManagerOpen, setIsTeamManagerOpen] = useState(false);
   const [isTemplateManagerOpen, setIsTemplateManagerOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isApiSettingsOpen, setIsApiSettingsOpen] = useState(false);
 
   // Check saved session in localStorage & set intelligent role defaults
   useEffect(() => {
@@ -602,6 +605,17 @@ export default function Home() {
             />
           )}
 
+          {/* Lead Hunter - Cazador Web Perú */}
+          {activeTab === 'lead-hunter' && (
+            <LeadHunterView
+              currentUser={currentUser}
+              teamMembers={teamMembers}
+              onOpenContactDrawer={handleOpenContactById}
+              onOpenApiSettings={() => setIsApiSettingsOpen(true)}
+              onRefreshContacts={fetchContacts}
+            />
+          )}
+
           {activeTab === 'mensajeria' && (
             <MessagingInboxView
               currentUser={currentUser}
@@ -635,6 +649,7 @@ export default function Home() {
               onExport={handleExportCSV}
               onOpenProfile={() => setIsProfileOpen(true)}
               onOpenResources={() => setActiveTab('recursos')}
+              onOpenApiSettings={() => setIsApiSettingsOpen(true)}
             />
           )}
         </main>
@@ -661,6 +676,14 @@ export default function Home() {
           currentUser={currentUser}
           onUpdateUser={setCurrentUser}
           onLogout={handleLogout}
+        />
+      )}
+
+      {/* API & Prospecting Settings Modal */}
+      {isApiSettingsOpen && (
+        <ApiSettingsModal
+          isOpen={isApiSettingsOpen}
+          onClose={() => setIsApiSettingsOpen(false)}
         />
       )}
 

@@ -4,7 +4,7 @@ import React from 'react';
 import { 
   Users, Kanban, Filter, Calendar, BarChart3, LineChart, 
   UserPlus, RefreshCw, Moon, Sun, Menu, CheckCircle2,
-  CalendarDays
+  CalendarDays, Compass
 } from 'lucide-react';
 import ActivityBell from '@/components/ActivityBell';
 import FollowUpBell from '@/components/FollowUpBell';
@@ -12,8 +12,8 @@ import { TeamMember } from '@/lib/types';
 
 interface NavbarProps {
   totalContacts: number;
-  activeTab: 'contactos' | 'segmentos' | 'funnel' | 'objetivos' | 'seguimientos' | 'mensajeria' | 'recursos' | 'analytics' | 'ejecutivo' | 'configuracion';
-  setActiveTab: (tab: 'contactos' | 'segmentos' | 'funnel' | 'objetivos' | 'seguimientos' | 'mensajeria' | 'recursos' | 'analytics' | 'ejecutivo' | 'configuracion') => void;
+  activeTab: 'contactos' | 'segmentos' | 'funnel' | 'objetivos' | 'seguimientos' | 'lead-hunter' | 'mensajeria' | 'recursos' | 'analytics' | 'ejecutivo' | 'configuracion';
+  setActiveTab: (tab: 'contactos' | 'segmentos' | 'funnel' | 'objetivos' | 'seguimientos' | 'lead-hunter' | 'mensajeria' | 'recursos' | 'analytics' | 'ejecutivo' | 'configuracion') => void;
   onOpenNewContact: () => void;
   onRefresh: () => void;
   onToggleMobileSidebar?: () => void;
@@ -196,6 +196,22 @@ export default function Navbar({
         >
           <Calendar className="w-3.5 h-3.5 text-[#ff6d3b]" />
           <span>Seguimientos (Agenda)</span>
+        </button>
+
+        {/* Lead Hunter (Cazador Web Perú) Tab */}
+        <button
+          onClick={() => setActiveTab('lead-hunter')}
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 text-xs font-medium border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === 'lead-hunter'
+              ? 'border-[#ff6d3b] text-[#ff6d3b] font-bold bg-[#ff6d3b]/5'
+              : 'border-transparent text-theme-txt2 hover:text-[#ff6d3b] hover:bg-theme-sur2'
+          }`}
+        >
+          <Compass className="w-3.5 h-3.5 text-[#ff6d3b]" />
+          <span>Cazador Web Perú</span>
+          <span className="font-mono text-[9px] px-1.5 py-0.2 rounded-full bg-[#ff6d3b]/15 text-[#ff6d3b] font-bold">
+            B2B
+          </span>
         </button>
 
         {/* Analytics Tab */}

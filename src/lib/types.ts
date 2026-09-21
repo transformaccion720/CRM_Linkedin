@@ -28,7 +28,8 @@ export type BusinessSegment = 'B2B' | 'B2C';
 export type ContactSource =
   | 'BUSQUEDA_ACTIVA' // 🎯 Prospectos detectados buscando servicios / Signal Lead
   | 'PROSPECCION_DIRECTA' // 👤 Añadido manualmente
-  | 'BASE_IMPORTADA'; // 🗄️ Base importada desde CSV
+  | 'BASE_IMPORTADA' // 🗄️ Base importada desde CSV
+  | 'GOOGLE_MAPS'; // 📍 Cazador B2B Exploratorio (Google Places)
 
 export interface TeamMember {
   id: string;
@@ -103,6 +104,12 @@ export interface Contact {
   assigned_to?: string | null;
   shared_with?: string[];
   source?: ContactSource; // Origen del lead
+  b2b_subsegment?: 'CORPORATIVO' | 'EXPLORATORIO' | null; // Sub-cartera B2B: Corporativo (LinkedIn) vs Exploratorio (Google/Web)
+  google_place_id?: string | null;
+  google_rating?: number | null;
+  google_reviews_count?: number | null;
+  google_maps_url?: string | null;
+  website_status?: 'NONE' | 'OUTDATED' | 'ACTIVE' | null;
   post_url?: string | null; // Link de la publicación / post de búsqueda
   service_needed?: string | null; // Servicio / necesidad específica que busca
   business_segment?: BusinessSegment | null; // Segmento: B2B Corporativo vs B2C Alumnos/Programas
@@ -110,6 +117,34 @@ export interface Contact {
   last_message_preview?: string | null;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface ProspectingSettings {
+  google_places_api_key?: string;
+  openrouter_api_key?: string;
+  openrouter_model?: string;
+  has_google_key?: boolean;
+  has_openrouter_key?: boolean;
+}
+
+export interface ExploredBusiness {
+  place_id: string;
+  name: string;
+  address: string;
+  city: string;
+  district?: string;
+  phone?: string | null;
+  whatsapp_number?: string | null;
+  has_whatsapp?: boolean;
+  website?: string | null;
+  website_status: 'NONE' | 'OUTDATED' | 'ACTIVE';
+  email?: string | null;
+  rating?: number;
+  reviews_count?: number;
+  google_maps_url?: string;
+  category?: string;
+  is_imported?: boolean;
+  imported_id?: string;
 }
 
 export interface MemberStats {

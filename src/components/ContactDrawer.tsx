@@ -345,7 +345,7 @@ function ContactDrawerInner({
             </div>
           )}
 
-          {/* Action Buttons: Abrir Asistente de Mensajes + Ver Post + Ver LinkedIn */}
+          {/* Action Buttons: Abrir Asistente de Mensajes + Ver Post + Ver LinkedIn + WhatsApp + Google Maps */}
           <div className="flex items-center gap-2 flex-wrap">
             {onOpenTemplates && (
               <button
@@ -355,6 +355,20 @@ function ContactDrawerInner({
                 <MessageSquare className="w-4 h-4" />
                 <span>Abrir Asistente de Mensajes</span>
               </button>
+            )}
+
+            {/* Direct WhatsApp button if phone exists */}
+            {phone && (
+              <a
+                href={`https://wa.me/${phone.replace(/\D/g, '').startsWith('51') ? phone.replace(/\D/g, '') : `51${phone.replace(/\D/g, '')}`}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="py-2.5 px-3 rounded-xl text-xs font-bold text-white bg-[#00a870] hover:bg-[#008f5f] flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                title="Abrir chat en WhatsApp Web"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>WhatsApp</span>
+              </a>
             )}
 
             {(postUrl || contact.post_url) && (
@@ -367,6 +381,19 @@ function ContactDrawerInner({
               >
                 <FileText className="w-3.5 h-3.5" />
                 <span>Ver Post</span>
+              </a>
+            )}
+
+            {contact.google_maps_url && (
+              <a
+                href={contact.google_maps_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="py-2.5 px-3.5 rounded-xl text-xs font-semibold text-[#2979ff] hover:text-white bg-[#2979ff]/15 hover:bg-[#2979ff] border border-[#2979ff]/30 flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                title="Ver ficha en Google Maps"
+              >
+                <Globe className="w-3.5 h-3.5" />
+                <span>Ver en Maps</span>
               </a>
             )}
 
@@ -383,6 +410,29 @@ function ContactDrawerInner({
               </a>
             )}
           </div>
+
+          {/* Special B2B Exploratory Badge if source is Google Maps */}
+          {(contact.b2b_subsegment === 'EXPLORATORIO' || contact.source === 'GOOGLE_MAPS') && (
+            <div className="p-3 bg-[#ff6d3b]/10 border border-[#ff6d3b]/30 rounded-xl space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-[#ff6d3b] flex items-center gap-1.5">
+                  <span>🚀</span>
+                  <span>Línea: B2B Exploratorio (Web Perú)</span>
+                </span>
+                {contact.google_rating && (
+                  <span className="text-[11px] font-mono font-bold text-[#f59e0b]">
+                    ⭐ {contact.google_rating} ({contact.google_reviews_count || 0} reseñas)
+                  </span>
+                )}
+              </div>
+              <p className="text-theme-txt2 text-[11px]">
+                Negocio descubierto en Google Maps. Estado Web:{' '}
+                <b className="text-theme-txt">
+                  {contact.website_status === 'NONE' || !contact.website_status ? '❌ Sin sitio web oficial (Oportunidad de Venta)' : 'Tiene Web'}
+                </b>
+              </p>
+            </div>
+          )}
 
           {/* Segment Selector: B2B Corporativo (Gabino) vs B2C Alumnos (Kiara) */}
           <div className="bg-theme-sur2/70 p-3 rounded-2xl border border-theme-bor flex items-center justify-between gap-3">

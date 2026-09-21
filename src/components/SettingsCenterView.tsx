@@ -16,6 +16,7 @@ interface SettingsCenterViewProps {
   onExport: () => void;
   onOpenProfile: () => void;
   onOpenResources: () => void;
+  onOpenApiSettings?: () => void;
 }
 
 export default function SettingsCenterView({
@@ -27,6 +28,7 @@ export default function SettingsCenterView({
   onExport,
   onOpenProfile,
   onOpenResources,
+  onOpenApiSettings,
 }: SettingsCenterViewProps) {
   return (
     <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-theme-bg">
@@ -188,6 +190,34 @@ export default function SettingsCenterView({
           >
             <KeyRound className="w-4 h-4" />
             <span>Editar Mi Contraseña</span>
+          </button>
+        </div>
+
+        {/* 7. Conexiones & APIs de Prospección (Google Places & OpenRouter) */}
+        <div className="bg-theme-sur border border-theme-bor rounded-2xl p-5 flex flex-col justify-between space-y-4 hover:border-[#00e5a0]/50 transition-all shadow-xs group">
+          <div className="space-y-2.5">
+            <div className="w-10 h-10 rounded-xl bg-[#00e5a0]/10 text-[#00e5a0] flex items-center justify-center font-bold">
+              <KeyRound className="w-5 h-5" />
+            </div>
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-base text-theme-txt group-hover:text-[#00e5a0] transition-colors">
+                APIs & Cazador B2B
+              </h3>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#00e5a0]/15 text-[#00e5a0] border border-[#00e5a0]/30 font-bold">
+                Google & IA
+              </span>
+            </div>
+            <p className="text-xs text-theme-txt2 leading-relaxed">
+              Configura tus claves de Google Places API (búsqueda de negocios peruanos sin web) y OpenRouter IA para redacción y análisis comercial.
+            </p>
+          </div>
+
+          <button
+            onClick={onOpenApiSettings}
+            className="w-full py-2.5 rounded-xl text-xs font-semibold bg-[#00e5a0]/15 text-[#00e5a0] hover:bg-[#00e5a0] hover:text-[#00110b] border border-[#00e5a0]/30 transition-all cursor-pointer flex items-center justify-center gap-2 font-bold"
+          >
+            <KeyRound className="w-4 h-4" />
+            <span>Configurar Claves de API</span>
           </button>
         </div>
       </div>

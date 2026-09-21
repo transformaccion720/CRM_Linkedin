@@ -48,6 +48,12 @@ export async function GET() {
     await sql`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS source VARCHAR(50) DEFAULT 'PROSPECCION_DIRECTA';`;
     await sql`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS post_url TEXT;`;
     await sql`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS service_needed TEXT;`;
+    await sql`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS b2b_subsegment VARCHAR(50) DEFAULT 'CORPORATIVO';`;
+    await sql`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS google_place_id VARCHAR(255);`;
+    await sql`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS google_rating NUMERIC(3,1);`;
+    await sql`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS google_reviews_count INTEGER DEFAULT 0;`;
+    await sql`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS google_maps_url TEXT;`;
+    await sql`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS website_status VARCHAR(50) DEFAULT 'NONE';`;
 
     // Unique index on (linkedin_url, assigned_to)
     await sql`
